@@ -1,0 +1,24 @@
+{
+    "razorpay": {
+        "keyId": "rzp_test_SueXQ1lWI3Y6IV",
+        "keySecret": "zOtHdizziOn7041V9f2MVn2u"
+    },
+    "plans": {
+        "MONTHLY": {
+            "days": 30,
+            "amount": 1000
+        },
+        "HALF_YEARLY": {
+            "days": 180,
+            "amount": 5500
+        },
+        "SIX_MONTHS": {
+            "days": 180,
+            "amount": 5500
+        },
+        "YEARLY": {
+            "days": 365,
+            "amount": 11000
+        }
+    }
+}
