@@ -115,7 +115,7 @@ function AdminOwners() {
                                         <td>
                                             <span className={`badge bg-${owner.subscriptionStatus === 'ACTIVE' ? 'success' : owner.subscriptionStatus === 'EXPIRED' ? 'danger' : 'secondary'}`}>
                                                 {owner.subscriptionStatus || 'TRIAL'}
-                                            </span>                                   
+                                            </span>
                                         </td>
                                         <td>{owner.subscriptionStartAt ? new Date(owner.subscriptionStartAt).toLocaleDateString('en-IN') : 'N/A'}</td>
                                         <td>{owner.subscriptionEndAt ? new Date(owner.subscriptionEndAt).toLocaleDateString('en-IN') : 'N/A'}</td>
