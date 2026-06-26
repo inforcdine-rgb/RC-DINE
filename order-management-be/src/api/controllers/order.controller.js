@@ -26,7 +26,7 @@ const register = async (req, res) => {
         return res.status(STATUS_CODE.CREATED).send(result);
     } catch (error) {
         logger('error', 'Error occurred during customer registration', { error });
-        return res.status(error.code).send({ message: error.message });
+        return res.status(error.code||500).send({ message: error.message });
     }
 };
 
@@ -37,7 +37,7 @@ const getTableDetails = async (req, res) => {
         return res.status(STATUS_CODE.OK).send(result);
     } catch (error) {
         logger('error', `Error while fetching table by id ${error}`);
-        return res.status(error.code).send({ message: error.message });
+        return res.status(error.code||500).send({ message: error.message });
     }
 };
 
@@ -52,7 +52,7 @@ const getMenuDetails = async (req, res) => {
         return res.status(STATUS_CODE.OK).send(result);
     } catch (error) {
         logger('error', `Error occurred during fetching hotel details ${JSON.stringify(error)}`);
-        return res.status(error.code).send({ message: error.message });
+        return res.status(error.code||500).send({ message: error.message });
     }
 };
 
@@ -73,7 +73,7 @@ const placeOrder = async (req, res) => {
         return res.status(STATUS_CODE.CREATED).send(result);
     } catch (error) {
         logger('error', `Error occurred during placing order ${JSON.stringify(error)}`);
-        return res.status(error.code).send({ message: error.message });
+        return res.status(error.code||500).send({ message: error.message });
     }
 };
 
@@ -88,7 +88,7 @@ const getOrder = async (req, res) => {
         return res.status(STATUS_CODE.OK).send(result);
     } catch (error) {
         logger('error', `Error occurred during fetching order ${JSON.stringify(error)}`);
-        return res.status(error.code).send({ message: error.message });
+        return res.status(error.code||500).send({ message: error.message });
     }
 };
 
@@ -109,7 +109,7 @@ const feedback = async (req, res) => {
         return res.status(STATUS_CODE.OK).send(result);
     } catch (error) {
         logger('error', `Error occurred during feedback ${JSON.stringify(error)}`);
-        return res.status(error.code).send({ message: error.message });
+        return res.status(error.code||500).send({ message: error.message });
     }
 };
 
@@ -125,7 +125,7 @@ const active = async (req, res) => {
         return res.status(STATUS_CODE.OK).send(result);
     } catch (error) {
         logger('error', `Error occurred during fetching active orders ${JSON.stringify(error)}`);
-        return res.status(error.code).send({ message: error.message });
+        return res.status(error.code||500).send({ message: error.message });
     }
 };
 
@@ -143,7 +143,7 @@ const updatePending = async (req, res) => {
         return res.status(STATUS_CODE.OK).send(result);
     } catch (error) {
         logger('error', `Error occurred during updating pending orders ${JSON.stringify(error)}`);
-        return res.status(error.code).send({ message: error.message });
+        return res.status(error.code||500).send({ message: error.message });
     }
 };
 
@@ -159,7 +159,7 @@ const completed = async (req, res) => {
         return res.status(STATUS_CODE.OK).send(result);
     } catch (error) {
         logger('error', `Error occurred during fetching completed orders ${JSON.stringify(error)}`);
-        return res.status(error.code).send({ message: error.message });
+        return res.status(error.code||500).send({ message: error.message });
     }
 };
 

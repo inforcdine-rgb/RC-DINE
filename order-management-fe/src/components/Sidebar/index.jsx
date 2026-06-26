@@ -5,7 +5,7 @@ import { IoMdArrowRoundBack, IoMdArrowRoundForward } from 'react-icons/io';
 import { useDispatch, useSelector } from 'react-redux';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import Logo from '../../assets/images/rasops.png';
+import Logo from '../../assets/images/R-C DINE.png';
 import '../../assets/styles/sidebar.css';
 import env from '../../config/env';
 import { logoutRequest } from '../../store/slice';

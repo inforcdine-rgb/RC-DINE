@@ -6,19 +6,19 @@
     "plans": {
         "MONTHLY": {
             "days": 30,
-            "amount": 1000
+            "amount": 100
         },
         "HALF_YEARLY": {
             "days": 180,
-            "amount": 5500
+            "amount": 550
         },
         "SIX_MONTHS": {
             "days": 180,
-            "amount": 5500
+            "amount": 550
         },
         "YEARLY": {
             "days": 365,
-            "amount": 11000
+            "amount": 1099
         }
     }
 }

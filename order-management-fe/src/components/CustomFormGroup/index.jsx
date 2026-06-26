@@ -31,6 +31,7 @@ function CustomFormGroup({
                     {required && <div className="text-danger ms-1">*</div>}
                 </FormLabel>
             )}
+
             {type === 'select' ? (
                 <Field name={name}>
                     {({ field }) => (
@@ -109,6 +110,17 @@ function CustomFormGroup({
                 </Field>
             ) : type === 'strong' ? (
                 <strong className={className}>{label}</strong>
+            ) : type === 'file' ? (
+                <input
+                    type="file"
+                    name={name}
+                    className="form-control"
+                    accept="image/*"
+                    disabled={disabled}
+                    onChange={(event) => {
+                        setFieldValue(name, event.currentTarget.files[0]);
+                    }}
+                />
             ) : (
                 <Field
                     data-testid={`${name}-input-${moment().valueOf()}`}
@@ -118,6 +130,7 @@ function CustomFormGroup({
                     disabled={disabled}
                 />
             )}
+
             <ErrorMessage
                 data-testid={`${name}-error-${moment().valueOf()}`}
                 name={name}

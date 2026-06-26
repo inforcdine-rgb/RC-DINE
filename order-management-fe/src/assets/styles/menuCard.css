@@ -152,9 +152,10 @@
 }
 
 .customer-food-media {
-    width: 44px;
-    height: 44px;
+    width: 92px;
+    height: 82px;
     border-radius: 14px;
+    overflow: hidden;
     background: linear-gradient(135deg, rgba(73, 172, 96, 0.35), rgba(8, 24, 45, 0.12));
     display: flex;
     align-items: center;
@@ -164,7 +165,11 @@
     flex-shrink: 0;
     text-transform: uppercase;
 }
-
+.customer-food-media ing {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
 .customer-food-info {
     flex: 1;
     min-width: 0;
@@ -417,3 +422,39 @@
     border-radius: 14px !important;
     font-weight: 900 !important;
 }
+/* ── Dish photo in customer menu card ─────────── */
+.customer-food-media {
+  position: relative;
+  width: 72px;
+  height: 72px;
+  border-radius: 10px;
+  overflow: hidden;
+  background: rgba(255,255,255,0.08);
+  flex-shrink: 0;
+}
+
+.customer-food-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.25s ease;
+}
+
+.customer-food-card:hover .customer-food-img {
+  transform: scale(1.04);
+}
+
+.customer-food-initial {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.8rem;
+  font-weight: 800;
+  color: rgba(255,255,255,0.6);
+  background: linear-gradient(135deg, rgba(73,172,96,0.3), rgba(8,24,45,0.5));
+}
+
+/* ── menu.service.js fetchById — add this to service ── */

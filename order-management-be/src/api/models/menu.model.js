@@ -41,6 +41,12 @@ const menuModel = (sequelize) =>
                 type: DataTypes.FLOAT,
                 allowNull: false
             },
+            // ── NEW: dish photo URL from Cloudinary ──
+            image: {
+                type: DataTypes.STRING,
+                allowNull: true,
+                defaultValue: null
+            },
             deletedAt: {
                 type: DataTypes.DATE,
                 allowNull: true

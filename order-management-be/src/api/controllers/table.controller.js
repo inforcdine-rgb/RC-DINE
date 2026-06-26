@@ -20,7 +20,7 @@ const create = async (req, res) => {
         return res.status(STATUS_CODE.CREATED).send(result);
     } catch (error) {
         logger('error', `Error while table registration ${error}`);
-        return res.status(error.code).send({ message: error.message });
+        return res.status(error.code||500).send({ message: error.message });
     }
 };
 
@@ -39,7 +39,7 @@ const fetch = async (req, res) => {
         return res.status(STATUS_CODE.OK).send(result);
     } catch (error) {
         logger('error', `Error while fetching tables ${error}`);
-        return res.status(error.code).send({ message: error.message });
+        return res.status(error.code||500).send({ message: error.message });
     }
 };
 
@@ -59,7 +59,7 @@ const remove = async (req, res) => {
         return res.status(STATUS_CODE.OK).send(result);
     } catch (error) {
         logger('error', `Error while deleting tables ${error}`);
-        return res.status(error.code).send({ message: error.message });
+        return res.status(error.code||500).send({ message: error.message });
     }
 };
 

@@ -31,7 +31,7 @@ const fetch = async (req, res) => {
         return res.status(STATUS_CODE.OK).send(result);
     } catch (error) {
         logger('error', 'Error while fetching managers', { error });
-        return res.status(error.code).send({ message: error.message });
+        return res.status(error.code||500).send({ message: error.message });
     }
 };
 
@@ -58,7 +58,7 @@ const update = async (req, res) => {
         return res.status(STATUS_CODE.OK).send(result);
     } catch (error) {
         logger('error', 'Error while updating managers', { error });
-        return res.status(error.code).send({ message: error.message });
+        return res.status(error.code||500).send({ message: error.message });
     }
 };
 
@@ -84,7 +84,7 @@ const updateCredentials = async (req, res) => {
         return res.status(STATUS_CODE.OK).send(result);
     } catch (error) {
         logger('error', 'Error while updating manager credentials', { error });
-        return res.status(error.code).send({ message: error.message });
+        return res.status(error.code||500).send({ message: error.message });
     }
 };
 
@@ -98,7 +98,7 @@ const remove = async (req, res) => {
         return res.status(STATUS_CODE.OK).send(result);
     } catch (error) {
         logger('error', 'Error while updating managers', { error });
-        return res.status(error.code).send({ message: error.message });
+        return res.status(error.code||500).send({ message: error.message });
     }
 };
 
@@ -114,7 +114,7 @@ const getAssignable = async (req, res) => {
         return res.status(STATUS_CODE.OK).send(managers);
     } catch (error) {
         logger('error', 'Error while fetching assognable managers', { error });
-        return res.status(error.code).send({ message: error.message });
+        return res.status(error.code||500).send({ message: error.message });
     }
 };
 
@@ -146,7 +146,7 @@ const create = async (req, res) => {
         return res.status(STATUS_CODE.CREATED).send(result);
     } catch (error) {
         logger('error', 'Error while creating manager', { error });
-        return res.status(error.code).send({ message: error.message });
+        return res.status(error.code||500).send({ message: error.message });
     }
 };
 

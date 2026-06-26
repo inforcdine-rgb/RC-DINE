@@ -22,7 +22,7 @@ const subscribe = async (req, res) => {
         return res.status(STATUS_CODE.OK).send(result);
     } catch (error) {
         logger('error', 'Error occurred during notification subscription', { error });
-        return res.status(error.code).send({ message: error.message });
+        return res.status(error.code||500).send({ message: error.message });
     }
 };
 
@@ -37,7 +37,7 @@ const unsubscribe = async (req, res) => {
         return res.status(STATUS_CODE.OK).send(result);
     } catch (error) {
         logger('error', 'Error occurred while un-subscribing notification', { error });
-        return res.status(error.code).send({ message: error.message });
+        return res.status(error.code||500).send({ message: error.message });
     }
 };
 
@@ -50,7 +50,7 @@ const fetch = async (req, res) => {
         return res.status(STATUS_CODE.OK).send(result);
     } catch (error) {
         logger('error', 'Error occurred while fetching user notification', { error });
-        return res.status(error.code).send({ message: error.message });
+        return res.status(error.code||500).send({ message: error.message });
     }
 };
 
@@ -63,7 +63,7 @@ const update = async (req, res) => {
         return res.status(STATUS_CODE.OK).send(result);
     } catch (error) {
         logger('error', 'Error occurred while updating user notification', { error });
-        return res.status(error.code).send({ message: error.message });
+        return res.status(error.code||500).send({ message: error.message });
     }
 };
 

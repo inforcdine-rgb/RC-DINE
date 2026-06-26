@@ -240,11 +240,21 @@ const initDb = async () => {
         }
 
         try {
-            await sequelize.query(`ALTER TABLE \`orders\` DROP INDEX \`orderNumber\`;`);
-            logger('info', '✅ Removed unique index from orders.orderNumber');
-        } catch (e) {}
+    await sequelize.query(`ALTER TABLE \`orders\` DROP INDEX \`orderNumber\`;`);
+    logger('info', '✅ Removed unique index from orders.orderNumber');
+} catch (e) {}
 
-        await ensureAdminUser();
+try {
+    await sequelize.query(`
+        ALTER TABLE \`menus\`
+        ADD COLUMN \`image\` VARCHAR(500) NULL;
+    `);
+    logger('info', '✅ Column image added to menus table');
+} catch (e) {
+    logger('info', '✅ Column image already exists in menus table');
+}
+
+await ensureAdminUser();
 
         try {
             await sequelize.query(`UPDATE \`orders\` SET \`subtotalAmount\` = \`price\`, \`cgstAmount\` = ROUND(\`price\` * 0.025), \`sgstAmount\` = ROUND(\`price\` * 0.025), \`finalAmount\` = \`price\` + ROUND(\`price\` * 0.025) * 2 WHERE \`finalAmount\` IS NULL;`);

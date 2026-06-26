@@ -28,7 +28,7 @@ const business = async (req, res) => {
         return res.status(STATUS_CODE.CREATED).send(result);
     } catch (error) {
         logger('error', 'Error occurred during bussiness registration', { error });
-        return res.status(error.code).send({ message: error.message });
+        return res.status(error.code||500).send({ message: error.message });
     }
 };
 
@@ -48,7 +48,7 @@ const stakeholder = async (req, res) => {
         return res.status(STATUS_CODE.OK).send(result);
     } catch (error) {
         logger('error', 'Error occurred during stakeholder registration', { error });
-        return res.status(error.code).send({ message: error.message });
+        return res.status(error.code||500).send({ message: error.message });
     }
 };
 
@@ -68,7 +68,7 @@ const account = async (req, res) => {
         return res.status(STATUS_CODE.OK).send(result);
     } catch (error) {
         logger('error', 'Error occurred during bank registration', { error });
-        return res.status(error.code).send({ message: error.message });
+        return res.status(error.code||500).send({ message: error.message });
     }
 };
 
@@ -86,7 +86,7 @@ const subscribe = async (req, res) => {
         return res.status(STATUS_CODE.OK).send(result);
     } catch (error) {
         logger('error', 'Error occurred during subscription', { error });
-        return res.status(error.code).send({ message: error.message });
+        return res.status(error.code||500).send({ message: error.message });
     }
 };
 
@@ -106,7 +106,7 @@ const success = async (req, res) => {
         return res.status(STATUS_CODE.OK).send(result);
     } catch (error) {
         logger('error', 'Error occurred in subscription success', { error });
-        return res.status(error.code).send({ message: error.message });
+        return res.status(error.code||500).send({ message: error.message });
     }
 };
 
@@ -127,7 +127,7 @@ const payment = async (req, res) => {
         return res.status(STATUS_CODE.OK).send(result);
     } catch (error) {
         logger('error', `Error occurred during payment ${JSON.stringify(error)}`);
-        return res.status(error.code).send({ message: error.message });
+        return res.status(error.code||500).send({ message: error.message });
     }
 };
 
@@ -148,7 +148,7 @@ const paymentConfirmation = async (req, res) => {
         return res.status(STATUS_CODE.OK).send(result);
     } catch (error) {
         logger('error', `Error occurred during payment confirmation ${JSON.stringify(error)}`);
-        return res.status(error.code).send({ message: error.message });
+        return res.status(error.code||500).send({ message: error.message });
     }
 };
 
@@ -166,7 +166,7 @@ const cancel = async (req, res) => {
         return res.status(STATUS_CODE.OK).send(result);
     } catch (error) {
         logger('error', 'Error occurred during subscription cancellation', { error });
-        return res.status(error.code).send({ message: error.message });
+        return res.status(error.code||500).send({ message: error.message });
     }
 };
 

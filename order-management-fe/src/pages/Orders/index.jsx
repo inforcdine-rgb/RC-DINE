@@ -298,9 +298,7 @@ function Orders() {
             minSize: 100,
             cell: ({ row }) => {
                 if (!row.original || Object.keys(row.original).length === 0) return '';
-                const pageIndex = pagination?.pageIndex || 0;
-                const pageSize = pagination?.pageSize || 10;
-                return <div>{pageIndex * pageSize + row.index + 1}</div>;
+                return <div>{completedOrders.length - row.index}</div>;
             }
         }),
         columnHelper.display({

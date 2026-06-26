@@ -231,7 +231,7 @@ const getMenuDetails = async (hotelId, customerId) => {
                         {
                             model: db.menu,
                             where: { status: MENU_STATUS[0] },
-                            attributes: ['id', 'name', 'price']
+                            attributes: ['id', 'name', 'price', 'image']
                         }
                     ]
                 }
@@ -408,7 +408,7 @@ const getOrder = async (customerId) => {
             include: [
                 {
                     model: db.menu,
-                    attributes: ['id', 'name', 'price']
+                    attributes: ['id', 'name', 'price', 'image']
                 }
             ]
         };
@@ -738,6 +738,7 @@ const completed = async (hotelId, filters) => {
                 data.push(obj);
             });
         });
+data.sort((a, b) => new Date(b.orderTime) - new Date(a.orderTime));
         return { data, count: customers.count };
     } catch (error) {
         logger('error', 'Error while get completed order details', { error });
@@ -774,7 +775,7 @@ const getOrderDetails = async (hotelId, orderId) => {
                     include: [
                         {
                             model: db.menu,
-                            attributes: ['id', 'name', 'price']
+                            attributes: ['id', 'name', 'price', 'image']
                         },
                         {
                             model: db.tables,

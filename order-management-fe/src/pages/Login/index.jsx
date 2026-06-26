@@ -42,38 +42,56 @@ function Login() {
     return (
         <AuthContainer title={'Login'}>
             <Formik initialValues={initialValues} validationSchema={loginSchema} onSubmit={handleSubmit}>
-                {({ isSubmitting, isValid, dirty }) => (
-                    <Form className="d-flex flex-column">
-                        <CustomFormGroup name="email" type="email" label="Email" />
-                        <CustomFormGroup name="password" type="password" label="Password" />
-                        <div className="mt-2">
-                            <label htmlFor="role" className="small text-muted m-0 d-flex">
-                                Role
-                                <div className="text-danger ms-1">*</div>
+                {({ isSubmitting, isValid, dirty, values }) => (
+                    <Form className="rc-form">
+                        <div className="rc-roles">
+                            <label className="rc-role">
+                                <Field type="radio" name="role" value="OWNER" />
+                                <div className="rc-role-card">
+                                    <span className="role-label">🏨 Owner</span>
+                                    <span className="role-desc">Manage hotels & revenue</span>
+                                </div>
                             </label>
+                            <label className="rc-role">
+                                <Field type="radio" name="role" value="MANAGER" />
+                                <div className="rc-role-card">
+                                    <span className="role-label">👨‍💼 Manager</span>
+                                    <span className="role-desc">Manage orders & menu</span>
+                                </div>
+                            </label>
+                        </div>
+                        <div className="d-none">
                             <Field as="select" name="role" id="role" className="form-select">
                                 <option value="">-- Select Role --</option>
                                 <option value="OWNER">Owner</option>
                                 <option value="MANAGER">Manager</option>
                                 <option value="ADMIN">Admin</option>
                             </Field>
+                        </div>
+                        {!values.role && (
                             <ErrorMessage name="role">
                                 {(msg) => <div className="text-danger small">{msg}</div>}
                             </ErrorMessage>
+                        )}
+
+                        <CustomFormGroup name="email" type="email" label="Email" />
+                        <CustomFormGroup name="password" type="password" label="Password" />
+
+                        <div className="rc-forgot text-end mt-2">
+                            <CustomLink text="Forgot password?" onClick={handleOnClickForgotPassword} />
                         </div>
+
                         <CustomButton
-                            label="Login"
+                            label="Sign In →"
                             disabled={isSubmitting || !isValid || !dirty}
                             type="submit"
-                            className="mx-auto my-4"
+                            className="mx-auto"
                         />
-                        <div className="text-center">
+
+                        <div className="text-center mt-3">
                             <p className="label-font m-0">
-                                {`Don't have an account ? `}
-                                <CustomLink onClick={handleOnClickSignup} text="Sign Up" />
-                            </p>
-                            <p className="label-font m-0">
-                                <CustomLink text="Forgot your password ?" onClick={handleOnClickForgotPassword} />
+                                {`Don't have an account? `}
+                                <CustomLink onClick={handleOnClickSignup} text="Create one" />
                             </p>
                         </div>
                     </Form>

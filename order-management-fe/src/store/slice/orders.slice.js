@@ -89,7 +89,7 @@ const ordersSlice = createSlice({
         selectedOrder: false,
         completedCount: 0,
         selectedTable: '',
-        sorting: [],
+        sorting: [{ id: 'orderTime', desc: true }],
         filtering: { field: 'orderNumber', value: '' },
         pagination: {
             pageIndex: 0,

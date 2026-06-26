@@ -40,7 +40,12 @@ const env = {
         standaranMonthly: process.env.STANDARD_MONTHLY,
         standardYearly: process.env.STANDARD_YEARLY
     },
-    supportEmail: process.env.SUPPORT_EMAIL
+    supportEmail: process.env.SUPPORT_EMAIL,
+    Cloudinary: {
+        cloudName: process.env.CLOUDINARY_CLOUD_NAME,
+        apiKey: process.env.CLOUDINARY_API_KEY,
+        apiSecret: process.env.CLOUDINARY_API_SECRET
+    }
 };
 
 export default env;

@@ -22,7 +22,7 @@ const register = async (req, res) => {
         return res.status(STATUS_CODE.CREATED).send(result);
     } catch (error) {
         logger('error', 'Error occurred during hotel registration', { error });
-        return res.status(error.code).send({ message: error.message });
+        return res.status(error.code||500).send({ message: error.message });
     }
 };
 
@@ -44,7 +44,7 @@ const update = async (req, res) => {
         return res.status(STATUS_CODE.OK).send(result);
     } catch (error) {
         logger('error', 'Error occurred during hotel update', { error });
-        return res.status(error.code).send({ message: error.message });
+        return res.status(error.code||500).send({ message: error.message });
     }
 };
 
@@ -59,7 +59,7 @@ const list = async (req, res) => {
         return res.status(STATUS_CODE.OK).send(result);
     } catch (error) {
         logger('error', 'Error occurred during hotel list fetching', { error });
-        return res.status(error.code).send({ message: error.message });
+        return res.status(error.code||500).send({ message: error.message });
     }
 };
 
@@ -89,7 +89,7 @@ const revenue = async (req, res) => {
         return res.status(STATUS_CODE.OK).send(result);
     } catch (error) {
         logger('error', 'Error occurred during owner revenue analytics fetching', { error });
-        return res.status(error.code).send({ message: error.message });
+        return res.status(error.code||500).send({ message: error.message });
     }
 };
 
@@ -105,7 +105,7 @@ const dashboard = async (req, res) => {
         return res.status(STATUS_CODE.OK).send(result);
     } catch (error) {
         logger('error', 'Error occurred during fetching hotel dashboard details', { error });
-        return res.status(error.code).send({ message: error.message });
+        return res.status(error.code||500).send({ message: error.message });
     }
 };
 

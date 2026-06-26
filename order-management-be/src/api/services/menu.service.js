@@ -25,12 +25,7 @@ const update = async (id, hotelId, payload) => {
         }
 
         if (updateData.name) {
-            const duplicateOptions = {
-                where: {
-                    hotelId,
-                    name: updateData.name
-                }
-            };
+            const duplicateOptions = { where: { hotelId, name: updateData.name } };
             const res = await menuRepo.find(duplicateOptions);
             if (res.count) {
                 logger('error', `Menu item already exists ${updateData.name}`);
@@ -49,11 +44,7 @@ const update = async (id, hotelId, payload) => {
 
 const remove = async (menuIds) => {
     try {
-        const options = {
-            where: {
-                id: { [Op.in]: menuIds }
-            }
-        };
+        const options = { where: { id: { [Op.in]: menuIds } } };
         await menuRepo.remove(options);
         return { message: 'Menu Items removed successfully' };
     } catch (error) {
@@ -80,9 +71,7 @@ const fetch = async (payload) => {
             offset: Number(skip)
         };
 
-        if (sortKey && sortOrder) {
-            options.order = [[sortKey, sortOrder]];
-        }
+        if (sortKey && sortOrder) options.order = [[sortKey, sortOrder]];
 
         if (filterKey && filterValue) {
             options.where = {
@@ -92,11 +81,22 @@ const fetch = async (payload) => {
 
         logger('debug', `Fetching menu items with options ${JSON.stringify(options)}`);
         const data = await menuRepo.find(options);
-
         logger('debug', `Menu items fetched successfully ${JSON.stringify(data)}`);
         return data;
     } catch (error) {
         logger('error', `Error while fetching menu items ${JSON.stringify(error)}`);
+        throw CustomError(error.code, error.message);
+    }
+};
+
+// ── NEW: single item fetch (image upload ke liye old image delete karna) ──
+const fetchById = async (id) => {
+    try {
+        const options = { where: { id }, limit: 1 };
+        const result = await menuRepo.find(options);
+        return result.rows[0] || null;
+    } catch (error) {
+        logger('error', 'Error while fetching menu item by id', { error });
         throw CustomError(error.code, error.message);
     }
 };
@@ -112,19 +112,15 @@ const createCategory = async (payload) => {
         });
         let nextOrder = existingCategories.count ? existingCategories.rows[0].order + 1 : 1;
 
-        const options = data.map(({ name, order }) => {
-            const categoryOrder = order ?? nextOrder++;
-            return {
-                id: uuidv4(),
-                name,
-                hotelId,
-                order: categoryOrder
-            };
-        });
+        const options = data.map(({ name, order }) => ({
+            id: uuidv4(),
+            name,
+            hotelId,
+            order: order ?? nextOrder++
+        }));
 
         logger('info', `Options to add new Categories ${JSON.stringify(options)}`);
-        const result = await categoryRepo.save(options);
-        return result;
+        return await categoryRepo.save(options);
     } catch (error) {
         logger('error', 'Error while creating category', { error });
         throw CustomError(error.code, error.message);
@@ -133,10 +129,7 @@ const createCategory = async (payload) => {
 
 const fetchCategory = async (hotelId) => {
     try {
-        const options = {
-            where: { hotelId },
-            order: [['order', 'ASC']]
-        };
+        const options = { where: { hotelId }, order: [['order', 'ASC']] };
         return await categoryRepo.find(options);
     } catch (error) {
         logger('error', `Error while fetching categories ${JSON.stringify(error)}`);
@@ -146,15 +139,6 @@ const fetchCategory = async (hotelId) => {
 
 const updateCategory = async (id, payload) => {
     try {
-        const query = {};
-        if (payload.name) {
-            query.name = payload.name;
-        }
-
-        if (payload.order) {
-            query.order = payload.order;
-        }
-
         const updateOptions = { where: { id } };
         const updateData = { name: payload.name, order: payload.order };
         await categoryRepo.update(updateOptions, updateData);
@@ -167,18 +151,10 @@ const updateCategory = async (id, payload) => {
 
 const removeCategory = async (categoryIds) => {
     try {
-        const options = {
-            where: {
-                id: { [Op.in]: categoryIds }
-            }
-        };
+        const options = { where: { id: { [Op.in]: categoryIds } } };
         await categoryRepo.remove(options);
 
-        const menuQuery = {
-            where: {
-                categoryId: { [Op.in]: categoryIds }
-            }
-        };
+        const menuQuery = { where: { categoryId: { [Op.in]: categoryIds } } };
         await menuRepo.remove(menuQuery);
 
         return { message: 'Category removed successfully' };
@@ -193,6 +169,7 @@ export default {
     update,
     remove,
     fetch,
+    fetchById,        // ← NEW
     createCategory,
     fetchCategory,
     updateCategory,
