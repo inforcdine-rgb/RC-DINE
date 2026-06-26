@@ -232,7 +232,7 @@ const getMenuDetails = async (hotelId, customerId) => {
                         {
                             model: db.menu,
                             where: { status: MENU_STATUS[0] },
-                            attributes: ['id', 'name', 'price', 'image']
+                            attributes: ['id', 'name', 'description', 'price', 'image']
                         }
                     ]
                 }
@@ -409,7 +409,7 @@ const getOrder = async (customerId) => {
             include: [
                 {
                     model: db.menu,
-                    attributes: ['id', 'name', 'price', 'image']
+                    attributes: ['id', 'name', 'description', 'price', 'image']
                 }
             ]
         };
@@ -776,7 +776,7 @@ const getOrderDetails = async (hotelId, orderId) => {
                     include: [
                         {
                             model: db.menu,
-                            attributes: ['id', 'name', 'price', 'image']
+                            attributes: ['id', 'name', 'description', 'price', 'image']
                         },
                         {
                             model: db.tables,

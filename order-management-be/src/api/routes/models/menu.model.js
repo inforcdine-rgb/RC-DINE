@@ -41,6 +41,12 @@ const menuModel = (sequelize) =>
                 type: DataTypes.FLOAT,
                 allowNull: false
             },
+            description: {
+                type: DataTypes.TEXT,
+                allowNull: true,
+                defaultValue: null
+            },
+
             image: {
                 type: DataTypes.STRING,
                 allowNull: true

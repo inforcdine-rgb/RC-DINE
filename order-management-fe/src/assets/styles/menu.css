@@ -15,3 +15,15 @@
         width: 95%;
     }
 }
+
+.create-menu-textarea {
+    min-height: 64px;
+    resize: vertical;
+}
+.menu-desc-cell {
+    max-width: 280px;
+    color: #5f6b7a;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}

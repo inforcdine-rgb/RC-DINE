@@ -118,13 +118,13 @@ function ImageUploadModal({ item, hotelId, onClose, onSuccess }) {
 
 // ── Create Menu Items with optional image ─────────────────────────────────────
 function CreateMenuWithImageModal({ categoryId, hotelId, onClose, onSuccess }) {
-    const [rows, setRows] = useState([{ id: Date.now(), name: '', price: '', file: null, preview: null }]);
+    const [rows, setRows] = useState([{ id: Date.now(), name: '', description: '', price: '', file: null, preview: null }]);
     const [loading, setLoading] = useState(false);
     const [errors, setErrors] = useState({});
     const fileRefs = useRef({});
 
     const addRow = () => {
-        setRows((prev) => [...prev, { id: Date.now(), name: '', price: '', file: null, preview: null }]);
+        setRows((prev) => [...prev, { id: Date.now(), name: '', description: '', price: '', file: null, preview: null }]);
     };
 
     const removeRow = (id) => {
@@ -162,7 +162,7 @@ function CreateMenuWithImageModal({ categoryId, hotelId, onClose, onSuccess }) {
         if (!validate()) return;
         setLoading(true);
         try {
-            const data = rows.map((r) => ({ name: r.name.trim(), price: Number(r.price) }));
+            const data = rows.map((r) => ({ name: r.name.trim(), description: r.description.trim(), price: Number(r.price) }));
             const res = await instance.post('/menu', { categoryId, hotelId, data });
 
             const created = Array.isArray(res.data) ? res.data : [];
@@ -225,6 +225,13 @@ function CreateMenuWithImageModal({ categoryId, hotelId, onClose, onSuccess }) {
                                 {errors[`${row.id}-name`] && (
                                     <span className="create-menu-field-error">{errors[`${row.id}-name`]}</span>
                                 )}
+                                <textarea
+                                    className="create-menu-input create-menu-textarea"
+                                    placeholder="Description / Ingredients (optional)"
+                                    value={row.description}
+                                    rows={2}
+                                    onChange={(e) => updateRow(row.id, 'description', e.target.value)}
+                                />
                                 <input
                                     className={`create-menu-input ${errors[`${row.id}-price`] ? 'input-error' : ''}`}
                                     placeholder="Price (₹)"
@@ -263,6 +270,7 @@ function CreateMenuWithImageModal({ categoryId, hotelId, onClose, onSuccess }) {
 function UpdateMenuWithImageModal({ item, categoryId, hotelId, onClose, onSuccess }) {
     const [name, setName] = useState(item.name || '');
     const [price, setPrice] = useState(item.price || '');
+    const [description, setDescription] = useState(item.description || '');
     const [status, setStatus] = useState(item.status === MENU_STATUS[0]);
     const [file, setFile] = useState(null);
     const [preview, setPreview] = useState(item.image || null);
@@ -293,6 +301,7 @@ function UpdateMenuWithImageModal({ item, categoryId, hotelId, onClose, onSucces
             const data = {};
             if (name !== item.name) data.name = name.trim();
             if (Number(price) !== Number(item.price)) data.price = Number(price);
+            if (description !== (item.description || '')) data.description = description.trim();
             if (status !== (item.status === MENU_STATUS[0])) data.status = status;
 
             if (Object.keys(data).length) {
@@ -374,6 +383,16 @@ function UpdateMenuWithImageModal({ item, categoryId, hotelId, onClose, onSucces
                             onChange={(e) => setPrice(e.target.value)}
                         />
                         {errors.price && <span className="create-menu-field-error">{errors.price}</span>}
+                    </div>
+
+                    <div className="update-menu-field">
+                        <label className="update-menu-label">Description / Ingredients</label>
+                        <textarea
+                            className="create-menu-input create-menu-textarea"
+                            rows={3}
+                            value={description}
+                            onChange={(e) => setDescription(e.target.value)}
+                        />
                     </div>
 
                     <div className="update-menu-field update-menu-status-row">
@@ -477,6 +496,12 @@ function Menu() {
             header: 'Name',
             minSize: 200,
             cell: ({ row }) => <div>{row.original.name}</div>
+        }),
+        columnHelper.display({
+            id: 'description',
+            header: 'Description',
+            minSize: 260,
+            cell: ({ row }) => <div className="menu-desc-cell">{row.original.description || '-'}</div>
         }),
         columnHelper.display({
             id: 'price',
