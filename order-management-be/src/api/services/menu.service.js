@@ -25,7 +25,7 @@ const update = async (id, hotelId, payload) => {
         }
 
         if (updateData.name) {
-            const duplicateOptions = { where: { hotelId, name: updateData.name } };
+            const duplicateOptions = { where: { hotelId, name: updateData.name, id: { [Op.ne]: id } } };
             const res = await menuRepo.find(duplicateOptions);
             if (res.count) {
                 logger('error', `Menu item already exists ${updateData.name}`);

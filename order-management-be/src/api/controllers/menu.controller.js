@@ -20,7 +20,7 @@ const create = async (req, res) => {
     try {
         const { body } = req;
         logger('debug', 'create a menu ', { body });
-
+        
         const validation = createValidation(body);
         if (validation.error) {
             logger('error', 'Menu creation validation error', { error: validation.error });
@@ -50,8 +50,13 @@ const update = async (req, res) => {
             payload.data.image = req.file.path;
         }
 
+        if (!payload.data) payload.data = {};
+
         const validation = updateValidation(payload.data);
         if (validation.error) {
+            if (req.file?.path) {
+                await deleteImage(req.file.path);
+            }
             logger('error', 'Menu updation validation error', { error: validation.error });
             return res.status(STATUS_CODE.BAD_REQUEST).send({ message: validation.error.message });
         }

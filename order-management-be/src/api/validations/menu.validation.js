@@ -61,8 +61,9 @@ export const updateValidation = (payload) => {
         const schema = Joi.object({
             name: Joi.string().optional(),
             price: Joi.number().optional(),
-            status: Joi.boolean().optional()
-        }).or('name', 'price', 'status');
+            status: Joi.boolean().optional(),
+            image: Joi.string().uri().optional().allow(null, '')
+        }).or('name', 'price', 'status', 'image');
         return schema.validate(payload);
     } catch (error) {
         logger('error', `Error in updating menu ${error}`);

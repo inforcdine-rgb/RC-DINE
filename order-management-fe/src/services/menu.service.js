@@ -80,3 +80,16 @@ export const updateMenuItem = async (id, payload) => {
         throw error;
     }
 };
+
+export const uploadMenuItemImage = async (id, formData) => {
+    try {
+        const { instance } = await import('../api/apiClient');
+        const res = await instance.post(`/menu/${id}/image`, formData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+        });
+        return res.data;
+    } catch (error) {
+        console.error(`Error while uploading menu item image ${error}`);
+        throw error;
+    }
+};

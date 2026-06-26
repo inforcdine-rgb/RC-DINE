@@ -164,7 +164,8 @@ const getMenuCardFormatData = ({ id, name, categories }) => {
             menuItemData.push({
                 name: item.name,
                 id: item.id,
-                price: item.price
+                price: item.price,
+                image: item.image || null
             });
             if (item.orders && item.orders[0]) {
                 const order = item.orders[0];
