@@ -418,8 +418,6 @@ function UpdateMenuWithImageModal({ item, categoryId, hotelId, onClose, onSucces
     );
 }
 
-
-
 // ── Combo Modal: 1 combo = minimum 2 and maximum 5 food items ────────────────
 function ComboModal({ combo, allFoodItems, hotelId, onClose, onSuccess }) {
     const [name, setName] = useState(combo?.name || '');
@@ -1044,7 +1042,6 @@ function Menu() {
                     onSuccess={() => { setUpdateModal(null); refreshMenu(); }}
                 />
             )}
-
 
             {comboModal && (
                 <ComboModal

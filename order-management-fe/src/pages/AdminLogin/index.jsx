@@ -43,7 +43,7 @@ function AdminLogin() {
                             <input className="form-control" value="ADMIN" disabled />
                         </div>
                         <CustomButton
-                        label="Admin Login →"
+                            label="Admin Login →"
                             disabled={isSubmitting || !isValid || !dirty}
                             type="submit"
                             className="mx-auto my-4"
