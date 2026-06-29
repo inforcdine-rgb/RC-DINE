@@ -20,10 +20,74 @@
     min-height: 64px;
     resize: vertical;
 }
+
 .menu-desc-cell {
     max-width: 280px;
     color: #5f6b7a;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+}
+
+/* ---------- NEW COMBO SECTION ---------- */
+
+.combo-section-btn {
+    min-width: 170px;
+    height: 42px;
+    border: none;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #ff9800, #ff5722);
+    color: #fff;
+    font-weight: 700;
+    font-size: 15px;
+    cursor: pointer;
+    transition: all .25s ease;
+    box-shadow: 0 8px 20px rgba(255, 87, 34, .25);
+}
+
+.combo-section-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 24px rgba(255, 87, 34, .35);
+}
+
+.combo-section-btn:active {
+    transform: scale(.98);
+}
+
+.combo-card {
+    background: #fff;
+    border-radius: 14px;
+    padding: 16px;
+    border: 1px solid #ececec;
+    box-shadow: 0 8px 20px rgba(0,0,0,.08);
+}
+
+.combo-food-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.combo-food-chip {
+    background: #f5f5f5;
+    border-radius: 30px;
+    padding: 8px 14px;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.combo-note {
+    color: #666;
+    font-size: 13px;
+    margin-top: 8px;
+}
+
+@media (max-width:768px){
+
+    .combo-section-btn{
+        width:100%;
+        margin-top:10px;
+    }
+
 }

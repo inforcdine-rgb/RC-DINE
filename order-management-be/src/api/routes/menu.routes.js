@@ -11,6 +11,11 @@ router.route('/category').all(authenticate, checkSubscriptionAccess).post(menuCo
 router.get('/category/:hotelId', authenticate, checkSubscriptionAccess, menuController.fetchCategory);
 router.put('/category/:id', authenticate, checkSubscriptionAccess, menuController.updateCategory);
 
+// Combo routes — separate from categories
+router.route('/combo').all(authenticate, checkSubscriptionAccess).post(menuController.createCombo).delete(menuController.removeCombos);
+router.get('/combo/:hotelId', authenticate, checkSubscriptionAccess, menuController.fetchCombos);
+router.put('/combo/:id', authenticate, checkSubscriptionAccess, menuController.updateCombo);
+
 // Menu routes
 // POST /menu — create menu items (no image, batch create stays same)
 // PUT /menu/:id — update menu item, optional image upload

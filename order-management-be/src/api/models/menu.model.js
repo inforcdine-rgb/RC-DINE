@@ -17,7 +17,7 @@ const menuModel = (sequelize) =>
             },
             categoryId: {
                 type: DataTypes.STRING,
-                allowNull: false,
+                allowNull: true,
                 references: {
                     model: TABLES.CATEGORIES,
                     key: 'id'
@@ -50,6 +50,16 @@ const menuModel = (sequelize) =>
             // ── NEW: dish photo URL from Cloudinary ──
             image: {
                 type: DataTypes.STRING,
+                allowNull: true,
+                defaultValue: null
+            },
+            isCombo: {
+                type: DataTypes.BOOLEAN,
+                allowNull: false,
+                defaultValue: false
+            },
+            comboItems: {
+                type: DataTypes.JSON,
                 allowNull: true,
                 defaultValue: null
             },

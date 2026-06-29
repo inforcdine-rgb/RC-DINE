@@ -66,7 +66,7 @@ const fetch = async (payload) => {
         } = payload;
 
         const options = {
-            where: { categoryId },
+            where: { categoryId, isCombo: false },
             limit: Number(limit),
             offset: Number(skip)
         };
@@ -75,7 +75,7 @@ const fetch = async (payload) => {
 
         if (filterKey && filterValue) {
             options.where = {
-                [Op.and]: [{ categoryId }, { [filterKey]: { [Op.like]: `%${filterValue}%` } }]
+                [Op.and]: [{ categoryId, isCombo: false }, { [filterKey]: { [Op.like]: `%${filterValue}%` } }]
             };
         }
 
@@ -164,12 +164,115 @@ const removeCategory = async (categoryIds) => {
     }
 };
 
+
+
+const createCombo = async (payload) => {
+    try {
+        const { hotelId, name, description, price, status, menuIds } = payload;
+        const comboItems = Array.from(new Set(menuIds || []));
+        if (comboItems.length < 2 || comboItems.length > 5) {
+            throw CustomError(STATUS_CODE.BAD_REQUEST, 'Combo must have minimum 2 and maximum 5 food items');
+        }
+
+        const selectedItems = await menuRepo.find({
+            where: {
+                id: { [Op.in]: comboItems },
+                hotelId,
+                isCombo: false
+            }
+        });
+        if (selectedItems.count !== comboItems.length) {
+            throw CustomError(STATUS_CODE.BAD_REQUEST, 'Some selected food items are invalid');
+        }
+
+        const options = [{
+            id: uuidv4(),
+            categoryId: null,
+            hotelId,
+            name,
+            description,
+            price,
+            status: status === false ? 'UNAVAILABLE' : 'AVAILABLE',
+            isCombo: true,
+            comboItems
+        }];
+        const result = await menuRepo.save(options);
+        return result[0];
+    } catch (error) {
+        logger('error', 'Error while creating combo', { error });
+        throw CustomError(error.code, error.message);
+    }
+};
+
+const fetchCombos = async (payload) => {
+    try {
+        const {
+            hotelId,
+            limit = 100,
+            skip = 0,
+            sortKey = 'updatedAt',
+            sortOrder = 'DESC'
+        } = payload;
+        return await menuRepo.find({
+            where: { hotelId, isCombo: true },
+            limit: Number(limit),
+            offset: Number(skip),
+            order: [[sortKey, sortOrder]]
+        });
+    } catch (error) {
+        logger('error', 'Error while fetching combos', { error });
+        throw CustomError(error.code, error.message);
+    }
+};
+
+const updateCombo = async (id, hotelId, payload) => {
+    try {
+        const updateData = { ...payload };
+        if (updateData.menuIds) {
+            const comboItems = Array.from(new Set(updateData.menuIds));
+            if (comboItems.length < 2 || comboItems.length > 5) {
+                throw CustomError(STATUS_CODE.BAD_REQUEST, 'Combo must have minimum 2 and maximum 5 food items');
+            }
+            const selectedItems = await menuRepo.find({
+                where: { id: { [Op.in]: comboItems }, hotelId, isCombo: false }
+            });
+            if (selectedItems.count !== comboItems.length) {
+                throw CustomError(STATUS_CODE.BAD_REQUEST, 'Some selected food items are invalid');
+            }
+            updateData.comboItems = comboItems;
+            delete updateData.menuIds;
+        }
+        if (typeof updateData.status === 'boolean') {
+            updateData.status = updateData.status ? 'AVAILABLE' : 'UNAVAILABLE';
+        }
+        await menuRepo.update({ where: { id, hotelId, isCombo: true } }, updateData);
+        return { message: 'Combo updated successfully' };
+    } catch (error) {
+        logger('error', 'Error while updating combo', { error });
+        throw CustomError(error.code, error.message);
+    }
+};
+
+const removeCombos = async (comboIds) => {
+    try {
+        await menuRepo.remove({ where: { id: { [Op.in]: comboIds }, isCombo: true } });
+        return { message: 'Combos removed successfully' };
+    } catch (error) {
+        logger('error', 'Error while removing combos', { error });
+        throw CustomError(error.code, error.message);
+    }
+};
+
 export default {
     create,
     update,
     remove,
     fetch,
     fetchById,        // ← NEW
+    createCombo,
+    fetchCombos,
+    updateCombo,
+    removeCombos,
     createCategory,
     fetchCategory,
     updateCategory,

@@ -64,11 +64,48 @@ export const updateValidation = (payload) => {
             description: Joi.string().allow('', null).optional(),
             price: Joi.number().optional(),
             status: Joi.boolean().optional(),
-            image: Joi.string().uri().optional().allow(null, '')
-        }).or('name', 'description', 'price', 'status', 'image');
+            image: Joi.string().uri().optional().allow(null, ''),
+            isCombo: Joi.boolean().optional(),
+            comboItems: Joi.array().items(Joi.string()).min(2).max(5).optional().allow(null)
+        }).or('name', 'description', 'price', 'status', 'image', 'isCombo', 'comboItems');
         return schema.validate(payload);
     } catch (error) {
         logger('error', `Error in updating menu ${error}`);
+        throw CustomError(error.code, error.message);
+    }
+};
+
+
+export const createComboValidation = (payload) => {
+    try {
+        const schema = Joi.object({
+            hotelId: Joi.string().required(),
+            name: Joi.string().required(),
+            description: Joi.string().allow('', null).optional(),
+            price: Joi.number().required(),
+            status: Joi.boolean().optional(),
+            menuIds: Joi.array().items(Joi.string().required()).min(2).max(5).unique().required()
+        });
+        return schema.validate(payload);
+    } catch (error) {
+        logger('error', `Error in creating combo ${error}`);
+        throw CustomError(error.code, error.message);
+    }
+};
+
+export const updateComboValidation = (payload) => {
+    try {
+        const schema = Joi.object({
+            hotelId: Joi.string().required(),
+            name: Joi.string().optional(),
+            description: Joi.string().allow('', null).optional(),
+            price: Joi.number().optional(),
+            status: Joi.boolean().optional(),
+            menuIds: Joi.array().items(Joi.string().required()).min(2).max(5).unique().optional()
+        }).or('name', 'description', 'price', 'status', 'menuIds');
+        return schema.validate(payload);
+    } catch (error) {
+        logger('error', `Error in updating combo ${error}`);
         throw CustomError(error.code, error.message);
     }
 };

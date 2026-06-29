@@ -13,7 +13,9 @@ import {
     createCategoryValidation,
     createValidation,
     updateCategoryValidation,
-    updateValidation
+    updateValidation,
+    createComboValidation,
+    updateComboValidation
 } from '../validations/menu.validation.js';
 
 const create = async (req, res) => {
@@ -105,6 +107,64 @@ const uploadImage = async (req, res) => {
         return res.status(STATUS_CODE.OK).send({ image: req.file.path, ...result });
     } catch (error) {
         logger('error', `Error uploading image for menu item: ${error}`);
+        return res.status(error.code || 500).send({ message: error.message });
+    }
+};
+
+
+
+const createCombo = async (req, res) => {
+    try {
+        const payload = req.body;
+        const validation = createComboValidation(payload);
+        if (validation.error) {
+            return res.status(STATUS_CODE.BAD_REQUEST).send({ message: validation.error.message });
+        }
+        payload.hotelId = await resolveHotelAccess(req.user, payload.hotelId);
+        const result = await menuService.createCombo(payload);
+        return res.status(STATUS_CODE.CREATED).send(result);
+    } catch (error) {
+        logger('error', `Error occurred during creating combo ${error}`);
+        return res.status(error.code || 500).send({ message: error.message });
+    }
+};
+
+const fetchCombos = async (req, res) => {
+    try {
+        const hotelId = await resolveHotelAccess(req.user, req.params.hotelId);
+        const result = await menuService.fetchCombos({ ...req.query, hotelId });
+        return res.status(STATUS_CODE.OK).send(result);
+    } catch (error) {
+        logger('error', `Error occurred during fetching combos ${error}`);
+        return res.status(error.code || 500).send({ message: error.message });
+    }
+};
+
+const updateCombo = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const payload = req.body;
+        const validation = updateComboValidation(payload);
+        if (validation.error) {
+            return res.status(STATUS_CODE.BAD_REQUEST).send({ message: validation.error.message });
+        }
+        const hotelId = await resolveHotelAccess(req.user, payload.hotelId);
+        const { hotelId: _hotelId, ...data } = payload;
+        const result = await menuService.updateCombo(id, hotelId, data);
+        return res.status(STATUS_CODE.OK).send(result);
+    } catch (error) {
+        logger('error', `Error occurred during updating combo ${error}`);
+        return res.status(error.code || 500).send({ message: error.message });
+    }
+};
+
+const removeCombos = async (req, res) => {
+    try {
+        const { comboIds } = req.body;
+        const result = await menuService.removeCombos(comboIds || []);
+        return res.status(STATUS_CODE.OK).send(result);
+    } catch (error) {
+        logger('error', `Error occurred during removing combos ${error}`);
         return res.status(error.code || 500).send({ message: error.message });
     }
 };
@@ -240,6 +300,10 @@ export default {
     remove,
     fetch,
     uploadImage,
+    createCombo,
+    fetchCombos,
+    updateCombo,
+    removeCombos,
     createCategory,
     fetchCategory,
     updateCategory,

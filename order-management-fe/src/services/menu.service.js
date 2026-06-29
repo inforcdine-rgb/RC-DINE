@@ -93,3 +93,38 @@ export const uploadMenuItemImage = async (id, formData) => {
         throw error;
     }
 };
+export const fetchCombos = async ({ hotelId, skip = 0, limit = 100 }) => {
+    try {
+        return await api(method.GET, `/menu/combo/${hotelId}?skip=${skip}&limit=${limit}`);
+    } catch (error) {
+        console.error(`Error while fetching combos ${error}`);
+        throw error;
+    }
+};
+
+export const saveCombo = async (payload) => {
+    try {
+        return await api(method.POST, '/menu/combo', payload);
+    } catch (error) {
+        console.error(`Error while creating combo ${error}`);
+        throw error;
+    }
+};
+
+export const updateCombo = async (id, payload) => {
+    try {
+        return await api(method.PUT, `/menu/combo/${id}`, payload);
+    } catch (error) {
+        console.error(`Error while updating combo ${error}`);
+        throw error;
+    }
+};
+
+export const removeCombos = async (payload) => {
+    try {
+        return await api(method.DELETE, '/menu/combo', payload);
+    } catch (error) {
+        console.error(`Error while removing combos ${error}`);
+        throw error;
+    }
+};

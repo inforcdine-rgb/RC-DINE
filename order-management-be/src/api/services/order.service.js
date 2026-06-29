@@ -137,7 +137,7 @@ const getTableDetails = async (id) => {
     }
 };
 
-const getMenuCardFormatData = ({ id, name, categories }) => {
+const getMenuCardFormatData = ({ id, name, categories, menus }) => {
     const types = {
         cover: 'COVER',
         category: 'CATEGORY',
@@ -165,7 +165,10 @@ const getMenuCardFormatData = ({ id, name, categories }) => {
                 name: item.name,
                 id: item.id,
                 price: item.price,
-                image: item.image || null
+                description: item.description || null,
+                image: item.image || null,
+                isCombo: !!item.isCombo,
+                comboItems: item.comboItems || null
             });
             if (item.orders && item.orders[0]) {
                 const order = item.orders[0];
@@ -183,6 +186,23 @@ const getMenuCardFormatData = ({ id, name, categories }) => {
             [`${categoryId}_${name}`]: menuItemData
         };
     });
+
+
+    const comboMenus = (menus || []).filter((item) => item.isCombo);
+    if (comboMenus.length) {
+        const comboCategoryId = 'combos';
+        const comboCategoryName = 'Combos';
+        typeData.category.push({ name: comboCategoryName, id: comboCategoryId });
+        typeData.menuData[`${comboCategoryId}_${comboCategoryName}`] = comboMenus.map((item) => ({
+            name: item.name,
+            id: item.id,
+            price: item.price,
+            description: item.description || null,
+            image: item.image || null,
+            isCombo: true,
+            comboItems: item.comboItems || null
+        }));
+    }
 
     const data = {};
     let page = 0;
@@ -231,10 +251,16 @@ const getMenuDetails = async (hotelId, customerId) => {
                     include: [
                         {
                             model: db.menu,
-                            where: { status: MENU_STATUS[0] },
-                            attributes: ['id', 'name', 'description', 'price', 'image']
+                            where: { status: MENU_STATUS[0], isCombo: false },
+                            attributes: ['id', 'name', 'description', 'price', 'image', 'isCombo', 'comboItems']
                         }
                     ]
+                },
+                {
+                    model: db.menu,
+                    where: { status: MENU_STATUS[0], isCombo: true },
+                    attributes: ['id', 'name', 'description', 'price', 'image', 'isCombo', 'comboItems'],
+                    required: false
                 }
             ],
             order: [[db.categories, 'order', 'ASC']]

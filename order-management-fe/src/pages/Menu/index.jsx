@@ -418,6 +418,123 @@ function UpdateMenuWithImageModal({ item, categoryId, hotelId, onClose, onSucces
     );
 }
 
+
+
+// ── Combo Modal: 1 combo = minimum 2 and maximum 5 food items ────────────────
+function ComboModal({ combo, allFoodItems, hotelId, onClose, onSuccess }) {
+    const [name, setName] = useState(combo?.name || '');
+    const [description, setDescription] = useState(combo?.description || '');
+    const [price, setPrice] = useState(combo?.price || '');
+    const [status, setStatus] = useState(combo ? combo.status === MENU_STATUS[0] : true);
+    const [selectedIds, setSelectedIds] = useState(() => {
+        if (Array.isArray(combo?.comboItems)) return combo.comboItems.map(String);
+        try {
+            return JSON.parse(combo?.comboItems || '[]').map(String);
+        } catch (e) {
+            return [];
+        }
+    });
+    const [saving, setSaving] = useState(false);
+    const [error, setError] = useState('');
+
+    const toggleFood = (id) => {
+        const stringId = String(id);
+        setError('');
+        setSelectedIds((prev) => {
+            if (prev.includes(stringId)) return prev.filter((itemId) => itemId !== stringId);
+            if (prev.length >= 5) {
+                setError('Maximum 5 food items add kar sakte ho.');
+                return prev;
+            }
+            return [...prev, stringId];
+        });
+    };
+
+    const handleSubmit = async () => {
+        if (!name.trim()) { setError('Combo name required'); return; }
+        if (!price || Number(price) <= 0) { setError('Valid combo price required'); return; }
+        if (selectedIds.length < 2) { setError('Combo me minimum 2 food items add karo'); return; }
+        if (selectedIds.length > 5) { setError('Combo me maximum 5 food items allowed hain'); return; }
+        setSaving(true);
+        setError('');
+        try {
+            const payload = {
+                hotelId,
+                name: name.trim(),
+                description: description.trim(),
+                price: Number(price),
+                status,
+                menuIds: selectedIds
+            };
+            if (combo?.id) {
+                await instance.put(`/menu/combo/${combo.id}`, payload);
+            } else {
+                await instance.post('/menu/combo', payload);
+            }
+            onSuccess();
+        } catch (err) {
+            setError(err?.response?.data?.message || 'Combo save failed');
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    return (
+        <div className="img-modal-backdrop" onClick={onClose}>
+            <div className="img-modal-box combo-modal" onClick={(e) => e.stopPropagation()}>
+                <div className="img-modal-header">
+                    <span>{combo?.id ? '✏️ Update Combo' : '🍱 Add Combo'}</span>
+                    <button className="img-modal-close" onClick={onClose}>✕</button>
+                </div>
+                <div className="img-modal-body combo-modal-body">
+                    <div className="combo-form-grid">
+                        <div className="update-menu-field">
+                            <label className="update-menu-label">Combo Name</label>
+                            <input className="create-menu-input" value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex: Pizza + Coke Combo" />
+                        </div>
+                        <div className="update-menu-field">
+                            <label className="update-menu-label">Combo Price (₹)</label>
+                            <input className="create-menu-input" type="number" min="0" value={price} onChange={(e) => setPrice(e.target.value)} placeholder="199" />
+                        </div>
+                    </div>
+                    <div className="update-menu-field">
+                        <label className="update-menu-label">Description</label>
+                        <textarea className="create-menu-input create-menu-textarea" rows={2} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Combo details" />
+                    </div>
+                    <div className="update-menu-field update-menu-status-row">
+                        <label className="update-menu-label">Available</label>
+                        <input type="checkbox" checked={status} onChange={(e) => setStatus(e.target.checked)} className="update-menu-checkbox" />
+                    </div>
+
+                    <div className="combo-select-head">
+                        <b>Select Food Items</b>
+                        <span>{selectedIds.length}/5 selected · min 2</span>
+                    </div>
+                    <div className="combo-food-list">
+                        {allFoodItems.map((item) => {
+                            const active = selectedIds.includes(String(item.id));
+                            return (
+                                <button key={item.id} type="button" className={`combo-food-option ${active ? 'active' : ''}`} onClick={() => toggleFood(item.id)}>
+                                    <span className="combo-food-photo">{item.image ? <img src={item.image} alt={item.name} /> : '🍽️'}</span>
+                                    <span className="combo-food-info"><b>{item.name}</b><small>₹{item.price} · {item.categoryName}</small></span>
+                                    <span className="combo-check">{active ? '✓' : '+'}</span>
+                                </button>
+                            );
+                        })}
+                    </div>
+                    {error && <div className="img-error">{error}</div>}
+                </div>
+                <div className="img-modal-footer">
+                    <button className="img-btn-cancel" onClick={onClose}>Cancel</button>
+                    <button className="img-btn-upload" onClick={handleSubmit} disabled={saving || selectedIds.length < 2 || selectedIds.length > 5}>
+                        {saving ? 'Saving...' : combo?.id ? 'Update Combo' : 'Create Combo'}
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
 // ── Main Menu page ─────────────────────────────────────────────────────────────
 function Menu() {
     const dispatch = useDispatch();
@@ -428,6 +545,12 @@ function Menu() {
     const [imageModal, setImageModal] = useState(null);
     const [createModal, setCreateModal] = useState(false);
     const [updateModal, setUpdateModal] = useState(null);
+    const [managerSection, setManagerSection] = useState('categories');
+    const [comboItems, setComboItems] = useState({ count: 0, rows: [] });
+    const [allFoodItems, setAllFoodItems] = useState([]);
+    const [comboModal, setComboModal] = useState(null);
+    const [comboLoading, setComboLoading] = useState(false);
+    const [comboError, setComboError] = useState('');
 
     const onPaginationChange = (paginate) => dispatch(setPagination(paginate(pagination)));
 
@@ -441,6 +564,45 @@ function Menu() {
             filterKey: filtering?.field,
             filterValue: filtering?.value
         }));
+    };
+
+    const fetchCombos = async () => {
+        if (!hotelId) return;
+        setComboLoading(true);
+        setComboError('');
+        try {
+            const res = await instance.get(`/menu/combo/${hotelId}?skip=0&limit=100`);
+            setComboItems(res.data || { count: 0, rows: [] });
+        } catch (err) {
+            setComboError(err?.response?.data?.message || 'Failed to fetch combos');
+        } finally {
+            setComboLoading(false);
+        }
+    };
+
+    const fetchAllFoodItems = async () => {
+        if (!categories?.rows?.length) { setAllFoodItems([]); return; }
+        try {
+            const responses = await Promise.all(
+                categories.rows.map(async (category) => {
+                    const res = await instance.get(`/menu/${category.id}?skip=0&limit=500`);
+                    return (res.data?.rows || []).map((item) => ({ ...item, categoryName: category.name }));
+                })
+            );
+            setAllFoodItems(responses.flat().filter((item) => !item.isCombo));
+        } catch (err) {
+            setComboError(err?.response?.data?.message || 'Failed to fetch food items for combos');
+        }
+    };
+
+    const handleDeleteCombo = async (comboId) => {
+        if (!window.confirm('Delete this combo?')) return;
+        try {
+            await instance.delete('/menu/combo', { data: { comboIds: [comboId] } });
+            await fetchCombos();
+        } catch (err) {
+            setComboError(err?.response?.data?.message || 'Failed to delete combo');
+        }
     };
 
     useEffect(() => {
@@ -545,6 +707,14 @@ function Menu() {
     useEffect(() => {
         if (hotelId) dispatch(getCategoryRequest(hotelId));
     }, [hotelId]);
+
+    useEffect(() => {
+        if (hotelId && managerSection === 'combos') {
+            fetchCombos();
+            fetchAllFoodItems();
+        }
+    // eslint-disable-next-line
+    }, [hotelId, managerSection, categories?.rows?.length]);
 
     const handleAddButtonClick = (currentModalData, values, type) => {
         const { options } = currentModalData;
@@ -730,28 +900,72 @@ function Menu() {
     return (
         <>
             <div className="width-container mx-auto my-4">
-                <h6>Categories</h6>
-                <div className="d-flex">
-                    <CustomSelect
-                        className="w-100 me-4"
-                        options={categoriesOptions || []}
-                        value={selectedCategory}
-                        onChange={(item) => {
-                            dispatch(setSelectedCategory(item));
-                            dispatch(getMenuItemsRequest({ categoryId: item.value }));
-                        }}
-                    />
-                    <ActionDropdown
-                        options={[
-                            { label: 'Add', icon: TiPlus, onClick: () => handleAddItemClick('category') },
-                            { label: 'Update', icon: MdModeEditOutline, disabled: !Object.keys(selectedCategory).length, onClick: handleUpdateCategoryClick },
-                            { label: 'Delete', disabled: !Object.keys(selectedCategory).length, icon: MdDeleteForever, onClick: () => handleDeleteItemClick('category') }
-                        ]}
-                    />
+                <div className="menu-section-tabs">
+                    <button type="button" className={managerSection === 'categories' ? 'active' : ''} onClick={() => setManagerSection('categories')}>Categories</button>
+                    <button type="button" className={managerSection === 'combos' ? 'active' : ''} onClick={() => setManagerSection('combos')}>🍱 Combos</button>
                 </div>
+                {managerSection === 'categories' ? (
+                    <div className="d-flex">
+                        <CustomSelect
+                            className="w-100 me-4"
+                            options={categoriesOptions || []}
+                            value={selectedCategory}
+                            onChange={(item) => {
+                                dispatch(setSelectedCategory(item));
+                                dispatch(getMenuItemsRequest({ categoryId: item.value }));
+                            }}
+                        />
+                        <ActionDropdown
+                            options={[
+                                { label: 'Add', icon: TiPlus, onClick: () => handleAddItemClick('category') },
+                                { label: 'Update', icon: MdModeEditOutline, disabled: !Object.keys(selectedCategory).length, onClick: handleUpdateCategoryClick },
+                                { label: 'Delete', disabled: !Object.keys(selectedCategory).length, icon: MdDeleteForever, onClick: () => handleDeleteItemClick('category') }
+                            ]}
+                        />
+                    </div>
+                ) : (
+                    <div className="combo-toolbar">
+                        <div>
+                            <h6 className="mb-1">Combos Menu</h6>
+                            <small>1 combo me minimum 2 aur maximum 5 food items add honge.</small>
+                        </div>
+                        <button className="combo-add-main-btn" type="button" onClick={() => setComboModal({})}>+ Add Combo</button>
+                    </div>
+                )}
             </div>
 
-            {Object.keys(selectedCategory).length ? (
+            {managerSection === 'combos' ? (
+                <div className="combo-manager-wrap mx-md-5 mx-2">
+                    {comboError && <div className="combo-error-box">{comboError}</div>}
+                    {comboLoading ? (
+                        <div className="combo-empty-card">Loading combos...</div>
+                    ) : comboItems.rows?.length ? (
+                        <div className="combo-grid">
+                            {comboItems.rows.map((combo) => {
+                                const ids = Array.isArray(combo.comboItems) ? combo.comboItems : [];
+                                const names = ids.map((id) => allFoodItems.find((item) => String(item.id) === String(id))?.name).filter(Boolean);
+                                return (
+                                    <div key={combo.id} className="combo-card">
+                                        <div className="combo-card-top"><span>🍱</span><b>{combo.name}</b></div>
+                                        <p>{combo.description || 'Combo menu'}</p>
+                                        <div className="combo-items-text">{names.length ? names.join(' + ') : `${ids.length} food items selected`}</div>
+                                        <div className="combo-card-bottom">
+                                            <strong>₹{combo.price}</strong>
+                                            <span className={combo.status === MENU_STATUS[0] ? 'combo-live' : 'combo-off'}>{combo.status}</span>
+                                        </div>
+                                        <div className="combo-card-actions">
+                                            <button type="button" onClick={() => setComboModal(combo)}>Edit</button>
+                                            <button type="button" className="danger" onClick={() => handleDeleteCombo(combo.id)}>Delete</button>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    ) : (
+                        <div className="combo-empty-card">No combos added yet. Click “Add Combo”.</div>
+                    )}
+                </div>
+            ) : Object.keys(selectedCategory).length ? (
                 <div className="d-flex flex-column">
                     <div className="options-container d-flex align-items-center px-4 mx-md-5 mx-2">
                         <h5 className="text-white">{selectedCategory.label}</h5>
@@ -831,6 +1045,20 @@ function Menu() {
                 />
             )}
 
+
+            {comboModal && (
+                <ComboModal
+                    combo={comboModal.id ? comboModal : null}
+                    allFoodItems={allFoodItems}
+                    hotelId={hotelId}
+                    onClose={() => setComboModal(null)}
+                    onSuccess={() => {
+                        setComboModal(null);
+                        fetchCombos();
+                    }}
+                />
+            )}
+
             <style>{`
                 .menu-thumb-wrap { width:48px; height:48px; border-radius:8px; overflow:hidden; cursor:pointer; border:2px dashed #e2e8f0; display:flex; align-items:center; justify-content:center; transition:border-color .2s; }
                 .menu-thumb-wrap:hover { border-color:#49ac60; }
@@ -878,6 +1106,45 @@ function Menu() {
                 .update-menu-label { font-size:.82rem; font-weight:600; color:#4a5568; }
                 .update-menu-status-row { flex-direction:row; align-items:center; gap:10px; }
                 .update-menu-checkbox { width:18px; height:18px; cursor:pointer; accent-color:#49ac60; }
+
+                .menu-section-tabs { display:flex; gap:10px; margin-bottom:12px; }
+                .menu-section-tabs button { border:1.5px solid #dce5ef; background:#fff; color:#08182d; padding:.65rem 1rem; border-radius:999px; font-weight:700; box-shadow:0 6px 18px rgba(8,24,45,.06); }
+                .menu-section-tabs button.active { background:#49ac60; color:#fff; border-color:#49ac60; }
+                .combo-toolbar { display:flex; justify-content:space-between; align-items:center; gap:12px; background:#fff; border:1px solid #edf2f7; border-radius:14px; padding:14px; box-shadow:0 8px 25px rgba(8,24,45,.06); }
+                .combo-toolbar small { color:#718096; }
+                .combo-add-main-btn { border:none; border-radius:10px; background:#49ac60; color:#fff; padding:.7rem 1rem; font-weight:800; white-space:nowrap; }
+                .combo-manager-wrap { margin-bottom:28px; }
+                .combo-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(250px,1fr)); gap:16px; }
+                .combo-card { background:#fff; border:1px solid #edf2f7; border-radius:16px; padding:16px; box-shadow:0 10px 30px rgba(8,24,45,.08); }
+                .combo-card-top { display:flex; gap:10px; align-items:center; font-size:1.05rem; color:#08182d; }
+                .combo-card-top span { width:36px; height:36px; border-radius:12px; display:grid; place-items:center; background:#fff7ed; }
+                .combo-card p { color:#4a5568; margin:10px 0 6px; font-size:.9rem; }
+                .combo-items-text { min-height:38px; color:#718096; font-size:.82rem; line-height:1.35; }
+                .combo-card-bottom { display:flex; justify-content:space-between; align-items:center; margin-top:12px; }
+                .combo-card-bottom strong { font-size:1.25rem; color:#08182d; }
+                .combo-live, .combo-off { border-radius:999px; padding:.25rem .55rem; font-size:.72rem; font-weight:800; }
+                .combo-live { background:#e8f8ed; color:#2f8f46; }
+                .combo-off { background:#fff1f1; color:#d33; }
+                .combo-card-actions { display:flex; gap:10px; margin-top:14px; }
+                .combo-card-actions button { flex:1; border:none; border-radius:10px; background:#eef6f0; color:#2f8f46; padding:.55rem; font-weight:700; }
+                .combo-card-actions button.danger { background:#fff1f1; color:#d33; }
+                .combo-empty-card, .combo-error-box { background:#fff; border-radius:14px; padding:18px; border:1px solid #edf2f7; color:#718096; text-align:center; }
+                .combo-error-box { color:#d33; margin-bottom:12px; border-color:#fed7d7; }
+                .combo-modal { width:620px; }
+                .combo-form-grid { display:grid; grid-template-columns:1fr 150px; gap:12px; }
+                .combo-select-head { display:flex; justify-content:space-between; align-items:center; margin:12px 0 8px; }
+                .combo-select-head span { color:#718096; font-size:.8rem; }
+                .combo-food-list { display:grid; grid-template-columns:1fr; gap:8px; max-height:280px; overflow-y:auto; }
+                .combo-food-option { display:flex; align-items:center; gap:10px; border:1.5px solid #edf2f7; background:#fff; border-radius:12px; padding:8px; text-align:left; cursor:pointer; }
+                .combo-food-option.active { border-color:#49ac60; background:#f0fff4; }
+                .combo-food-photo { width:42px; height:42px; border-radius:10px; overflow:hidden; display:grid; place-items:center; background:#f7fafc; flex-shrink:0; }
+                .combo-food-photo img { width:100%; height:100%; object-fit:cover; }
+                .combo-food-info { flex:1; display:flex; flex-direction:column; gap:2px; }
+                .combo-food-info small { color:#718096; }
+                .combo-check { width:26px; height:26px; border-radius:50%; display:grid; place-items:center; background:#edf2f7; color:#4a5568; font-weight:800; }
+                .combo-food-option.active .combo-check { background:#49ac60; color:#fff; }
+                @media(max-width:576px) { .combo-toolbar { flex-direction:column; align-items:stretch; } .combo-form-grid { grid-template-columns:1fr; } .combo-modal { width:95vw; } }
+
             `}</style>
         </>
     );

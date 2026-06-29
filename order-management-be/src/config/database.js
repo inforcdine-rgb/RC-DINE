@@ -254,6 +254,26 @@ try {
     logger('info', '✅ Column image already exists in menus table');
 }
 
+
+try {
+    await sequelize.query('ALTER TABLE `menus` MODIFY COLUMN `categoryId` VARCHAR(255) NULL;');
+    logger('info', '✅ Column categoryId in menus table allows combos without category');
+} catch (e) {
+    logger('info', '✅ Column categoryId already compatible for combos');
+}
+try {
+    await sequelize.query('ALTER TABLE `menus` ADD COLUMN `isCombo` TINYINT(1) NOT NULL DEFAULT 0;');
+    logger('info', '✅ Column isCombo added to menus table');
+} catch (e) {
+    logger('info', '✅ Column isCombo already exists in menus table');
+}
+try {
+    await sequelize.query('ALTER TABLE `menus` ADD COLUMN `comboItems` JSON NULL;');
+    logger('info', '✅ Column comboItems added to menus table');
+} catch (e) {
+    logger('info', '✅ Column comboItems already exists in menus table');
+}
+
 await ensureAdminUser();
 
         try {
