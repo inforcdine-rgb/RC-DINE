@@ -1,0 +1,307 @@
+﻿.otm-sidebar {
+    position: fixed !important;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    z-index: 1100;
+    width: 250px;
+    height: 100vh;
+    overflow-y: auto;
+    overflow-x: hidden;
+    background-color: #08182d;
+    transition: width 0.5s ease;
+}
+
+.compressed-sidebar {
+    width: 75px;
+}
+
+/* main content div style */
+.main-container {
+    min-height: 100vh;
+    transition: margin 0.5s;
+}
+
+.main-container-full {
+    margin-left: 250px;
+}
+
+.main-container-compress {
+    margin-left: 75px;
+}
+
+/* sidebar options styles */
+.otm-sidebar ul {
+    list-style-type: none;
+    padding: 0;
+}
+
+.otm-sidebar ul li {
+    height: 50px;
+    color: white;
+    display: flex;
+    align-items: center;
+    padding: 0 20px;
+    cursor: pointer;
+    position: relative;
+}
+
+.otm-sidebar ul li::before {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 0;
+    height: 2px;
+    background-color: #49ac60;
+}
+
+/* arrow to compress and full style */
+.arrow {
+    height: 45px;
+    width: 60px;
+    background-color: #49ac60;
+    cursor: pointer;
+    display: flex;
+}
+
+.arrow-full {
+    margin-left: auto;
+    border-top-left-radius: 25px;
+    border-bottom-left-radius: 25px;
+}
+
+.arrow-compress {
+    margin-right: auto;
+    border-top-right-radius: 25px;
+    border-bottom-right-radius: 25px;
+}
+
+/* line hover effect to the sidebar options */
+.otm-sidebar ul li:hover::before,
+.otm-sidebar ul li.active::before {
+    width: 100%;
+}
+
+/* background color for sidebar options on hover and active */
+.otm-sidebar ul li.active,
+.otm-sidebar ul li:hover {
+    background-color: #0d2c4a;
+}
+
+/* color change on hover and active for sidebar options */
+.otm-sidebar ul li:hover h6,
+.otm-sidebar ul li:hover svg,
+.otm-sidebar ul li.active h6,
+.otm-sidebar ul li.active svg {
+    color: #49ac60;
+}
+
+/* sidebar scrollbar style */
+.otm-sidebar::-webkit-scrollbar {
+    width: 5px;
+}
+
+.otm-sidebar::-webkit-scrollbar-thumb {
+    background-color: #888;
+    border-radius: 10px;
+}
+
+.otm-sidebar::-webkit-scrollbar-thumb:hover {
+    background-color: #555;
+}
+
+.otm-sidebar::-webkit-scrollbar-track {
+    background-color: #f1f1f1;
+}
+
+.tooltip-inner {
+    font-weight: 500;
+    background-color: #49ac60;
+}
+
+.tooltip-arrow::before {
+    border-right-color: #49ac60 !important;
+}
+.brand-title {
+    font-family: "Brush Script MT", serif;
+    font-size: 34px;
+    font-weight: normal;
+    letter-spacing: 1px;
+    color: white;
+}
+.sidebar-menu-content {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    flex: 1;
+    min-width: 0;
+}
+
+.sidebar-menu-title {
+    margin: 0;
+    color: inherit;
+}
+
+.pending-order-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 18px;
+    color: #ffffff;
+    font-size: 15px;
+    font-weight: 800;
+    line-height: 1;
+    text-align: center;
+    transform-origin: center;
+    will-change: transform, opacity, text-shadow;
+}
+
+.pending-order-count-compressed {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    min-width: 16px;
+    font-size: 11px;
+}
+
+.pending-order-count-animate {
+    animation:
+        pendingCounterFlip 0.6s cubic-bezier(0.22, 1, 0.36, 1),
+        pendingCounterGlow 0.9s ease-out;
+}
+
+@keyframes pendingCounterFlip {
+    0% {
+        opacity: 0;
+        transform: translateY(14px) rotateX(-75deg) scale(0.8);
+    }
+
+    45% {
+        opacity: 1;
+        transform: translateY(-3px) rotateX(12deg) scale(1.18);
+    }
+
+    70% {
+        transform: translateY(1px) rotateX(-4deg) scale(0.98);
+    }
+
+    100% {
+        opacity: 1;
+        transform: translateY(0) rotateX(0deg) scale(1);
+    }
+}
+
+@keyframes pendingCounterGlow {
+    0% {
+        text-shadow: none;
+    }
+
+    40% {
+        text-shadow:
+            0 0 7px rgba(255, 255, 255, 0.95),
+            0 0 14px rgba(73, 172, 96, 0.9);
+    }
+
+    100% {
+        text-shadow: none;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .pending-order-count-animate {
+        animation: none;
+    }
+}
+
+
+/* Active hotel branding: shown consistently on every manager page */
+.sidebar-brand-wrap {
+    min-width: 0;
+    padding: 0 10px;
+    gap: 10px;
+}
+
+.sidebar-hotel-logo {
+    width: 46px;
+    height: 46px;
+    flex: 0 0 46px;
+    border-radius: 12px;
+    object-fit: cover;
+    background: #ffffff;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 5px 16px rgba(0, 0, 0, 0.25);
+}
+
+.sidebar-hotel-copy {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    color: #ffffff;
+    line-height: 1.15;
+}
+
+.sidebar-hotel-copy small {
+    margin-bottom: 3px;
+    color: rgba(255, 255, 255, 0.62);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+.sidebar-hotel-copy strong {
+    display: block;
+    max-width: 145px;
+    overflow: hidden;
+    color: #ffffff;
+    font-size: 16px;
+    font-weight: 800;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.compressed-sidebar .sidebar-brand-wrap {
+    padding: 0;
+}
+
+.compressed-sidebar .sidebar-hotel-logo {
+    width: 42px;
+    height: 42px;
+    flex-basis: 42px;
+    border-radius: 11px;
+}
+
+
+/* RC-Dine app brand: keep R + logo + C-Dine on one line */
+.sidebar-brand-wrap {
+    flex-wrap: nowrap !important;
+}
+
+.sidebar-brand-wrap .brand-title {
+    flex: 0 0 auto;
+    font-size: 28px;
+    line-height: 1;
+    white-space: nowrap;
+    word-break: keep-all;
+}
+
+.sidebar-app-logo {
+    width: 36px;
+    height: 36px;
+    flex: 0 0 36px;
+    object-fit: contain;
+}
+
+.full-sidebar .sidebar-brand-wrap {
+    width: calc(100% - 60px) !important;
+    padding: 0 4px;
+    gap: 4px;
+}
+
+.compressed-sidebar .sidebar-app-logo {
+    width: 42px;
+    height: 42px;
+    flex-basis: 42px;
+}

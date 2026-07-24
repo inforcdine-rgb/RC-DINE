@@ -1,0 +1,250 @@
+﻿.subscription-status-wrap {
+    width: min(1180px, calc(100% - 32px));
+    margin: 24px auto 0;
+}
+
+.subscription-status-alert {
+    margin-bottom: 0;
+    border: 0;
+    border-radius: 16px;
+    font-size: 14px;
+}
+
+.subscription-section {
+    width: min(1220px, calc(100% - 32px));
+    margin: 28px auto 60px;
+}
+
+.subscription-heading-row {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 20px;
+    margin-bottom: 22px;
+}
+
+.subscription-eyebrow {
+    margin: 0 0 6px;
+    color: #6c757d;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.subscription-main-title {
+    margin: 0;
+    font-size: clamp(24px, 4vw, 38px);
+    font-weight: 800;
+}
+
+.subscription-desktop-controls {
+    display: flex;
+    gap: 10px;
+}
+
+.subscription-arrow-button,
+.subscription-scroll-arrow {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 0;
+    border-radius: 50%;
+    background: #ffffff;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
+    cursor: pointer;
+}
+
+.subscription-arrow-button {
+    width: 44px;
+    height: 44px;
+}
+
+.subscription-scroll-shell {
+    position: relative;
+}
+
+.subscription-plan-track {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 22px;
+    padding: 10px 4px 18px;
+}
+
+.subscription-plan-item {
+    min-width: 0;
+}
+
+.subscription-card {
+    position: relative;
+    height: 100%;
+    overflow: hidden;
+    border: 1px solid #e8edf3;
+    border-radius: 22px;
+    background: #ffffff;
+    box-shadow: 0 14px 40px rgba(15, 23, 42, 0.08);
+}
+
+.subscription-card-popular {
+    border: 2px solid var(--primary-color, #5b57e8);
+    transform: translateY(-6px);
+}
+
+.subscription-popular-badge {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: var(--primary-color, #5b57e8);
+    color: #ffffff;
+    font-size: 11px;
+    font-weight: 800;
+}
+
+.subscription-plan-title {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    margin: 24px 0 20px;
+    text-align: left;
+}
+
+.subscription-plan-icon {
+    display: flex;
+    width: 52px;
+    height: 52px;
+    align-items: center;
+    justify-content: center;
+    border-radius: 16px;
+    background: rgba(91, 87, 232, 0.1);
+}
+
+.subscription-price-wrap {
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    line-height: 1;
+}
+
+.subscription-currency {
+    margin-top: 8px;
+    font-size: 20px;
+    font-weight: 700;
+}
+
+.subscription-price {
+    font-size: clamp(36px, 5vw, 50px);
+    font-weight: 900;
+}
+
+.subscription-feature-list {
+    margin: 18px 0 28px;
+    text-align: left;
+}
+
+.subscription-feature-row {
+    align-items: flex-start;
+    margin: 0 0 13px;
+}
+
+.subscription-feature-row .col-auto {
+    padding-right: 0;
+}
+
+.subscription-scroll-arrow {
+    display: none;
+}
+
+.subscription-swipe-hint {
+    display: none;
+}
+
+@media (max-width: 767px) {
+    .subscription-status-wrap,
+    .subscription-section {
+        width: calc(100% - 24px);
+    }
+
+    .subscription-section {
+        margin-top: 20px;
+    }
+
+    .subscription-heading-row {
+        align-items: flex-start;
+    }
+
+    .subscription-desktop-controls {
+        display: none;
+    }
+
+    .subscription-main-title {
+        max-width: 290px;
+        font-size: 25px;
+        line-height: 1.2;
+    }
+
+    .subscription-scroll-shell {
+        margin: 0 -12px;
+    }
+
+    .subscription-plan-track {
+        display: flex;
+        gap: 14px;
+        overflow-x: auto;
+        padding: 12px 42px 22px;
+        scroll-behavior: smooth;
+        scroll-snap-type: x mandatory;
+        scrollbar-width: none;
+        overscroll-behavior-inline: contain;
+    }
+
+    .subscription-plan-track::-webkit-scrollbar {
+        display: none;
+    }
+
+    .subscription-plan-item {
+        flex: 0 0 86%;
+        scroll-snap-align: center;
+    }
+
+    .subscription-card-popular {
+        transform: none;
+    }
+
+    .subscription-scroll-arrow {
+        position: absolute;
+        top: 50%;
+        z-index: 5;
+        display: inline-flex;
+        width: 38px;
+        height: 38px;
+        transform: translateY(-50%);
+    }
+
+    .subscription-scroll-arrow-left {
+        left: 1px;
+    }
+
+    .subscription-scroll-arrow-right {
+        right: 1px;
+    }
+
+    .subscription-swipe-hint {
+        display: block;
+        margin: 4px 0 0;
+        color: #6c757d;
+        font-size: 12px;
+        text-align: center;
+    }
+
+    .subscription-popular-badge {
+        top: 12px;
+        right: 12px;
+    }
+
+    .subscription-plan-title {
+        margin-top: 34px;
+    }
+}

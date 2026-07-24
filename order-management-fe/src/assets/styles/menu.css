@@ -1,0 +1,713 @@
+﻿.options-container {
+    height: 50px;
+    background: linear-gradient(180deg, #49ac60, #08182d);
+    border-top-left-radius: 20px;
+    border-top-right-radius: 20px;
+    display: flex;
+}
+
+.width-container {
+    width: 50%;
+}
+
+@media (max-width: 375px) {
+    .width-container {
+        width: 95%;
+    }
+}
+
+.create-menu-textarea {
+    min-height: 64px;
+    resize: vertical;
+}
+
+.menu-desc-cell {
+    max-width: 280px;
+    color: #5f6b7a;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* ---------- NEW COMBO SECTION ---------- */
+
+.combo-section-btn {
+    min-width: 170px;
+    height: 42px;
+    border: none;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #ff9800, #ff5722);
+    color: #fff;
+    font-weight: 700;
+    font-size: 15px;
+    cursor: pointer;
+    transition: all .25s ease;
+    box-shadow: 0 8px 20px rgba(255, 87, 34, .25);
+}
+
+.combo-section-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 24px rgba(255, 87, 34, .35);
+}
+
+.combo-section-btn:active {
+    transform: scale(.98);
+}
+
+.combo-card {
+    background: #fff;
+    border-radius: 14px;
+    padding: 12px;
+    border: 1px solid #ececec;
+    box-shadow: 0 8px 20px rgba(0,0,0,.08);
+}
+
+.combo-food-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.combo-food-chip {
+    background: #f5f5f5;
+    border-radius: 30px;
+    padding: 8px 14px;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.combo-note {
+    color: #666;
+    font-size: 13px;
+    margin-top: 8px;
+}
+
+@media (max-width:768px){
+
+    .combo-section-btn{
+        width:100%;
+        margin-top:10px;
+    }
+
+}
+
+.cart-suggestion-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 8px;
+    padding: 10px 12px;
+    border-radius: 12px;
+    background: #fff6f8;
+    border: 1px solid #ffd4dc;
+    color: #111827;
+    font-weight: 700;
+}
+
+.cart-suggestion-toggle input,
+.cart-suggestion-admin-row input {
+    accent-color: #ff003d;
+}
+
+.cart-suggestion-admin-row {
+    background: #fff6f8;
+    border: 1px solid #ffd4dc;
+    border-radius: 14px;
+    padding: 12px;
+}
+
+.cart-suggestion-admin-row small {
+    display: block;
+    color: #6b7280;
+    font-weight: 600;
+    margin-top: 2px;
+}
+
+.cart-suggestion-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 48px;
+    padding: 5px 10px;
+    border-radius: 999px;
+    background: #f3f4f6;
+    color: #6b7280;
+    font-size: 12px;
+    font-weight: 900;
+}
+
+.cart-suggestion-badge.on {
+    background: #ffe4ea;
+    color: #e6003a;
+}
+
+
+/* ===== Manager Menu Card Grid ===== */
+.manager-menu-tools {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    margin-top: 18px;
+    margin-bottom: 18px;
+}
+
+.manager-menu-search {
+    width: min(420px, 100%);
+    height: 44px;
+    border: 1px solid #dfe5e1;
+    border-radius: 12px;
+    padding: 0 15px;
+    background: #fff;
+    color: #17212b;
+    outline: none;
+    box-shadow: 0 4px 14px rgba(15, 23, 42, .05);
+}
+
+.manager-menu-search:focus {
+    border-color: #49ac60;
+    box-shadow: 0 0 0 3px rgba(73, 172, 96, .14);
+}
+
+.manager-menu-count {
+    flex: 0 0 auto;
+    padding: 8px 13px;
+    border-radius: 999px;
+    background: #edf8f0;
+    color: #23833b;
+    font-size: 13px;
+    font-weight: 800;
+}
+
+.manager-menu-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 14px;
+    padding-bottom: 10px;
+}
+
+.manager-menu-card {
+    overflow: hidden;
+    min-width: 0;
+    border: 1px solid #e7ece8;
+    border-radius: 14px;
+    background: #fff;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, .07);
+    transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
+}
+
+.manager-menu-card:hover {
+    transform: translateY(-4px);
+    border-color: #cce7d2;
+    box-shadow: 0 14px 32px rgba(15, 23, 42, .12);
+}
+
+.manager-menu-card.unavailable {
+    opacity: .72;
+}
+
+.manager-menu-image {
+    position: relative;
+    display: block;
+    width: 100%;
+    height: 145px;
+    padding: 0;
+    overflow: hidden;
+    border: 0;
+    background: linear-gradient(135deg, #eff8f1, #e6edf6);
+    cursor: pointer;
+}
+
+.manager-menu-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform .25s ease;
+}
+
+.manager-menu-card:hover .manager-menu-image img {
+    transform: scale(1.045);
+}
+
+.manager-menu-image-empty {
+    display: grid;
+    width: 100%;
+    height: 100%;
+    place-items: center;
+    font-size: 44px;
+}
+
+.manager-menu-photo-action {
+    position: absolute;
+    right: 10px;
+    bottom: 10px;
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: rgba(8, 24, 45, .82);
+    color: #fff;
+    font-size: 11px;
+    font-weight: 800;
+    opacity: 0;
+    transform: translateY(4px);
+    transition: .2s ease;
+}
+
+.manager-menu-image:hover .manager-menu-photo-action {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.manager-menu-card-body {
+    padding: 16px;
+}
+
+.manager-menu-card-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.manager-menu-card-head h3 {
+    min-width: 0;
+    margin: 0;
+    overflow: hidden;
+    color: #18212c;
+    font-size: 15px;
+    font-weight: 850;
+    line-height: 1.3;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.manager-menu-card-head strong {
+    flex: 0 0 auto;
+    color: #23833b;
+    font-size: 15px;
+}
+
+.manager-menu-description {
+    min-height: 38px;
+    margin: 9px 0 13px;
+    overflow: hidden;
+    color: #697586;
+    font-size: 13px;
+    line-height: 1.55;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+}
+
+.manager-menu-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.manager-menu-status {
+    display: inline-flex;
+    align-items: center;
+    padding: 5px 9px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 900;
+}
+
+.manager-menu-status.available {
+    background: #dcfce7;
+    color: #16743a;
+}
+
+.manager-menu-status.unavailable {
+    background: #fee2e2;
+    color: #b42318;
+}
+
+.manager-menu-card-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 16px;
+    padding-top: 13px;
+    border-top: 1px solid #edf0ee;
+}
+
+.manager-menu-card-footer small {
+    color: #8a94a3;
+    font-size: 11px;
+}
+
+.manager-menu-edit-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    border: 0;
+    border-radius: 10px;
+    padding: 7px 11px;
+    background: #edf8f0;
+    color: #23833b;
+    font-size: 12px;
+    font-weight: 850;
+    cursor: pointer;
+}
+
+.manager-menu-edit-btn:hover {
+    background: #dff2e4;
+}
+
+.manager-menu-empty {
+    padding: 50px 20px;
+    border: 1px dashed #cbd5ce;
+    border-radius: 18px;
+    background: #fafcfb;
+    color: #687386;
+    text-align: center;
+    font-weight: 700;
+}
+
+.manager-menu-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    padding: 24px 0 8px;
+}
+
+.manager-menu-pagination button {
+    border: 1px solid #d6dfd8;
+    border-radius: 10px;
+    padding: 8px 14px;
+    background: #fff;
+    color: #24303c;
+    font-weight: 750;
+    cursor: pointer;
+}
+
+.manager-menu-pagination button:disabled {
+    cursor: not-allowed;
+    opacity: .45;
+}
+
+.manager-menu-pagination span {
+    color: #667085;
+    font-size: 13px;
+    font-weight: 800;
+}
+
+@media (max-width: 1200px) {
+    .manager-menu-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 850px) {
+    .manager-menu-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+    }
+
+    .manager-menu-image {
+        height: 135px;
+    }
+}
+
+/* Keep menu Add/Delete actions visible on mobile */
+.options-container {
+    min-width: 0;
+    overflow: visible;
+}
+
+.options-container > h5 {
+    flex: 1 1 auto;
+    min-width: 0;
+    margin: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.menu-item-action-dropdown {
+    position: relative;
+    z-index: 20;
+    display: block !important;
+    flex: 0 0 auto;
+}
+
+.menu-item-action-dropdown .dropdown-toggle {
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    min-width: 40px;
+    height: 38px;
+    padding: 0;
+}
+
+.menu-item-action-dropdown .dropdown-menu {
+    z-index: 1055;
+}
+
+@media (max-width: 560px) {
+    .width-container {
+        width: calc(100% - 20px);
+    }
+
+    .options-container {
+        height: 48px;
+        padding-left: 12px !important;
+        padding-right: 8px !important;
+        border-radius: 14px 14px 0 0;
+    }
+
+    .options-container > h5 {
+        font-size: 15px;
+    }
+
+    .manager-menu-tools {
+        align-items: stretch;
+        flex-direction: column;
+        gap: 9px;
+        margin-top: 12px;
+        margin-bottom: 12px;
+    }
+
+    .manager-menu-search {
+        width: 100%;
+        height: 40px;
+        border-radius: 10px;
+    }
+
+    .manager-menu-count {
+        align-self: flex-start;
+        padding: 6px 10px;
+        font-size: 12px;
+    }
+
+    .manager-menu-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+    }
+
+    .manager-menu-card {
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(15, 23, 42, .07);
+    }
+
+    .manager-menu-card:hover {
+        transform: none;
+    }
+
+    .manager-menu-image {
+        height: 105px;
+    }
+
+    .manager-menu-image-empty {
+        font-size: 30px;
+    }
+
+    .manager-menu-photo-action {
+        right: 6px;
+        bottom: 6px;
+        padding: 4px 7px;
+        font-size: 9px;
+        opacity: 1;
+        transform: none;
+    }
+
+    .manager-menu-card-body {
+        padding: 9px;
+    }
+
+    .manager-menu-card-head {
+        gap: 6px;
+    }
+
+    .manager-menu-card-head h3 {
+        font-size: 13px;
+    }
+
+    .manager-menu-card-head strong {
+        font-size: 13px;
+    }
+
+    .manager-menu-description {
+        min-height: 31px;
+        margin: 6px 0 8px;
+        font-size: 11px;
+        line-height: 1.4;
+        -webkit-line-clamp: 2;
+    }
+
+    .manager-menu-badges {
+        gap: 5px;
+    }
+
+    .manager-menu-status,
+    .cart-suggestion-badge {
+        min-width: 0;
+        padding: 4px 6px;
+        font-size: 9px;
+    }
+
+    .manager-menu-card-footer {
+        margin-top: 9px;
+        padding-top: 8px;
+    }
+
+    .manager-menu-card-footer small {
+        display: none;
+    }
+
+    .manager-menu-edit-btn {
+        width: 100%;
+        justify-content: center;
+        padding: 6px 8px;
+        border-radius: 8px;
+        font-size: 11px;
+    }
+
+    .manager-menu-pagination {
+        gap: 8px;
+        padding-top: 16px;
+    }
+
+    .manager-menu-pagination button {
+        padding: 7px 10px;
+        font-size: 12px;
+    }
+}
+
+@media (max-width: 340px) {
+    .manager-menu-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .manager-menu-image {
+        height: 135px;
+    }
+}
+
+/* ===== Veg / Non-Veg manager controls ===== */
+.food-type-selector {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.food-type-title {
+    width: 100%;
+    color: #374151;
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.food-type-option {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    min-height: 38px;
+    padding: 8px 12px;
+    border: 1px solid #dfe5e1;
+    border-radius: 10px;
+    background: #fff;
+    color: #374151;
+    font-size: 13px;
+    font-weight: 800;
+    cursor: pointer;
+}
+
+.food-type-option input {
+    margin: 0;
+}
+
+.food-type-option.veg.active {
+    border-color: #2e9d4d;
+    background: #effaf2;
+    color: #187733;
+}
+
+.food-type-option.non-veg.active {
+    border-color: #b76a36;
+    background: #fff6ef;
+    color: #95491d;
+}
+
+.update-food-type-selector {
+    margin-top: 2px;
+}
+
+.manager-food-filter {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    margin-left: auto;
+}
+
+.manager-food-filter button {
+    border: 1px solid #dfe5e1;
+    border-radius: 999px;
+    padding: 8px 13px;
+    background: #fff;
+    color: #4b5563;
+    font-size: 12px;
+    font-weight: 800;
+    cursor: pointer;
+}
+
+.manager-food-filter button.active {
+    border-color: #49ac60;
+    background: #edf8f0;
+    color: #23833b;
+}
+
+.manager-food-type-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 9px;
+    border: 1px solid currentColor;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 900;
+}
+
+.manager-food-type-badge.veg {
+    color: #20863a;
+    background: #f1fbf3;
+}
+
+.manager-food-type-badge.non-veg {
+    color: #a45424;
+    background: #fff7f1;
+}
+
+.food-type-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: currentColor;
+}
+
+@media (max-width: 768px) {
+    .manager-menu-tools {
+        flex-wrap: wrap;
+    }
+
+    .manager-menu-search {
+        width: 100%;
+    }
+
+    .manager-food-filter {
+        width: 100%;
+        margin-left: 0;
+        overflow-x: auto;
+    }
+
+    .manager-food-filter button {
+        flex: 1 0 auto;
+    }
+}

@@ -1,0 +1,192 @@
+/* Manager Dashboard Pending / Completed popup - mobile app feel */
+.pos-stat-card.clickable {
+    border: 0;
+    text-align: left;
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.pos-stat-card.clickable:active {
+    transform: scale(0.98);
+}
+
+.dashboard-orders-dialog,
+.dashboard-details-dialog {
+    max-width: 560px !important;
+    width: calc(100% - 28px) !important;
+    border-radius: 24px !important;
+    padding: 18px !important;
+}
+
+.dashboard-orders-dialog .dialog-head,
+.dashboard-details-dialog .dialog-head {
+    align-items: flex-start !important;
+    margin-bottom: 14px !important;
+}
+
+.dashboard-orders-dialog .dialog-head small,
+.dashboard-details-dialog .dialog-head small {
+    color: #64748b;
+    font-weight: 800;
+}
+
+.dashboard-order-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    max-height: 65vh;
+    overflow-y: auto;
+    padding-right: 3px;
+}
+
+.dashboard-order-card {
+    width: 100%;
+    border: 1px solid #e7eef5;
+    background: #ffffff;
+    border-radius: 18px;
+    padding: 14px;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 10px;
+    text-align: left;
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.07);
+}
+
+.dashboard-order-card b {
+    display: block;
+    color: #071426;
+    font-size: 14px;
+    font-weight: 950;
+}
+
+.dashboard-order-card small,
+.dashboard-order-card span {
+    color: #64748b;
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.dashboard-order-card strong {
+    display: block;
+    color: #071426;
+    font-size: 15px;
+    font-weight: 950;
+    margin-top: 4px;
+    text-align: right;
+}
+
+.dashboard-order-card .status-pill {
+    grid-column: 1 / -1;
+    justify-self: flex-start;
+}
+
+.dashboard-details-top {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    margin-bottom: 16px;
+}
+
+.dashboard-details-top div {
+    background: #f8fafc;
+    border: 1px solid #e7eef5;
+    border-radius: 16px;
+    padding: 12px;
+}
+
+.dashboard-details-top span {
+    display: block;
+    color: #64748b;
+    font-size: 11px;
+    font-weight: 900;
+    text-transform: uppercase;
+}
+
+.dashboard-details-top b {
+    display: block;
+    color: #071426;
+    font-size: 13px;
+    font-weight: 950;
+    margin-top: 4px;
+    word-break: break-word;
+}
+
+.dashboard-details-title {
+    color: #071426;
+    font-size: 17px;
+    font-weight: 950;
+    margin: 8px 0 10px;
+}
+
+.dashboard-items-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-height: 38vh;
+    overflow-y: auto;
+}
+
+.dashboard-item-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    align-items: center;
+    padding: 12px;
+    border: 1px solid #eef2f7;
+    border-radius: 16px;
+    background: #fff;
+}
+
+.dashboard-item-row b {
+    display: block;
+    color: #071426;
+    font-size: 14px;
+    font-weight: 900;
+}
+
+.dashboard-item-row small {
+    color: #64748b;
+    font-weight: 800;
+}
+
+.dashboard-item-row strong {
+    color: #071426;
+    font-weight: 950;
+}
+
+.dashboard-details-total {
+    margin-top: 14px;
+    padding: 14px;
+    border-radius: 18px;
+    background: linear-gradient(135deg, #16a34a, #22c55e);
+    color: #fff;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-weight: 950;
+}
+
+@media (max-width: 768px) {
+    .pos-dashboard-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        gap: 12px !important;
+    }
+
+    .pos-stat-card.clickable {
+        min-height: 100px !important;
+        border-radius: 22px !important;
+    }
+
+    .dashboard-orders-dialog,
+    .dashboard-details-dialog {
+        position: fixed !important;
+        left: 14px !important;
+        right: 14px !important;
+        bottom: 16px !important;
+        top: auto !important;
+        width: auto !important;
+        max-height: 82vh !important;
+        overflow-y: auto !important;
+        border-radius: 28px !important;
+    }
+}

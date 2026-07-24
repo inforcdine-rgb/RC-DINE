@@ -1,0 +1,33 @@
+.owner-revenue-page { padding: 24px; background: #f5f7fa; min-height: 100vh; }
+.owner-page-heading { display: flex; align-items: center; justify-content: center; min-height: 92px; border-radius: 0 0 24px 24px; margin: -24px -24px 24px; }
+.revenue-summary-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; margin-bottom: 22px; }
+.revenue-summary-card { min-height: 128px; padding: 20px; border-radius: 20px; color: #fff; display: flex; align-items: center; gap: 16px; box-shadow: 0 12px 28px rgba(8, 24, 45, .14); overflow: hidden; position: relative; }
+.revenue-summary-card::after { content: ''; position: absolute; width: 90px; height: 90px; border-radius: 50%; background: rgba(255,255,255,.1); right: -25px; bottom: -35px; }
+.revenue-card-today { background: linear-gradient(135deg,#0c2c3d,#2fb56e); }
+.revenue-card-week { background: linear-gradient(135deg,#14304c,#268bd2); }
+.revenue-card-month { background: linear-gradient(135deg,#2c254f,#7d5fd1); }
+.revenue-card-year { background: linear-gradient(135deg,#51311d,#d88735); }
+.revenue-card-icon { width: 46px; height: 46px; border-radius: 14px; background: rgba(255,255,255,.16); display: grid; place-items: center; font-size: 20px; flex: 0 0 auto; }
+.revenue-card-copy { min-width: 0; display: flex; flex-direction: column; gap: 7px; }
+.revenue-card-copy span { font-size: 13px; opacity: .88; font-weight: 700; }
+.revenue-card-copy strong { font-size: clamp(20px,2vw,29px); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.revenue-chart-card { background: #fff; border: 1px solid #e8edf2; border-radius: 22px; padding: 18px; box-shadow: 0 10px 28px rgba(15,23,42,.06); min-width: 0; }
+.revenue-chart-wide { margin-bottom: 20px; }
+.revenue-secondary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.revenue-section-heading small { color: #49ac60; font-weight: 900; letter-spacing: .12em; }
+.revenue-section-heading h5 { margin: 4px 0 0; font-weight: 800; color: #1f2937; }
+.revenue-chart-body { height: 330px; min-width: 0; overflow: hidden; }
+@media (max-width: 900px) { .revenue-summary-grid { grid-template-columns: repeat(2, minmax(0,1fr)); } .revenue-secondary-grid { grid-template-columns: 1fr; } }
+@media (max-width: 576px) {
+  .owner-revenue-page { padding: 12px; }
+  .owner-page-heading { min-height: 74px; margin: -12px -12px 14px; border-radius: 0 0 20px 20px; }
+  .revenue-summary-grid { grid-template-columns: repeat(2, minmax(0,1fr)); gap: 10px; margin-bottom: 14px; }
+  .revenue-summary-card { min-height: 105px; padding: 13px 11px; border-radius: 16px; gap: 9px; align-items: flex-start; flex-direction: column; }
+  .revenue-card-icon { width: 34px; height: 34px; border-radius: 10px; font-size: 15px; }
+  .revenue-card-copy { gap: 3px; width: 100%; }
+  .revenue-card-copy span { font-size: 11px; line-height: 1.2; min-height: 27px; }
+  .revenue-card-copy strong { font-size: 17px; }
+  .revenue-chart-card { border-radius: 17px; padding: 13px; }
+  .revenue-chart-body { height: 270px; }
+  .revenue-secondary-grid { gap: 14px; }
+}

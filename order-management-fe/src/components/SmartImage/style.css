@@ -1,0 +1,62 @@
+.smart-image {
+    position: relative;
+    display: block;
+    width: 100%;
+    height: 100%;
+    min-height: 1px;
+    overflow: hidden;
+    background: #f2f4f7;
+    contain: paint;
+    transform: translateZ(0);
+}
+
+.smart-image img {
+    width: 100%;
+    height: 100%;
+    display: block;
+    object-fit: cover;
+    opacity: 0;
+    transform: scale(1.015) translateZ(0);
+    transition: opacity 280ms ease, transform 420ms cubic-bezier(.22, 1, .36, 1);
+    will-change: opacity, transform;
+}
+
+.smart-image.loaded img {
+    opacity: 1;
+    transform: scale(1) translateZ(0);
+}
+
+.smart-image.failed img {
+    visibility: hidden;
+}
+
+.smart-image.failed::after {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    color: #98a2b3;
+    content: 'Image unavailable';
+    font-size: 11px;
+}
+
+.smart-image-shimmer {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(100deg, #eef1f4 20%, #fafbfc 42%, #eef1f4 64%);
+    background-size: 220% 100%;
+    animation: smartImageShimmer 1.25s linear infinite;
+}
+
+.smart-image.loaded .smart-image-shimmer {
+    display: none;
+}
+
+@keyframes smartImageShimmer {
+    to { background-position-x: -220%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .smart-image img { transition: opacity 1ms linear; }
+    .smart-image-shimmer { animation-duration: 2.4s; }
+}

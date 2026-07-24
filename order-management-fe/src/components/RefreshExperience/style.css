@@ -1,0 +1,153 @@
+html,
+body,
+#root {
+    min-height: 100%;
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+body {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: none;
+    text-rendering: optimizeLegibility;
+}
+
+.refresh-experience {
+    min-height: 100vh;
+    isolation: isolate;
+}
+
+.refresh-content {
+    min-height: 100vh;
+}
+
+/*
+Only the manager page content moves during pull-to-refresh.
+Navbar and sidebar remain fixed to the viewport.
+*/
+.refresh-experience .main-container {
+    transition:
+        margin 0.5s,
+        transform 360ms cubic-bezier(.22, 1, .36, 1);
+}
+
+.refresh-experience.is-pulling .main-container {
+    transform: translate3d(
+        0,
+        min(var(--content-pull), 78px),
+        0
+    );
+    will-change: transform;
+    backface-visibility: hidden;
+}
+
+.refresh-experience.is-dragging .main-container {
+    transition:
+        margin 0.5s,
+        transform 0ms;
+}
+
+.refresh-experience.is-dragging .pull-refresh-indicator {
+    transition: none;
+}
+
+.pull-refresh-indicator {
+    position: fixed;
+    z-index: 12000;
+    top: max(8px, env(safe-area-inset-top));
+    left: 50%;
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    min-height: 42px;
+    padding: 9px 14px;
+    border: 1px solid rgba(255, 255, 255, .8);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, .94);
+    box-shadow: 0 10px 30px rgba(16, 24, 40, .15);
+    color: #344054;
+    font-size: 12px;
+    opacity: 0;
+    pointer-events: none;
+    transform: translate3d(-50%, calc(var(--pull-distance) - 58px), 0) scale(.96);
+    transition: opacity 160ms ease, transform 360ms cubic-bezier(.22, 1, .36, 1);
+    will-change: transform, opacity;
+    backface-visibility: hidden;
+    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
+}
+
+.pull-refresh-indicator.visible {
+    opacity: 1;
+}
+
+.pull-spinner {
+    width: 18px;
+    height: 18px;
+    flex: 0 0 auto;
+    border: 2px solid #e4e7ec;
+    border-top-color: #570d0a;
+    border-radius: 50%;
+    transform: rotate(calc(var(--pull-progress) * 240deg)) translateZ(0);
+}
+
+.pull-spinner.spinning {
+    animation: refreshSpin .72s linear infinite;
+}
+
+.offline-banner {
+    position: fixed;
+    z-index: 13000;
+    left: 50%;
+    bottom: max(18px, env(safe-area-inset-bottom));
+    transform: translate3d(-50%, 0, 0);
+    width: max-content;
+    max-width: calc(100vw - 28px);
+    padding: 10px 16px;
+    border-radius: 999px;
+    background: #172033;
+    color: #fff;
+    font-size: 13px;
+    box-shadow: 0 12px 28px rgba(16, 24, 40, .22);
+    animation: refreshFadeIn 220ms ease both;
+}
+
+img {
+    content-visibility: auto;
+}
+
+.table-card,
+.order-card,
+.manager-menu-card,
+.rc-food-card,
+.rc-food-list-card,
+.rc-upsell-item {
+    content-visibility: auto;
+    contain-intrinsic-size: 1px 220px;
+}
+
+.refresh-insert {
+    animation: refreshInsert 420ms cubic-bezier(.22, 1, .36, 1) both;
+}
+
+@keyframes refreshSpin {
+    to { transform: rotate(360deg) translateZ(0); }
+}
+
+@keyframes refreshFadeIn {
+    from { opacity: 0; transform: translate3d(-50%, 8px, 0); }
+}
+
+@keyframes refreshInsert {
+    from { opacity: 0; transform: translate3d(0, -8px, 0) scale(.985); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    .refresh-content,
+    .pull-refresh-indicator { transition-duration: 1ms; }
+    .pull-spinner.spinning { animation-duration: 1.4s; }
+    .refresh-insert { animation: none; }
+}

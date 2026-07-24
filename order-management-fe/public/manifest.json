@@ -1,0 +1,15 @@
+﻿{
+  "short_name": "R&C Dine",
+  "name": "R&C Dine - Restaurant Manager",
+  "icons": [
+    { "src": "favicon.ico", "sizes": "64x64 32x32 24x24 16x16", "type": "image/x-icon" },
+    { "src": "R-C DINE.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "R-C DINE.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ],
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "theme_color": "#08182d",
+  "background_color": "#ffffff",
+  "description": "R&C Dine Restaurant Order Management System"
+}

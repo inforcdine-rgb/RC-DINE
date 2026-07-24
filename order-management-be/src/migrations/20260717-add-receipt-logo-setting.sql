@@ -1,0 +1,3 @@
+ALTER TABLE hotels
+ADD COLUMN receiptShowLogo TINYINT(1)
+NOT NULL DEFAULT 1;

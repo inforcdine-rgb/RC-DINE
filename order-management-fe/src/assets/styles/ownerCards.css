@@ -1,0 +1,330 @@
+.owner-page-toolbar {
+    align-items: center;
+    display: flex;
+    gap: 20px;
+    justify-content: space-between;
+    margin: 28px auto 20px;
+    max-width: 1500px;
+    padding: 0 28px;
+}
+
+.owner-page-title {
+    color: #1d2433;
+    font-size: 1.25rem;
+    font-weight: 800;
+    margin: 0;
+}
+
+.owner-page-subtitle {
+    color: #6b7280;
+    margin: 4px 0 0;
+}
+
+.owner-card-grid {
+    display: grid;
+    gap: 22px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    margin: 0 auto 40px;
+    max-width: 1500px;
+    padding: 0 28px;
+}
+
+.owner-entity-card {
+    background: #fff;
+    border: 1px solid #e8ebf1;
+    border-radius: 18px;
+    box-shadow: 0 10px 30px rgba(24, 39, 75, 0.08);
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    overflow: hidden;
+    transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.owner-entity-card:hover {
+    box-shadow: 0 16px 38px rgba(24, 39, 75, 0.14);
+    transform: translateY(-3px);
+}
+
+.owner-card-header {
+    align-items: center;
+    border-bottom: 1px solid #eef0f4;
+    display: flex;
+    gap: 14px;
+    padding: 20px;
+}
+
+.owner-avatar {
+    align-items: center;
+    border-radius: 14px;
+    display: flex;
+    flex: 0 0 48px;
+    font-size: 22px;
+    height: 48px;
+    justify-content: center;
+}
+
+.owner-avatar-hotel {
+    background: #fff1e8;
+    color: #f26b21;
+}
+
+.owner-avatar-hotel .smart-image {
+    border-radius: inherit;
+}
+
+.owner-avatar-manager {
+    background: #eaf2ff;
+    color: #2563eb;
+}
+
+.owner-card-heading {
+    min-width: 0;
+}
+
+.owner-card-heading h5 {
+    color: #1c2434;
+    font-size: 1.08rem;
+    font-weight: 800;
+    margin: 0 0 7px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.owner-status {
+    border-radius: 999px;
+    display: inline-flex;
+    font-size: 0.72rem;
+    font-weight: 800;
+    padding: 5px 9px;
+    text-transform: uppercase;
+}
+
+.owner-status.active {
+    background: #e8f8ef;
+    color: #15803d;
+}
+
+.owner-status.inactive {
+    background: #fff2e2;
+    color: #b45309;
+}
+
+.owner-card-body {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 12px;
+    padding: 20px;
+}
+
+.owner-detail-row {
+    align-items: flex-start;
+    color: #525b6b;
+    display: flex;
+    font-size: 0.9rem;
+    gap: 10px;
+    line-height: 1.45;
+    min-width: 0;
+}
+
+.owner-detail-row svg {
+    color: #f26b21;
+    flex: 0 0 16px;
+    margin-top: 3px;
+}
+
+.owner-detail-row span {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.owner-break-text {
+    word-break: break-all;
+}
+
+.owner-card-stats {
+    background: #f8f9fc;
+    border-radius: 13px;
+    display: grid;
+    gap: 8px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    margin-top: auto;
+    padding: 12px;
+}
+
+.owner-card-stats-two {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.owner-card-stats div {
+    min-width: 0;
+    text-align: center;
+}
+
+.owner-card-stats span {
+    color: #8a91a0;
+    display: block;
+    font-size: 0.7rem;
+    font-weight: 700;
+    margin-bottom: 3px;
+    text-transform: uppercase;
+}
+
+.owner-card-stats strong {
+    color: #202839;
+    display: block;
+    font-size: 0.82rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.owner-card-actions {
+    background: #fcfcfd;
+    border-top: 1px solid #eef0f4;
+    display: grid;
+    gap: 8px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    padding: 14px;
+}
+
+.owner-card-actions-three {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.owner-action {
+    align-items: center;
+    background: #fff;
+    border: 1px solid #dfe3ea;
+    border-radius: 10px;
+    color: #3e4758;
+    display: inline-flex;
+    font-size: 0.8rem;
+    font-weight: 750;
+    gap: 6px;
+    justify-content: center;
+    min-height: 38px;
+    padding: 8px 10px;
+    transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease;
+}
+
+.owner-action:hover {
+    background: #f5f7fa;
+    border-color: #c8ced9;
+}
+
+.owner-action.primary {
+    background: #f26b21;
+    border-color: #f26b21;
+    color: #fff;
+}
+
+.owner-action.primary:hover {
+    background: #d95a14;
+}
+
+.owner-action.danger {
+    color: #dc2626;
+}
+
+.owner-action.danger:hover {
+    background: #fff1f1;
+    border-color: #fecaca;
+}
+
+.owner-empty-state {
+    background: #fff;
+    border: 1px dashed #cfd5df;
+    border-radius: 16px;
+    color: #6b7280;
+    margin: 10px auto 40px;
+    max-width: 800px;
+    padding: 42px 24px;
+    text-align: center;
+}
+
+@media (max-width: 1100px) {
+    .owner-card-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 700px) {
+    .owner-page-toolbar {
+        align-items: stretch;
+        flex-direction: column;
+        padding: 0 14px;
+    }
+
+    .owner-page-toolbar > button,
+    .owner-page-toolbar > div + * {
+        align-self: flex-end;
+    }
+
+    .owner-card-grid {
+        gap: 15px;
+        grid-template-columns: 1fr;
+        padding: 0 14px;
+    }
+
+    .owner-card-actions-three {
+        grid-template-columns: 1fr;
+    }
+}
+
+.owner-avatar-hotel img {
+    width: 100%;
+    height: 100%;
+    border-radius: inherit;
+    object-fit: cover;
+}
+
+.image-branding-field {
+    display: grid;
+    gap: 10px;
+}
+
+.image-branding-preview {
+    width: 92px;
+    height: 92px;
+    display: grid;
+    place-items: center;
+    overflow: hidden;
+    border: 1px dashed #cbd5e1;
+    border-radius: 20px;
+    background: #f8fafc;
+    font-weight: 800;
+}
+
+.image-branding-preview img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.combo-cover-preview {
+    display: block;
+    width: min(100%, 320px);
+    max-height: 180px;
+    margin-top: 10px;
+    border-radius: 14px;
+    object-fit: cover;
+}
+
+.receipt-logo-setting {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 18px;
+    padding: 14px;
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+}
+
+.receipt-logo-setting small {
+    display: block;
+    color: #64748b;
+}

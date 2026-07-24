@@ -1,0 +1,94 @@
+import { DataTypes } from 'sequelize';
+import { TABLES } from '../utils/common.js';
+
+export const MENU_STATUS = ['AVAILABLE', 'UNAVAILABLE'];
+export const FOOD_TYPES = ['VEG', 'NON_VEG'];
+
+const menuModel = (sequelize) =>
+    sequelize.define(
+        TABLES.MENU,
+        {
+            id: {
+                type: DataTypes.STRING,
+                primaryKey: true
+            },
+            name: {
+                type: DataTypes.STRING,
+                allowNull: false
+            },
+            categoryId: {
+                type: DataTypes.STRING,
+                allowNull: true,
+                references: {
+                    model: TABLES.CATEGORIES,
+                    key: 'id'
+                }
+            },
+            hotelId: {
+                type: DataTypes.STRING,
+                allowNull: false,
+                references: {
+                    model: TABLES.HOTEL,
+                    key: 'id'
+                }
+            },
+            status: {
+                type: DataTypes.ENUM,
+                values: MENU_STATUS,
+                allowNull: false,
+                defaultValue: MENU_STATUS[0]
+            },
+            price: {
+                type: DataTypes.FLOAT,
+                allowNull: false
+            },
+            description: {
+                type: DataTypes.TEXT,
+                allowNull: true
+            },
+            image: {
+                type: DataTypes.TEXT,
+                allowNull: true
+            },
+            foodType: {
+                type: DataTypes.ENUM,
+                values: FOOD_TYPES,
+                allowNull: false,
+                defaultValue: FOOD_TYPES[0]
+            },
+            isBestSeller: {
+                type: DataTypes.BOOLEAN,
+                allowNull: false,
+                defaultValue: false
+            },
+            isTodayDeal: {
+                type: DataTypes.BOOLEAN,
+                allowNull: false,
+                defaultValue: false
+            },
+            isCartSuggestion: {
+                type: DataTypes.BOOLEAN,
+                allowNull: false,
+                defaultValue: false
+            },
+            isCombo: {
+                type: DataTypes.BOOLEAN,
+                allowNull: false,
+                defaultValue: false
+            },
+            comboItems: {
+                type: DataTypes.JSON,
+                allowNull: true,
+                defaultValue: null
+            },
+            deletedAt: {
+                type: DataTypes.DATE,
+                allowNull: true
+            }
+        },
+        {
+            paranoid: true
+        }
+    );
+
+export default menuModel;
