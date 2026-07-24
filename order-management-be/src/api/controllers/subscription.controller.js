@@ -2,7 +2,9 @@ import crypto from 'crypto';
 import moment from 'moment';
 import { getAdminSettings } from '../../config/adminSettings.js';
 import env from '../../config/env.js';
+import { db } from '../../config/database.js';
 import logger from '../../config/logger.js';
+import hotelUserRelationRepo from '../repositories/hotelUserRelation.repository.js';
 import userRepo from '../repositories/user.repository.js';
 import razorpayService from '../services/razorpay.service.js';
 import { CustomError, STATUS_CODE } from '../utils/common.js';
@@ -123,15 +125,47 @@ const verifyPayment = async (req, res) => {
 
 const status = async (req, res) => {
     try {
-        const user = await userRepo.findOne({ where: { id: req.user.id } });
-        if (!user) throw CustomError(STATUS_CODE.NOT_FOUND, 'User not found');
+        let subscriptionUserId = req.user.id;
+
+        // Managers use the cafe owner's subscription. Reading the manager record here
+        // incorrectly starts/shows a separate free trial for the manager account.
+        if (String(req.user.role || '').toUpperCase() === 'MANAGER') {
+            let managerHotelId = req.user.hotelId;
+
+            if (!managerHotelId) {
+                const managerRelation = await hotelUserRelationRepo.find({
+                    where: { userId: req.user.id },
+                    limit: 1
+                });
+                managerHotelId = managerRelation?.rows?.[0]?.hotelId;
+            }
+
+            if (managerHotelId) {
+                const ownerRelation = await hotelUserRelationRepo.find({
+                    where: { hotelId: managerHotelId },
+                    include: [{
+                        model: db.users,
+                        where: { role: 'OWNER' },
+                        attributes: ['id']
+                    }],
+                    limit: 1
+                });
+
+                if (ownerRelation?.rows?.[0]?.userId) {
+                    subscriptionUserId = ownerRelation.rows[0].userId;
+                }
+            }
+        }
+
+        const user = await userRepo.findOne({ where: { id: subscriptionUserId } });
+        if (!user) throw CustomError(STATUS_CODE.NOT_FOUND, 'Subscription owner not found');
 
         const now = moment();
         let statusValue = user.subscriptionStatus;
         if (!statusValue) {
             statusValue = 'TRIAL';
             try {
-                await userRepo.update({ where: { id: req.user.id } }, { subscriptionStatus: 'TRIAL' });
+                await userRepo.update({ where: { id: subscriptionUserId } }, { subscriptionStatus: 'TRIAL' });
             } catch (e) {
                 logger('error', 'Error updating null subscriptionStatus to TRIAL', { e });
             }
@@ -143,7 +177,7 @@ const status = async (req, res) => {
             trialStart = now.toISOString();
             trialEnd = moment(now).add(2, 'days').toISOString();
             try {
-                await userRepo.update({ where: { id: req.user.id } }, {
+                await userRepo.update({ where: { id: subscriptionUserId } }, {
                     trialStartAt: trialStart,
                     trialEndAt: trialEnd
                 });
@@ -160,7 +194,7 @@ const status = async (req, res) => {
             trialRemaining = tEnd.isAfter(now) ? tEnd.diff(now, 'seconds') : 0;
             if (tEnd.isBefore(now) && statusValue === 'TRIAL') {
                 statusValue = 'EXPIRED';
-                await userRepo.update({ where: { id: req.user.id } }, { subscriptionStatus: 'EXPIRED' });
+                await userRepo.update({ where: { id: subscriptionUserId } }, { subscriptionStatus: 'EXPIRED' });
             }
         }
 
@@ -169,7 +203,7 @@ const status = async (req, res) => {
             subscriptionRemaining = sEnd.isAfter(now) ? sEnd.diff(now, 'seconds') : 0;
             if (sEnd.isBefore(now) && statusValue === 'ACTIVE') {
                 statusValue = 'EXPIRED';
-                await userRepo.update({ where: { id: req.user.id } }, { subscriptionStatus: 'EXPIRED' });
+                await userRepo.update({ where: { id: subscriptionUserId } }, { subscriptionStatus: 'EXPIRED' });
             }
         }
 

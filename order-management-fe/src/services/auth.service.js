@@ -1,5 +1,4 @@
-import { api, method } from '../api/apiClient';
-
+import { api, instance, method } from '../api/apiClient';
 export const registerUser = async (payload) => {
     try {
         return await api(method.POST, '/user/register', payload);
@@ -29,10 +28,25 @@ export const verifyUser = async (payload) => {
 
 export const forgotPasswordUser = async (payload) => {
     try {
-        return await api(method.POST, '/user/forget', payload);
+        const response = await instance.post('/user/forget', payload, {
+            timeout: 20000
+        });
+
+        return response.data;
     } catch (error) {
-        console.error(`Error in forgot password ${error}`);
-        throw error;
+        console.error('Error in forgot password:', error);
+
+        if (error.code === 'ECONNABORTED') {
+            throw new Error(
+                'Email server response timeout. Check backend email configuration.'
+            );
+        }
+
+        throw new Error(
+            error?.response?.data?.message ||
+            error.message ||
+            'Unable to send password reset email.'
+        );
     }
 };
 

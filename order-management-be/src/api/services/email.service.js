@@ -64,23 +64,61 @@ const getEmailData = (action, payload) => {
 
 export const sendEmail = async (payload, to, action, attachments = []) => {
     try {
-        // create the email data
+        if (!env.email.user || !env.email.pass) {
+            throw CustomError(
+                500,
+                'Email service is not configured. Add EMAIL_USER and EMAIL_PASS in backend .env file.'
+            );
+        }
+
         const data = getEmailData(action, payload);
 
-        logger('debug', `Email data prepared: ${JSON.stringify(data)}`);
+        if (!data) {
+            throw CustomError(500, 'Unable to prepare email template.');
+        }
+
         const options = {
-            from: env.email.user,
+            from: `"R&C Dine" <${env.email.user}>`,
             to,
             subject: data.subject,
             html: data.template,
             attachments
         };
 
-        // send email to the user
         logger('info', `Sending email to: ${to}`);
-        return await transporter.sendMail(options);
+
+        const result = await transporter.sendMail(options);
+
+        logger('info', `Email sent successfully to: ${to}`);
+
+        return result;
     } catch (error) {
-        logger('error', `Error occurred while sending email: ${error}`);
-        throw CustomError(error.code, error.message);
+        logger('error', `Email sending failed: ${error.message}`);
+
+        if (
+            error.code === 'EAUTH' ||
+            error.responseCode === 535
+        ) {
+            throw CustomError(
+                500,
+                'Gmail authentication failed. Check EMAIL_USER and Google App Password.'
+            );
+        }
+
+        if (
+            error.code === 'ETIMEDOUT' ||
+            error.code === 'ESOCKET' ||
+            error.code === 'ECONNECTION'
+        ) {
+            throw CustomError(
+                503,
+                'Email server is not responding. Please try again.'
+            );
+        }
+
+        throw CustomError(
+            error.code && Number.isInteger(error.code) ? error.code : 500,
+            error.message || 'Unable to send recovery email.'
+        );
     }
 };
