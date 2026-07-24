@@ -7,19 +7,19 @@ import categoryModel from '../api/models/category.model.js';
 import customerModel from '../api/models/customer.modal.js';
 import customerOtpModel from '../api/models/customerOtp.model.js';
 import diningSessionModel from '../api/models/diningSession.model.js';
-import sessionJoinRequestModel from '../api/models/sessionJoinRequest.model.js';
-import sessionMemberModel from '../api/models/sessionMember.model.js';
 import hotelModel from '../api/models/hotel.model.js';
 import hotelUserRelationModel from '../api/models/hotelUserRelation.model.js';
 import inviteModel from '../api/models/invite.model.js';
 import menuModel from '../api/models/menu.model.js';
 import notificationModel from '../api/models/notification.model.js';
-import openOrderItemModel from '../api/models/openOrderItem.model.js';
 import openOrderModel from '../api/models/openOrder.model.js';
+import openOrderItemModel from '../api/models/openOrderItem.model.js';
 import orderModel from '../api/models/order.model.js';
 import paymentGatewayEntitiesModel from '../api/models/paymentGatewayEntities.js';
 import preferencesModel from '../api/models/preferences.model.js';
 import pushSubscriptionsModel from '../api/models/pushSubscriptions.model.js';
+import sessionJoinRequestModel from '../api/models/sessionJoinRequest.model.js';
+import sessionMemberModel from '../api/models/sessionMember.model.js';
 import subscriptionModel from '../api/models/subscriptions.js';
 import tableModel from '../api/models/table.model.js';
 import userModel from '../api/models/user.model.js';
@@ -269,7 +269,7 @@ const initDb = async () => {
             },
             {
                 name: 'subscriptionStatus',
-                type: "VARCHAR(20) NOT NULL DEFAULT 'TRIAL'"
+                type: 'VARCHAR(20) NOT NULL DEFAULT \'TRIAL\''
             },
             {
                 name: 'subscriptionPlan',
@@ -373,7 +373,7 @@ const initDb = async () => {
             },
             {
                 name: 'paymentMethod',
-                type: "ENUM('CASH','UPI','CARD') NULL"
+                type: 'ENUM(\'CASH\',\'UPI\',\'CARD\') NULL'
             },
             {
                 name: 'cashReceived',
@@ -385,7 +385,7 @@ const initDb = async () => {
             },
             {
                 name: 'paymentStatus',
-                type: "ENUM('PAID','UNPAID') NOT NULL DEFAULT 'UNPAID'"
+                type: 'ENUM(\'PAID\',\'UNPAID\') NOT NULL DEFAULT \'UNPAID\''
             }
         ];
 
@@ -584,8 +584,8 @@ const initDb = async () => {
         const notificationColumns = [
             { name: 'customerId', type: 'VARCHAR(255) NULL' },
             { name: 'phoneNumber', type: 'VARCHAR(20) NULL' },
-            { name: 'type', type: "VARCHAR(50) NOT NULL DEFAULT 'UPDATE'" },
-            { name: 'category', type: "VARCHAR(50) NOT NULL DEFAULT 'GENERAL'" },
+            { name: 'type', type: 'VARCHAR(50) NOT NULL DEFAULT \'UPDATE\'' },
+            { name: 'category', type: 'VARCHAR(50) NOT NULL DEFAULT \'GENERAL\'' },
             { name: 'entityId', type: 'VARCHAR(255) NULL' },
             { name: 'dedupeKey', type: 'VARCHAR(255) NULL' },
             { name: 'payload', type: 'JSON NULL' },

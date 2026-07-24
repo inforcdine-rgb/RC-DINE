@@ -68,7 +68,6 @@ export const paymentSettingsValidation = (payload) => {
     }
 };
 
-
 export const printerSettingsValidation = (payload) => {
     try {
         const schema = Joi.object({

@@ -243,7 +243,6 @@ const list = async (user, requestedHotelId) => {
     }));
 };
 
-
 const listCompleted = async (user, requestedHotelId, filters = {}) => {
     const hotelId = await ensureHotelAccess(user, requestedHotelId);
     const paidAt = {};
@@ -310,8 +309,8 @@ const addItems = async (user, orderId, payload) => {
             }
 
             if (
-                payload.expectedRevision !== undefined
-                && Number(payload.expectedRevision) !== Number(order.revision)
+                payload.expectedRevision !== undefined &&
+                Number(payload.expectedRevision) !== Number(order.revision)
             ) {
                 throw CustomError(
                     STATUS_CODE.CONFLICT,
@@ -500,7 +499,7 @@ const pay = async (user, orderId, payload) => {
 
 const close = async (user, orderId, payload) => {
     let result;
-    let tableFreed = false;
+    const tableFreed = false;
     try {
         result = await db.openOrders.sequelize.transaction(async (transaction) => {
             const order = await getOrderForUpdate(user, orderId, transaction);

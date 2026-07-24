@@ -1,6 +1,6 @@
 import { Router } from 'express';
-import hotelController from '../controllers/hotel.controller.js';
 import { uploadHotelLogo } from '../../config/cloudinary.js';
+import hotelController from '../controllers/hotel.controller.js';
 import authenticate from '../middlewares/auth.js';
 import { ownerAuthentication } from '../middlewares/roleAuth.js';
 import checkSubscriptionAccess from '../middlewares/subscription.js';

@@ -265,7 +265,6 @@ export const emitToOrder = (orderId, eventName, payload) => {
     io.to(`order:${orderId}`).emit(eventName, payload);
 };
 
-
 export const emitToRcSession = (sessionId, eventName, payload) => {
     if (!io || !sessionId) return;
     io.to(`rc-session:${sessionId}`).emit(eventName, payload);

@@ -101,7 +101,6 @@ function defineAssociations(db) {
     users.hasMany(openOrderItems, { foreignKey: 'addedByUserId', as: 'addedOpenOrderItems' });
     openOrderItems.belongsTo(users, { foreignKey: 'addedByUserId', as: 'addedBy' });
 
-
     // RC Session relations
     hotel.hasMany(diningSessions, { foreignKey: 'hotelId' });
     diningSessions.belongsTo(hotel, { foreignKey: 'hotelId' });

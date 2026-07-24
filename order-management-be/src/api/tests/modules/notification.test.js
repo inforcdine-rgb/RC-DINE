@@ -1,5 +1,5 @@
-import webpush from 'web-push';
 import { Op } from 'sequelize';
+import webpush from 'web-push';
 
 import { db } from '../../../config/database.js';
 import { emitToPushEndpoint, isPushEndpointVisible } from '../../../config/socket.js';

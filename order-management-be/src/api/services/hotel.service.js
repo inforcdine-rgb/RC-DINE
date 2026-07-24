@@ -3,9 +3,9 @@ import moment from 'moment';
 import Razorpay from 'razorpay';
 import { Op, Sequelize } from 'sequelize';
 import { v4 as uuidv4 } from 'uuid';
+import { deleteImage } from '../../config/cloudinary.js';
 import { db } from '../../config/database.js';
 import env from '../../config/env.js';
-import { deleteImage } from '../../config/cloudinary.js';
 import logger from '../../config/logger.js';
 import { ORDER_STATUS } from '../models/order.model.js';
 import { USER_ROLES } from '../models/user.model.js';
@@ -704,7 +704,6 @@ const testPaymentSettings = async (hotelId, payload) => {
     }
 };
 
-
 const getPrinterSettings = async (hotelId) => {
     try {
         const hotel = await hotelRepo.find({
@@ -745,20 +744,22 @@ const updatePrinterSettings = async (hotelId, payload) => {
             receiptFooterMessage: String(payload.footerMessage || 'Thank you! Visit again.').trim().slice(0, 120)
         };
         await hotelRepo.update({ id: hotelId }, settings);
-        return { message: 'Printer settings updated successfully', settings: {
-            printerWidth: settings.printerWidth,
-            address: settings.address,
-            phone: settings.careNumber,
-            gstNumber: settings.gstNumber || '',
-            showLogo: settings.receiptShowLogo,
-            footerMessage: settings.receiptFooterMessage
-        } };
+        return {
+            message: 'Printer settings updated successfully',
+            settings: {
+                printerWidth: settings.printerWidth,
+                address: settings.address,
+                phone: settings.careNumber,
+                gstNumber: settings.gstNumber || '',
+                showLogo: settings.receiptShowLogo,
+                footerMessage: settings.receiptFooterMessage
+            }
+        };
     } catch (error) {
         logger('error', 'Error in updatePrinterSettings service', { error });
         throw CustomError(error.code || 500, error.message);
     }
 };
-
 
 const updateLogo = async (hotelId, logoUrl) => {
     const hotel = await hotelRepo.find({ where: { id: hotelId } });
