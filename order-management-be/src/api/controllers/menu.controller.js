@@ -401,13 +401,39 @@ const removeCategory = async (req, res) => {
     try {
         const { categoryIds } = req.body;
 
-        await resolveHotelAccessByCategoryIds(req.user, categoryIds);
-        const result = await menuService.removeCategory(categoryIds);
+        if (!Array.isArray(categoryIds) || !categoryIds.length) {
+            return res.status(STATUS_CODE.BAD_REQUEST).send({
+                message: 'Category ids are required'
+            });
+        }
 
-        return res.status(STATUS_CODE.OK).send(result);
+        const hotelId = await resolveHotelAccessByCategoryIds(
+            req.user,
+            categoryIds
+        );
+
+        const result = await menuService.removeCategory(
+            categoryIds,
+            hotelId
+        );
+
+        await Promise.allSettled(
+            result.deletedItems
+                .filter((item) => item.image)
+                .map((item) => deleteImage(item.image))
+        );
+
+        return res.status(STATUS_CODE.OK).send({
+            message: result.message
+        });
     } catch (error) {
-        logger('error', `Error occurred during removing category ${error}`);
-        return res.status(error.code || 500).send({ message: error.message });
+        logger('error', 'Error occurred during removing category', {
+            error
+        });
+
+        return res.status(error.code || 500).send({
+            message: error.message
+        });
     }
 };
 

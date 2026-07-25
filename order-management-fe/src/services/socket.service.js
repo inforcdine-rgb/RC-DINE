@@ -118,6 +118,16 @@ export const connectSocket = () => {
     if (!socket) {
         socket = io(getSocketUrl(), {
             transports: ['websocket', 'polling'],
+
+            auth: (callback) => {
+                callback({
+                    token:
+                        localStorage.getItem('token') ||
+                        localStorage.getItem('rcCustomerToken') ||
+                        ''
+                });
+            },
+
             reconnection: true,
             reconnectionAttempts: Infinity,
             reconnectionDelay: 1000,

@@ -1503,18 +1503,46 @@ const getPublicOrderDetails = async (orderId) => {
     }
 };
 
-const resetTable = async (tableId) => {
+const resetTable = async (tableId, hotelId) => {
     try {
-        logger('info', `Resetting table status to OPEN for tableId: ${tableId}`);
-        const tableOptions = {
-            options: { where: { id: tableId } },
-            data: { status: TABLE_STATUS[0], customerId: null }
+        logger('info', 'Resetting table status to OPEN', {
+            tableId,
+            hotelId
+        });
+
+        const [updatedCount] = await tableRepo.update(
+            {
+                where: {
+                    id: tableId,
+                    hotelId
+                }
+            },
+            {
+                status: TABLE_STATUS[0],
+                customerId: null
+            }
+        );
+
+        if (!updatedCount) {
+            throw CustomError(
+                STATUS_CODE.NOT_FOUND,
+                'Table not found or access denied'
+            );
+        }
+
+        return {
+            success: true,
+            message: 'Table reset successfully'
         };
-        await tableRepo.update(tableOptions.options, tableOptions.data);
-        return { success: true, message: 'Table reset successfully' };
     } catch (error) {
-        logger('error', `Error while resetting table`, { error });
-        throw CustomError(error.code || STATUS_CODE.INTERNAL_SERVER_ERROR, error.message);
+        logger('error', 'Error while resetting table', {
+            error
+        });
+
+        throw CustomError(
+            error.code || STATUS_CODE.INTERNAL_SERVER_ERROR,
+            error.message
+        );
     }
 };
 

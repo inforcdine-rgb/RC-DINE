@@ -14,7 +14,12 @@ router.put('/pending', authenticate, checkSubscriptionAccess, orderController.up
 router.get('/menu', orderController.getMenuDetails);
 router.post('/feedback', orderController.feedback);
 router.get('/table/:id', orderController.getTableDetails);
-router.post('/table/:tableId/reset', orderController.resetTable);
+router.post(
+    '/table/:tableId/reset',
+    authenticate,
+    checkSubscriptionAccess,
+    orderController.resetTable
+);
 
 router.get('/details/:hotelId/:orderId', authenticate, checkSubscriptionAccess, orderController.getOrderDetails);
 router.put('/status/:hotelId', authenticate, checkSubscriptionAccess, orderController.updateOrderStatus);

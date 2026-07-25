@@ -204,15 +204,55 @@ const updateCategory = async (id, payload) => {
     }
 };
 
-const removeCategory = async (categoryIds) => {
+const removeCategory = async (categoryIds, hotelId) => {
     try {
-        const options = { where: { id: { [Op.in]: categoryIds } } };
-        await categoryRepo.remove(options);
+        if (!Array.isArray(categoryIds) || !categoryIds.length) {
+            throw CustomError(
+                STATUS_CODE.BAD_REQUEST,
+                'Category ids are required'
+            );
+        }
 
-        const menuQuery = { where: { categoryId: { [Op.in]: categoryIds } } };
-        await menuRepo.remove(menuQuery);
+        const categoryOptions = {
+            where: {
+                id: {
+                    [Op.in]: categoryIds
+                },
+                hotelId
+            }
+        };
 
-        return { message: 'Category removed successfully' };
+        const existingCategories = await categoryRepo.find(categoryOptions);
+
+        if (existingCategories.count !== categoryIds.length) {
+            throw CustomError(
+                STATUS_CODE.NOT_FOUND,
+                'Some categories were not found or access was denied'
+            );
+        }
+
+        const menuOptions = {
+            where: {
+                categoryId: {
+                    [Op.in]: categoryIds
+                },
+                hotelId,
+                isCombo: false
+            }
+        };
+
+        const existingMenuItems = await menuRepo.find(menuOptions);
+
+        // Pehle related menu items delete karo
+        await menuRepo.remove(menuOptions);
+
+        // Uske baad categories delete karo
+        await categoryRepo.remove(categoryOptions);
+
+        return {
+            message: 'Category removed successfully',
+            deletedItems: existingMenuItems.rows
+        };
     } catch (error) {
         logger('error', 'Error while removing category', { error });
         throw CustomError(error.code, error.message);

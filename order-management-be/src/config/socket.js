@@ -74,6 +74,49 @@ const getAllowedOrigins = () => {
     return [...new Set(origins)];
 };
 
+const verifyStaffSocketToken = (socket) => {
+    const token = socket.handshake.auth?.token;
+
+    if (!token) {
+        return null;
+    }
+
+    try {
+        return jwt.verify(token, env.jwtSecret);
+    } catch (error) {
+        logger('warn', 'Invalid Socket.IO staff token', {
+            socketId: socket.id,
+            message: error.message
+        });
+
+        return null;
+    }
+};
+
+const canJoinHotelRoom = (user, requestedHotelId) => {
+    if (!user || !requestedHotelId) {
+        return false;
+    }
+
+    const role = String(user.role || '').toUpperCase();
+    const hotelId = String(requestedHotelId);
+
+    if (role === 'MANAGER') {
+        return String(user.hotelId || '') === hotelId;
+    }
+
+    /*
+     * Owner/Admin ke token me fixed hotelId nahi hota.
+     * Unke liye database ownership verification next improvement me
+     * add karenge. Abhi arbitrary room join allow mat karo.
+     */
+    if (role === 'OWNER' || role === 'ADMIN') {
+        return false;
+    }
+
+    return false;
+};
+
 export const initializeSocket = (httpServer) => {
     io = new Server(httpServer, {
         cors: {
@@ -100,22 +143,83 @@ export const initializeSocket = (httpServer) => {
     });
 
     io.on('connection', (socket) => {
-        logger('info', `Socket connected: ${socket.id}`);
+        socket.data.staffUser = verifyStaffSocketToken(socket);
 
-        socket.on('join-hotel', (hotelId) => {
-            if (!hotelId) return;
-
-            const roomName = `hotel:${hotelId}`;
-            socket.join(roomName);
-
-            logger('info', `Socket ${socket.id} joined ${roomName}`);
+        logger('info', 'Socket connected', {
+            socketId: socket.id,
+            authenticated: Boolean(socket.data.staffUser),
+            role: socket.data.staffUser?.role || null
         });
 
-        socket.on('leave-hotel', (hotelId) => {
-            if (!hotelId) return;
+        socket.on(
+            'join-hotel',
+            (hotelId, acknowledge = () => { }) => {
+                try {
+                    const user = socket.data.staffUser;
 
-            const roomName = `hotel:${hotelId}`;
-            socket.leave(roomName);
+                    if (!user) {
+                        logger('warn', 'Unauthenticated hotel room join blocked', {
+                            socketId: socket.id,
+                            hotelId
+                        });
+
+                        return acknowledge({
+                            success: false,
+                            message: 'Authentication required'
+                        });
+                    }
+
+                    if (!canJoinHotelRoom(user, hotelId)) {
+                        logger('warn', 'Unauthorized hotel room join blocked', {
+                            socketId: socket.id,
+                            userId: user.id,
+                            role: user.role,
+                            assignedHotelId: user.hotelId,
+                            requestedHotelId: hotelId
+                        });
+
+                        return acknowledge({
+                            success: false,
+                            message: 'Hotel access denied'
+                        });
+                    }
+
+                    const roomName = `hotel:${hotelId}`;
+
+                    socket.join(roomName);
+
+                    logger('info', 'Socket joined hotel room', {
+                        socketId: socket.id,
+                        userId: user.id,
+                        roomName
+                    });
+
+                    return acknowledge({
+                        success: true,
+                        room: roomName
+                    });
+                } catch (error) {
+                    logger('error', 'Hotel room join failed', {
+                        socketId: socket.id,
+                        message: error.message
+                    });
+
+                    return acknowledge({
+                        success: false,
+                        message: 'Unable to join hotel room'
+                    });
+                }
+            }
+        );
+
+        socket.on('leave-hotel', (hotelId) => {
+            const user = socket.data.staffUser;
+
+            if (!canJoinHotelRoom(user, hotelId)) {
+                return;
+            }
+
+            socket.leave(`hotel:${hotelId}`);
         });
 
         socket.on('join-order', (orderId) => {
@@ -160,7 +264,7 @@ export const initializeSocket = (httpServer) => {
             socket.leave(`rc-request:${requestId}`);
         });
 
-        socket.on('notification:bind', ({ presenceToken, visible } = {}, acknowledge = () => {}) => {
+        socket.on('notification:bind', ({ presenceToken, visible } = {}, acknowledge = () => { }) => {
             try {
                 const payload = jwt.verify(presenceToken, env.jwtSecret);
                 if (payload.type !== 'PUSH_PRESENCE' || !payload.endpointHash) {
@@ -190,7 +294,7 @@ export const initializeSocket = (httpServer) => {
             }
         });
 
-        socket.on('notification:visibility', ({ visible } = {}, acknowledge = () => {}) => {
+        socket.on('notification:visibility', ({ visible } = {}, acknowledge = () => { }) => {
             const updated = updatePushPresence(socket, visible);
             if (updated) {
                 logger('debug', 'Notification visibility updated', {
@@ -203,7 +307,7 @@ export const initializeSocket = (httpServer) => {
             acknowledge({ success: updated });
         });
 
-        socket.on('notification:heartbeat', ({ visible } = {}, acknowledge = () => {}) => {
+        socket.on('notification:heartbeat', ({ visible } = {}, acknowledge = () => { }) => {
             const updated = updatePushPresence(socket, visible);
             acknowledge({ success: updated, serverTimestamp: Date.now() });
         });

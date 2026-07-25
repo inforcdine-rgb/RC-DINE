@@ -367,11 +367,28 @@ const getOrderStatus = async (req, res) => {
 const resetTable = async (req, res) => {
     try {
         const { tableId } = req.params;
-        const result = await orderService.resetTable(tableId);
+
+        const hotelId = await resolveHotelAccessByTableId(
+            req.user,
+            tableId
+        );
+
+        const result = await orderService.resetTable(
+            tableId,
+            hotelId
+        );
+
         return res.status(STATUS_CODE.OK).send(result);
     } catch (error) {
-        logger('error', `Error while resetting table ${error}`);
-        return res.status(error.code || STATUS_CODE.INTERNAL_SERVER_ERROR || 500).send({ message: error.message });
+        logger('error', 'Error while resetting table', {
+            error
+        });
+
+        return res
+            .status(error.code || STATUS_CODE.INTERNAL_SERVER_ERROR || 500)
+            .send({
+                message: error.message
+            });
     }
 };
 
