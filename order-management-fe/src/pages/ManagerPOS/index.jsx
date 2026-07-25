@@ -110,7 +110,7 @@ function ManagerPOS() {
             setDiscountEnabled(!!settingsRes?.discountEnabled);
             setDiscountType(settingsRes?.discountType || null);
             setDiscountValue(settingsRes?.discountEnabled ? Number(settingsRes?.discountValue || 0) : 0);
-            setHotelName(settingsRes?.razorpayMerchantName || settingsRes?.name || 'R&C DINE');
+            setHotelName(settingsRes?.name || settingsRes?.razorpayMerchantName || 'Cafe');
             const cachedPrinter = readPrinterSettings(hotelId);
             const savedPrinter = await loadPrinterSettings(hotelId).catch(() => cachedPrinter);
 

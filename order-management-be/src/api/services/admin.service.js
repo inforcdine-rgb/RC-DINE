@@ -124,7 +124,6 @@ const getOwnerDetail = async (ownerId) => {
     }
 };
 
-// Block / Unblock owner
 const blockOwner = async (ownerId) => {
     try {
         const owner = await db.users.findOne({ where: { id: ownerId, role: USER_ROLES[0] } });

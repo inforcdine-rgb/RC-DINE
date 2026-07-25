@@ -1,5 +1,7 @@
 .thermal-receipt {
     display: none;
+    position: relative;
+    isolation: isolate;
     box-sizing: border-box;
     margin: 0 auto;
     padding: 2.5mm;
@@ -8,7 +10,34 @@
     font-family: 'Courier New', monospace;
     font-size: 11px;
     line-height: 1.32;
+    overflow: hidden;
     overflow-wrap: anywhere;
+}
+.thermal-receipt-content {
+    position: relative;
+    z-index: 2;
+}
+
+.thermal-watermark {
+    position: absolute;
+    z-index: 1;
+    top: 50%;
+    left: 50%;
+    width: 100%;
+    transform: translate(-50%, -50%) rotate(-35deg);
+    text-align: center;
+    font-family: Arial, sans-serif;
+    font-size: 24px;
+    font-weight: 900;
+    letter-spacing: 2px;
+    color: rgba(0, 0, 0, 0.08);
+    white-space: nowrap;
+    pointer-events: none;
+}
+
+.receipt-80 .thermal-watermark,
+.receipt-auto .thermal-watermark {
+    font-size: 34px;
 }
 .receipt-58 { width: 58mm; }
 .receipt-80 { width: 80mm; }

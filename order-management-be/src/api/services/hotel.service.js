@@ -561,6 +561,7 @@ const getPaymentSettings = async (hotelId) => {
         const hotel = await hotelRepo.find({
             where: { id: hotelId },
             attributes: [
+                'Name',
                 'razorpayKeyId',
                 'razorpayKeySecret',
                 'razorpayMerchantName',
@@ -583,6 +584,7 @@ const getPaymentSettings = async (hotelId) => {
         }
 
         const result = {
+            name: hotel.name || '',
             razorpayKeyId: hotel.razorpayKeyId || '',
             razorpayKeySecret: hotel.razorpayKeySecret ? '••••••••••••' : '',
             razorpayMerchantName: hotel.razorpayMerchantName || '',

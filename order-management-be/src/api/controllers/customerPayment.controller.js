@@ -1,4 +1,5 @@
 import crypto from 'crypto';
+import Razorpay from 'razorpay';
 import { Op } from 'sequelize';
 import { db } from '../../config/database.js';
 import env from '../../config/env.js';
@@ -6,8 +7,8 @@ import logger from '../../config/logger.js';
 import { emitToHotel, emitToOrder } from '../../config/socket.js';
 import customerRepo from '../repositories/customer.repository.js';
 import hotelRepo from '../repositories/hotel.repository.js';
+import hotelService from '../services/hotel.service.js';
 import orderService from '../services/order.service.js';
-import razorpayService from '../services/razorpay.service.js';
 import { CustomError, STATUS_CODE, calculateBill, calculateDiscount } from '../utils/common.js';
 
 const createOrder = async (req, res) => {
@@ -33,7 +34,16 @@ const createOrder = async (req, res) => {
 
         const hotel = await hotelRepo.find({
             where: { id: hotelId },
-            attributes: ['gstEnabled', 'gstPercent', 'discountEnabled', 'discountType', 'discountValue']
+            attributes: [
+                'gstEnabled',
+                'gstPercent',
+                'discountEnabled',
+                'discountType',
+                'discountValue',
+                'paymentEnabled',
+                'razorpayKeyId',
+                'razorpayKeySecret'
+            ]
         });
         const gstEnabled = !!hotel?.gstEnabled;
         const gstPercent = gstEnabled ? Number(hotel?.gstPercent || 0) : 0;
@@ -46,10 +56,26 @@ const createOrder = async (req, res) => {
         const taxableAmount = Math.max(0, subtotal - discountAmount);
         const { sgst, cgst, totalPrice } = calculateBill(taxableAmount, tipAmount, gstPercent, gstEnabled);
 
-        // Razorpay order creation
-        const amount = totalPrice * 100; // in paise
-        logger('info', `Creating Razorpay payment order for customer ${customerId} of amount ${amount} paise`);
-        const rzpOrder = await razorpayService.order({
+        if (!hotel?.paymentEnabled) {
+            throw CustomError(STATUS_CODE.BAD_REQUEST, 'Online payment is disabled for this hotel');
+        }
+
+        const razorpayKeyId = hotel?.razorpayKeyId;
+        const razorpayKeySecret = hotelService.decrypt(hotel?.razorpayKeySecret);
+
+        if (!razorpayKeyId || !razorpayKeySecret) {
+            throw CustomError(STATUS_CODE.BAD_REQUEST, 'Hotel Razorpay settings are incomplete');
+        }
+
+        const hotelRazorpay = new Razorpay({
+            key_id: razorpayKeyId,
+            key_secret: razorpayKeySecret
+        });
+
+        // Razorpay order creation with this hotel's own credentials
+        const amount = Math.round(totalPrice * 100); // in paise
+        logger('info', `Creating Razorpay payment order for hotel ${hotelId}, customer ${customerId}, amount ${amount} paise`);
+        const rzpOrder = await hotelRazorpay.orders.create({
             amount,
             currency: 'INR',
             receipt: `cust_pay_${Date.now()}`
@@ -64,7 +90,7 @@ const createOrder = async (req, res) => {
             success: true,
             orderId: rzpOrder.id,
             amount: rzpOrder.amount,
-            key: env.razorpay.keyId,
+            key: razorpayKeyId,
             totalPrice,
             sgst,
             cgst,
@@ -120,8 +146,25 @@ const verifyPayment = async (req, res) => {
             );
         }
 
+        const paymentHotel = await hotelRepo.find({
+            where: { id: hotelId },
+            attributes: ['paymentEnabled', 'razorpayKeyId', 'razorpayKeySecret']
+        });
+
+        if (!paymentHotel) {
+            throw CustomError(STATUS_CODE.NOT_FOUND, 'Hotel not found');
+        }
+        if (!paymentHotel.paymentEnabled) {
+            throw CustomError(STATUS_CODE.BAD_REQUEST, 'Online payment is disabled for this hotel');
+        }
+
+        const razorpayKeySecret = hotelService.decrypt(paymentHotel.razorpayKeySecret);
+        if (!paymentHotel.razorpayKeyId || !razorpayKeySecret) {
+            throw CustomError(STATUS_CODE.BAD_REQUEST, 'Hotel Razorpay settings are incomplete');
+        }
+
         const generated = crypto
-            .createHmac('sha256', env.razorpay.keySecret)
+            .createHmac('sha256', razorpayKeySecret)
             .update(`${razorpayOrderId}|${razorpayPaymentId}`)
             .digest('hex');
 

@@ -33,8 +33,23 @@ const update = async (id, hotelId, payload) => {
             }
         }
 
-        const options = { where: { id } };
-        await menuRepo.update(options, updateData);
+        const options = {
+            where: {
+                id,
+                hotelId,
+                isCombo: false
+            }
+        };
+
+        const [updatedCount] = await menuRepo.update(options, updateData);
+
+        if (!updatedCount) {
+            throw CustomError(
+                STATUS_CODE.NOT_FOUND,
+                'Menu item not found or access denied'
+            );
+        }
+
         return { message: 'Menu Item updated successfully' };
     } catch (error) {
         logger('error', 'Error while updating menu item', { error });
@@ -42,11 +57,40 @@ const update = async (id, hotelId, payload) => {
     }
 };
 
-const remove = async (menuIds) => {
+const remove = async (menuIds, hotelId) => {
     try {
-        const options = { where: { id: { [Op.in]: menuIds } } };
+        if (!Array.isArray(menuIds) || !menuIds.length) {
+            throw CustomError(
+                STATUS_CODE.BAD_REQUEST,
+                'Menu ids are required'
+            );
+        }
+
+        const options = {
+            where: {
+                id: {
+                    [Op.in]: menuIds
+                },
+                hotelId,
+                isCombo: false
+            }
+        };
+
+        const existing = await menuRepo.find(options);
+
+        if (existing.count !== menuIds.length) {
+            throw CustomError(
+                STATUS_CODE.NOT_FOUND,
+                'Some menu items were not found or access was denied'
+            );
+        }
+
         await menuRepo.remove(options);
-        return { message: 'Menu Items removed successfully' };
+
+        return {
+            message: 'Menu Items removed successfully',
+            deletedItems: existing.rows
+        };
     } catch (error) {
         logger('error', 'Error while removing menu item', { error });
         throw CustomError(error.code, error.message);
@@ -90,13 +134,24 @@ const fetch = async (payload) => {
 };
 
 // ── NEW: single item fetch (image upload ke liye old image delete karna) ──
-const fetchById = async (id) => {
+const fetchById = async (id, hotelId, extraWhere = {}) => {
     try {
-        const options = { where: { id }, limit: 1 };
+        const options = {
+            where: {
+                id,
+                hotelId,
+                ...extraWhere
+            },
+            limit: 1
+        };
+
         const result = await menuRepo.find(options);
         return result.rows[0] || null;
     } catch (error) {
-        logger('error', 'Error while fetching menu item by id', { error });
+        logger('error', 'Error while fetching menu item by id', {
+            error
+        });
+
         throw CustomError(error.code, error.message);
     }
 };
@@ -251,10 +306,40 @@ const updateCombo = async (id, hotelId, payload) => {
     }
 };
 
-const removeCombos = async (comboIds) => {
+const removeCombos = async (comboIds, hotelId) => {
     try {
-        await menuRepo.remove({ where: { id: { [Op.in]: comboIds }, isCombo: true } });
-        return { message: 'Combos removed successfully' };
+        if (!Array.isArray(comboIds) || !comboIds.length) {
+            throw CustomError(
+                STATUS_CODE.BAD_REQUEST,
+                'Combo ids are required'
+            );
+        }
+
+        const options = {
+            where: {
+                id: {
+                    [Op.in]: comboIds
+                },
+                hotelId,
+                isCombo: true
+            }
+        };
+
+        const existing = await menuRepo.find(options);
+
+        if (existing.count !== comboIds.length) {
+            throw CustomError(
+                STATUS_CODE.NOT_FOUND,
+                'Some combos were not found or access was denied'
+            );
+        }
+
+        await menuRepo.remove(options);
+
+        return {
+            message: 'Combos removed successfully',
+            deletedItems: existing.rows
+        };
     } catch (error) {
         logger('error', 'Error while removing combos', { error });
         throw CustomError(error.code, error.message);

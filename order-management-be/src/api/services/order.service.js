@@ -343,15 +343,59 @@ const placeOrder = async (payload) => {
         if (table.status === 'PAYMENT_PENDING') {
             throw CustomError(STATUS_CODE.CONFLICT, 'Payment is pending for this table');
         }
-        if (!table.activeSessionId) {
-            throw CustomError(STATUS_CODE.CONFLICT, 'Active RC Session is required before placing an order');
-        }
-        const activeSession = await db.diningSessions.findOne({
-            where: { id: table.activeSessionId, tableId, hotelId, status: 'ACTIVE' },
-            attributes: ['id']
-        });
+        let activeSession = table.activeSessionId
+            ? await db.diningSessions.findOne({
+                where: { id: table.activeSessionId, tableId, hotelId, status: 'ACTIVE' },
+                attributes: ['id']
+            })
+            : null;
+
+        // QR checkout must never take a successful payment and then reject the food order
+        // only because an RC Session was not created beforehand. Create a safe session
+        // automatically for the scanned table/customer and continue the paid order flow.
         if (!activeSession) {
-            throw CustomError(STATUS_CODE.CONFLICT, 'RC Session is not active');
+            const customer = await customerRepo.findOne({
+                where: { id: customerId },
+                attributes: ['id', 'phoneNumber']
+            });
+            if (!customer) {
+                throw CustomError(STATUS_CODE.NOT_FOUND, 'Customer not found');
+            }
+
+            let sessionCode;
+            do {
+                sessionCode = `RC${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
+            } while (await db.diningSessions.findOne({ where: { sessionCode }, attributes: ['id'] }));
+
+            activeSession = await db.diningSessions.create({
+                sessionCode,
+                hotelId,
+                tableId,
+                ownerCustomerId: customerId,
+                ownerMobile: String(customer.phoneNumber || '9999999999'),
+                status: 'ACTIVE'
+            });
+
+            await db.sessionMembers.create({
+                sessionId: activeSession.id,
+                customerId,
+                mobileNumber: String(customer.phoneNumber || '9999999999'),
+                role: 'OWNER',
+                status: 'ACTIVE'
+            });
+
+            await table.update({
+                status: 'OCCUPIED',
+                activeSessionId: activeSession.id,
+                qrEnabled: true
+            });
+
+            logger('info', 'RC Session auto-created during QR order placement', {
+                hotelId,
+                tableId,
+                customerId,
+                sessionId: activeSession.id
+            });
         }
 
         // Find all orders for this customer to determine the next edited version
@@ -525,8 +569,8 @@ const placeOrder = async (payload) => {
                 cgst,
                 finalAmount: totalPrice,
                 totalPrice,
-                paymentMode: 'PENDING',
-                paymentId: '-'
+                paymentMode: payload.razorpayPaymentId ? 'ONLINE' : 'PENDING',
+                paymentId: payload.razorpayPaymentId || '-'
             },
             invoicePdfBase64: Buffer.from(invoicePdfBytes).toString('base64')
         };

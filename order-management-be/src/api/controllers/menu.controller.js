@@ -41,73 +41,147 @@ const create = async (req, res) => {
 };
 
 const update = async (req, res) => {
+    const newImage = req.file?.path || null;
+
     try {
         const { id } = req.params;
         const payload = req.body;
-        logger('debug', 'update a menu ', { payload });
 
-        // If image uploaded via multer-cloudinary, attach URL to data
-        if (req.file?.path) {
-            if (!payload.data) payload.data = {};
-            payload.data.image = req.file.path;
+        if (!payload.data) {
+            payload.data = {};
         }
 
-        if (!payload.data) payload.data = {};
+        if (newImage) {
+            payload.data.image = newImage;
+        }
 
         const validation = updateValidation(payload.data);
+
         if (validation.error) {
-            if (req.file?.path) {
-                await deleteImage(req.file.path);
+            if (newImage) {
+                await deleteImage(newImage);
             }
-            logger('error', 'Menu updation validation error', { error: validation.error });
-            return res.status(STATUS_CODE.BAD_REQUEST).send({ message: validation.error.message });
+
+            return res.status(STATUS_CODE.BAD_REQUEST).send({
+                message: validation.error.message
+            });
         }
 
-        const hotelId = await resolveHotelAccess(req.user, payload.hotelId);
+        const hotelId = await resolveHotelAccess(
+            req.user,
+            payload.hotelId
+        );
 
-        // If replacing image, delete old one from Cloudinary
-        if (req.file?.path) {
-            const existing = await menuService.fetchById(id);
-            if (existing?.image) {
-                await deleteImage(existing.image);
+        const existing = await menuService.fetchById(
+            id,
+            hotelId,
+            { isCombo: false }
+        );
+
+        if (!existing) {
+            if (newImage) {
+                await deleteImage(newImage);
             }
+
+            return res.status(STATUS_CODE.NOT_FOUND).send({
+                message: 'Menu item not found'
+            });
         }
 
-        const result = await menuService.update(id, hotelId, payload.data);
-        logger('info', 'Menu updated successfully', { result });
+        const oldImage = existing.image;
+
+        const result = await menuService.update(
+            id,
+            hotelId,
+            payload.data
+        );
+
+        if (
+            newImage &&
+            oldImage &&
+            oldImage !== newImage
+        ) {
+            await deleteImage(oldImage);
+        }
 
         return res.status(STATUS_CODE.OK).send(result);
     } catch (error) {
-        logger('error', `Error occurred during updating menu items ${error}`);
-        return res.status(error.code || 500).send({ message: error.message });
+        if (newImage) {
+            await deleteImage(newImage);
+        }
+
+        logger('error', 'Error occurred during updating menu item', {
+            error
+        });
+
+        return res.status(error.code || 500).send({
+            message: error.message
+        });
     }
 };
 
 // ── NEW: dedicated image upload for a menu item ──
 const uploadImage = async (req, res) => {
+    const newImage = req.file?.path || null;
+
     try {
         const { id } = req.params;
-        logger('debug', `Upload image for menu item ${id}`);
 
-        if (!req.file?.path) {
-            return res.status(STATUS_CODE.BAD_REQUEST).send({ message: 'No image file provided' });
+        if (!newImage) {
+            return res.status(STATUS_CODE.BAD_REQUEST).send({
+                message: 'No image file provided'
+            });
         }
 
-        const hotelId = await resolveHotelAccess(req.user, req.body.hotelId);
+        const hotelId = await resolveHotelAccess(
+            req.user,
+            req.body.hotelId
+        );
 
-        // Delete old image if exists
-        const existing = await menuService.fetchById(id);
-        if (existing?.image) {
-            await deleteImage(existing.image);
+        const existing = await menuService.fetchById(
+            id,
+            hotelId,
+            { isCombo: false }
+        );
+
+        if (!existing) {
+            await deleteImage(newImage);
+
+            return res.status(STATUS_CODE.NOT_FOUND).send({
+                message: 'Menu item not found'
+            });
         }
 
-        const result = await menuService.update(id, hotelId, { image: req.file.path });
-        logger('info', `Image uploaded for menu item ${id}`);
+        const oldImage = existing.image;
 
-        return res.status(STATUS_CODE.OK).send({ image: req.file.path, ...result });
+        const result = await menuService.update(
+            id,
+            hotelId,
+            {
+                image: newImage
+            }
+        );
+
+        if (oldImage && oldImage !== newImage) {
+            await deleteImage(oldImage);
+        }
+
+        return res.status(STATUS_CODE.OK).send({
+            image: newImage,
+            ...result
+        });
     } catch (error) {
-        logger('error', `Error uploading image for menu item: ${error}`);
-        return res.status(error.code || 500).send({ message: error.message });
+        if (newImage) {
+            await deleteImage(newImage);
+        }
+
+        logger('error', 'Error uploading image for menu item', {
+            error
+        });
+
+        return res.status(error.code || 500).send({
+            message: error.message
+        });
     }
 };
 
@@ -158,27 +232,72 @@ const updateCombo = async (req, res) => {
 
 const removeCombos = async (req, res) => {
     try {
-        const { comboIds } = req.body;
-        const result = await menuService.removeCombos(comboIds || []);
-        return res.status(STATUS_CODE.OK).send(result);
+        const {
+            comboIds,
+            hotelId: requestedHotelId
+        } = req.body;
+
+        const hotelId = await resolveHotelAccess(
+            req.user,
+            requestedHotelId
+        );
+
+        const result = await menuService.removeCombos(
+            comboIds,
+            hotelId
+        );
+
+        await Promise.allSettled(
+            result.deletedItems
+                .filter((item) => item.image)
+                .map((item) => deleteImage(item.image))
+        );
+
+        return res.status(STATUS_CODE.OK).send({
+            message: result.message
+        });
     } catch (error) {
-        logger('error', `Error occurred during removing combos ${error}`);
-        return res.status(error.code || 500).send({ message: error.message });
+        logger('error', 'Error occurred during removing combos', {
+            error
+        });
+
+        return res.status(error.code || 500).send({
+            message: error.message
+        });
     }
 };
 
 const remove = async (req, res) => {
     try {
-        const { menuIds } = req.body;
-        logger('debug', 'remove a menu item', { menuIds });
+        const { menuIds, hotelId: requestedHotelId } = req.body;
 
-        const result = await menuService.remove(menuIds);
-        logger('info', 'Menu items removed successfully', { result });
+        const hotelId = await resolveHotelAccess(
+            req.user,
+            requestedHotelId
+        );
 
-        return res.status(STATUS_CODE.OK).send(result);
+        const result = await menuService.remove(
+            menuIds,
+            hotelId
+        );
+
+        await Promise.allSettled(
+            result.deletedItems
+                .filter((item) => item.image)
+                .map((item) => deleteImage(item.image))
+        );
+
+        return res.status(STATUS_CODE.OK).send({
+            message: result.message
+        });
     } catch (error) {
-        logger('error', `Error occurred during removing menu items ${error}`);
-        return res.status(error.code || 500).send({ message: error.message });
+        logger('error', 'Error occurred during removing menu items', {
+            error
+        });
+
+        return res.status(error.code || 500).send({
+            message: error.message
+        });
     }
 };
 
