@@ -1,0 +1,6 @@
+.env
+node_modules
+src/config/admin_settings.json
+dist/
+build/
+*.log

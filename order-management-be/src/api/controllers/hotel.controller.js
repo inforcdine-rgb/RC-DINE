@@ -149,7 +149,6 @@ const testPaymentSettings = async (req, res) => {
     }
 };
 
-
 const getPrinterSettings = async (req, res) => {
     try {
         const hotelId = await resolveHotelAccess(req.user, req.params.id);
@@ -175,7 +174,6 @@ const updatePrinterSettings = async (req, res) => {
         return res.status(error.code || 500).send({ message: error.message });
     }
 };
-
 
 const uploadLogo = async (req, res) => {
     try {

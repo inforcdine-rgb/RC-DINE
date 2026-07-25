@@ -47,7 +47,6 @@ const list = async (req, res) => {
     }
 };
 
-
 const listCompleted = async (req, res) => {
     try {
         const orders = await openOrderService.listCompleted(req.user, req.query.hotelId, {

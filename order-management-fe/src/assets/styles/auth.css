@@ -351,3 +351,30 @@
     .rc-auth-right { padding: 1.5rem 1rem; }
     .rc-roles { grid-template-columns: 1fr; }
 }
+/* Login links: Forgot password + Create account */
+.rc-auth-right .custom-label {
+    color: #6ee787 !important;
+    font-size: 0.84rem;
+    font-weight: 700;
+    cursor: pointer;
+    display: inline-block;
+    text-decoration: none;
+    transition:
+        color 0.2s ease,
+        opacity 0.2s ease,
+        transform 0.2s ease;
+}
+
+.rc-auth-right .custom-label:hover {
+    color: #9bf5ae !important;
+    text-decoration: underline;
+    opacity: 0.95;
+}
+
+.rc-forgot {
+    width: 100%;
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 8px !important;
+    margin-bottom: 2px;
+}
