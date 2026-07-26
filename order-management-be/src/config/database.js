@@ -21,6 +21,8 @@ import pushSubscriptionsModel from '../api/models/pushSubscriptions.model.js';
 import sessionJoinRequestModel from '../api/models/sessionJoinRequest.model.js';
 import sessionMemberModel from '../api/models/sessionMember.model.js';
 import subscriptionModel from '../api/models/subscriptions.js';
+import subscriptionPlanModel from '../api/models/subscriptionPlan.model.js';
+import subscriptionPlanRepo from '../api/repositories/subscriptionPlan.repository.js';
 import tableModel from '../api/models/table.model.js';
 import userModel from '../api/models/user.model.js';
 import { CustomError } from '../api/utils/common.js';
@@ -195,6 +197,7 @@ const defineModels = (sequelize) => {
     db.notifications = notificationModel(sequelize);
     db.paymentGatewayEntities = paymentGatewayEntitiesModel(sequelize);
     db.subscriptions = subscriptionModel(sequelize);
+    db.subscriptionPlans = subscriptionPlanModel(sequelize);
 };
 
 const addOrModifyColumn = async ({
@@ -249,6 +252,9 @@ const initDb = async () => {
         await sequelize.sync({
             force: false
         });
+
+        await subscriptionPlanRepo.ensureDefaults();
+        logger('info', '✅ Default subscription plans verified');
 
         const userColumns = [
             {

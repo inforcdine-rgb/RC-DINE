@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import orderController from '../controllers/order.controller.js';
 import authenticate from '../middlewares/auth.js';
+import customerSessionAuth from '../middlewares/customerSessionAuth.js';
 import checkSubscriptionAccess from '../middlewares/subscription.js';
 
 const router = Router();
@@ -24,8 +25,11 @@ router.post(
 router.get('/details/:hotelId/:orderId', authenticate, checkSubscriptionAccess, orderController.getOrderDetails);
 router.put('/status/:hotelId', authenticate, checkSubscriptionAccess, orderController.updateOrderStatus);
 
-router.patch('/:orderId/cancel', orderController.cancelOrder);
-
+router.patch(
+    '/:orderId/cancel',
+    customerSessionAuth,
+    orderController.cancelOrder
+);
 router.get('/completed/:hotelId', authenticate, checkSubscriptionAccess, orderController.completed);
 router.get('/active/:tableId', authenticate, checkSubscriptionAccess, orderController.active);
 

@@ -1,7 +1,7 @@
 import logger from '../../config/logger.js';
 import { emitToHotel, emitToOrder } from '../../config/socket.js';
 import orderService from '../services/order.service.js';
-import { STATUS_CODE } from '../utils/common.js';
+import { STATUS_CODE, CustomError } from '../utils/common.js';
 import { resolveHotelAccess, resolveHotelAccessByTableId } from '../utils/hotelAccess.js';
 import {
     customerRegistrationValidation,
@@ -395,9 +395,30 @@ const resetTable = async (req, res) => {
 const cancelOrder = async (req, res) => {
     try {
         const { orderId } = req.params;
-        logger('debug', `Request to cancel order - orderId: ${orderId}`);
 
-        const result = await orderService.cancelOrder(orderId);
+        logger('debug', 'Request to cancel order', {
+            orderId,
+            authenticatedUserId:
+                req.customer?.customerId ||
+                req.customer?.id ||
+                null
+        });
+
+        const authenticatedCustomerId =
+            req.customer?.customerId ||
+            req.customer?.id;
+
+        if (!authenticatedCustomerId) {
+            throw CustomError(
+                STATUS_CODE.UNAUTHORIZED,
+                'Customer authentication required'
+            );
+        }
+
+        const result = await orderService.cancelOrder(
+            orderId,
+            authenticatedCustomerId
+        );
 
         const livePayload = {
             hotelId: result.hotelId,

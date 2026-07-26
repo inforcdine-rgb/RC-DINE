@@ -4,6 +4,8 @@ import authenticate from '../middlewares/auth.js';
 
 const router = Router();
 
+router.get('/plans', subscriptionController.plans);
+
 router.post('/create-order', authenticate, subscriptionController.createOrder);
 router.post('/verify-payment', authenticate, subscriptionController.verifyPayment);
 router.get('/status', authenticate, subscriptionController.status);

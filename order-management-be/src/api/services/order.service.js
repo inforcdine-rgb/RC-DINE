@@ -806,11 +806,11 @@ const active = async (tableId) => {
                     include: [
                         {
                             model: db.orders,
-	                            where: {
-	                                status: {
-	                                    [Op.notIn]: [ORDER_STATUS[2], ORDER_STATUS[3]]
-	                                }
-	                            },
+                            where: {
+                                status: {
+                                    [Op.notIn]: [ORDER_STATUS[2], ORDER_STATUS[3]]
+                                }
+                            },
                             attributes: ['id', 'price', 'quantity', 'status', 'edited', 'customerId', 'hotelId', 'razorpayPaymentId', 'description', 'updatedAt', 'orderNumber', 'menu'],
                             include: [
                                 {
@@ -1546,7 +1546,7 @@ const resetTable = async (tableId, hotelId) => {
     }
 };
 
-const cancelOrder = async (orderId) => {
+const cancelOrder = async (orderId, authenticatedCustomerId) => {
     try {
         logger('debug', `Cancelling order for orderId: ${orderId}`);
 
@@ -1567,6 +1567,16 @@ const cancelOrder = async (orderId) => {
 
         if (!order) {
             throw CustomError(STATUS_CODE.NOT_FOUND, 'Order not found');
+        }
+
+        if (
+            !authenticatedCustomerId ||
+            String(order.customerId) !== String(authenticatedCustomerId)
+        ) {
+            throw CustomError(
+                STATUS_CODE.FORBIDDEN,
+                'You cannot cancel another customer’s order'
+            );
         }
 
         // Check if order is in PENDING status only

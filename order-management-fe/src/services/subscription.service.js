@@ -26,3 +26,12 @@ export const getStatus = async () => {
         throw error;
     }
 };
+
+export const getPlans = async () => {
+    try {
+        return await api(method.GET, '/subscription/plans');
+    } catch (error) {
+        console.error(`Error fetching subscription plans ${error}`);
+        throw error;
+    }
+};

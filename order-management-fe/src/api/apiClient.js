@@ -140,11 +140,14 @@ instance.interceptors.request.use(
         config.__backgroundRequest = Boolean(window.__rcdineBackgroundRefresh);
         config.__showGlobalLoader = !config.__backgroundRequest && !cached;
         startRequest(config);
-        const token = localStorage.getItem('token');
+        const staffToken = localStorage.getItem('token');
+        const customerToken = localStorage.getItem('rcCustomerToken');
+
+        const token = staffToken || customerToken;
+
         if (token && !config.headers.Authorization) {
             config.headers.Authorization = `Bearer ${token}`;
         }
-
         // Let the browser generate the multipart boundary for FormData uploads.
         if (config.data instanceof FormData) {
             delete config.headers['Content-Type'];
@@ -189,8 +192,8 @@ instance.interceptors.response.use(
             sessionStorage.removeItem('token');
 
             const isCustomerPage =
-                    window.location.pathname.includes('/order-placement') ||
-                    window.location.pathname.includes('/order-tracking');
+                window.location.pathname.includes('/order-placement') ||
+                window.location.pathname.includes('/order-tracking');
 
             if (!isCustomerPage) {
                 window.location.replace('/login');

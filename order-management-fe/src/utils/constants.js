@@ -1,11 +1,11 @@
-import { FaRupeeSign, FaUserTie } from 'react-icons/fa';
+import { FaRupeeSign, FaUserTie, FaUsers } from 'react-icons/fa';
 import { IoMdSettings } from 'react-icons/io';
 import { LuReceipt } from 'react-icons/lu';
 import { MdOutlineDashboardCustomize, MdOutlineRestaurantMenu, MdOutlineAttachMoney } from 'react-icons/md';
 import { PiArmchairFill } from 'react-icons/pi';
 import { RiHotelFill } from 'react-icons/ri';
 
-export const USER_ROLES = ['OWNER', 'MANAGER'];
+export const USER_ROLES = ['OWNER', 'MANAGER', 'ADMIN'];
 export const MENU_STATUS = ['AVAILABLE', 'UNAVAILABLE'];
 export const ORDER_STATUS = ['PENDING', 'SERVED', 'CANCELLED', 'COMPLETED', 'PREPARING', 'READY'];
 export const TABLE_STATUS = ['OPEN', 'BOOKED'];
@@ -38,6 +38,37 @@ export const NOTIFICATION_ACTIONS = {
     MANUAL_PAYMENT_CONFIRMED: 'manual-payment-confirmed',
     ONLINE_PAYMENT_CONFIRMED: 'online-payment-confirmed'
 };
+
+export const ADMIN_TABS = [
+    {
+        order: 1,
+        id: 'admin-dashboard',
+        Icon: MdOutlineDashboardCustomize,
+        title: 'Dashboard',
+        path: '/admin/dashboard'
+    },
+    {
+        order: 2,
+        id: 'admin-owners',
+        Icon: FaUsers,
+        title: 'Owners',
+        path: '/admin/owners'
+    },
+    {
+        order: 3,
+        id: 'admin-revenue',
+        Icon: FaRupeeSign,
+        title: 'Revenue',
+        path: '/admin/revenue'
+    },
+    {
+        order: 4,
+        id: 'admin-settings',
+        Icon: IoMdSettings,
+        title: 'Settings',
+        path: '/admin/settings'
+    }
+];
 
 export const OWNER_TABS = [
     {

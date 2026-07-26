@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import * as subscriptionService from '../../services/subscription.service';
 
 import './style.css';
 
@@ -92,37 +93,7 @@ const demoTabs = {
     }
 };
 
-const plans = [
-    {
-        name: 'Free',
-        amount: '₹0',
-        period: '/month',
-        items: ['Basic QR menu', '50 orders/month', 'Community support'],
-        action: 'Get Started'
-    },
-    {
-        name: 'Starter',
-        amount: '₹999',
-        period: '/month',
-        items: ['Unlimited menu', 'Live order tracking', 'Basic analytics'],
-        action: 'Choose Starter'
-    },
-    {
-        name: 'Pro',
-        amount: '₹1,999',
-        period: '/month',
-        items: ['Manager POS', 'Kitchen display', 'Advanced analytics', 'Priority support'],
-        action: 'Start Pro',
-        popular: true
-    },
-    {
-        name: 'Enterprise',
-        amount: 'Custom',
-        period: '',
-        items: ['Multi-location', 'Custom onboarding', 'Dedicated support'],
-        action: 'Contact Sales'
-    }
-];
+const fallbackPlans = [];
 
 const reviews = [
     {
@@ -224,6 +195,7 @@ function Landing() {
     const [reviewIndex, setReviewIndex] = useState(0);
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const [toast, setToast] = useState('');
+    const [plans, setPlans] = useState(fallbackPlans);
 
     const activeDemo = demoTabs[activeTab];
 
@@ -235,6 +207,19 @@ function Landing() {
         ],
         []
     );
+
+    useEffect(() => {
+        const loadPlans = async () => {
+            try {
+                const response = await subscriptionService.getPlans();
+                setPlans(response?.plans || []);
+            } catch (error) {
+                console.error('Unable to load landing subscription plans', error);
+            }
+        };
+
+        loadPlans();
+    }, []);
 
     useEffect(() => {
         const timer = window.setInterval(() => {
@@ -289,6 +274,10 @@ function Landing() {
 
     const goToLogin = () => navigate('/login');
     const goToSignup = () => navigate('/signup');
+    const choosePlan = (planCode) => {
+        localStorage.setItem('rcdine_selected_plan', planCode);
+        navigate(`/signup?plan=${encodeURIComponent(planCode)}`);
+    };
 
     const handleFeatureTilt = (event) => {
         const card = event.currentTarget;
@@ -813,31 +802,31 @@ function Landing() {
                             {plans.map((plan) => (
                                 <article
                                     className={`price-card reveal ${
-                                        plan.popular ? 'popular' : ''
+                                        plan.popular || plan.isPopular ? 'popular' : ''
                                     }`}
-                                    key={plan.name}
+                                    key={plan.code}
                                 >
-                                    {plan.popular && (
+                                    {(plan.popular || plan.isPopular) && (
                                         <span className="popular-pill">MOST POPULAR</span>
                                     )}
-                                    <h3>{plan.name}</h3>
+                                    <h3>{plan.name || plan.title}</h3>
                                     <div className="price-amount">
-                                        {plan.amount}{' '}
-                                        {plan.period && <small>{plan.period}</small>}
+                                        ₹{Number(plan.amount).toLocaleString('en-IN')}{' '}
+                                        <small>/{plan.subtitle || `${plan.days} days`}</small>
                                     </div>
                                     <ul>
-                                        {plan.items.map((item) => (
+                                        {(plan.features || []).map((item) => (
                                             <li key={item}>{item}</li>
                                         ))}
                                     </ul>
                                     <button
                                         type="button"
                                         className={`landing-btn ${
-                                            plan.popular ? 'primary' : 'ghost'
+                                            plan.popular || plan.isPopular ? 'primary' : 'ghost'
                                         } full-width`}
-                                        onClick={goToSignup}
+                                        onClick={() => choosePlan(plan.code)}
                                     >
-                                        {plan.action}
+                                        {plan.buttonText || `Choose ${plan.name || plan.title}`}
                                     </button>
                                 </article>
                             ))}

@@ -16,32 +16,7 @@ import {
     verifySubscriptionPaymentRequest
 } from '../../store/slice';
 
-const planOptions = [
-    {
-        key: 'MONTHLY',
-        title: 'Basic',
-        subtitle: 'Monthly',
-        amount: 1000,
-        days: 30
-    },
-    {
-        key: 'SIX_MONTHS',
-        title: 'Pro',
-        subtitle: '6 Months',
-        amount: 5500,
-        days: 180,
-        popular: true
-    },
-    {
-        key: 'YEARLY',
-        title: 'Premium',
-        subtitle: 'Yearly',
-        amount: 11000,
-        days: 365
-    }
-];
-
-const features = [
+const fallbackFeatures = [
     'Online menu ordering',
     'Live order notifications',
     'Business statistics dashboard',
@@ -52,6 +27,7 @@ const features = [
 
 function Subscription() {
     const [statusData, setStatusData] = useState(null);
+    const [planOptions, setPlanOptions] = useState([]);
     const [loading, setLoading] = useState(true);
     const [showModal, setShowModal] = useState(false);
     const [selectedPlan, setSelectedPlan] = useState(null);
@@ -71,14 +47,17 @@ function Subscription() {
     useEffect(() => {
         const fetchStatus = async () => {
             try {
-                const response =
-                    await subscriptionService.getStatus();
+                const [statusResponse, plansResponse] = await Promise.all([
+                    subscriptionService.getStatus(),
+                    subscriptionService.getPlans()
+                ]);
 
-                setStatusData(response);
+                setStatusData(statusResponse);
+                setPlanOptions(plansResponse?.plans || []);
             } catch (err) {
                 setError(
                     err?.message ||
-                        'Unable to load subscription status'
+                    'Unable to load subscription status'
                 );
             } finally {
                 setLoading(false);
@@ -162,7 +141,7 @@ function Subscription() {
                 statusData.subscriptionRemaining > 0
                     ? Math.ceil(
                         statusData.subscriptionRemaining /
-                            86400
+                        86400
                     )
                     : 0;
 
@@ -295,14 +274,13 @@ function Subscription() {
                     >
                         {planOptions.map((plan) => (
                             <div
-                                key={plan.key}
+                                key={plan.code || plan.key}
                                 className="subscription-plan-item"
                             >
                                 <Card
-                                    className={`text-center subscription-card ${
-                                        plan.popular
-                                            ? 'subscription-card-popular'
-                                            : ''
+                                    className={`text-center subscription-card ${plan.popular
+                                        ? 'subscription-card-popular'
+                                        : ''
                                     }`}
                                 >
                                     <Card.Body className="d-flex flex-column">
@@ -319,7 +297,7 @@ function Subscription() {
 
                                             <div>
                                                 <h3 className="m-0 fw-bold">
-                                                    {plan.title}
+                                                    {plan.title || plan.name}
                                                 </h3>
 
                                                 <small>
@@ -334,7 +312,7 @@ function Subscription() {
                                             </span>
 
                                             <span className="subscription-price">
-                                                {plan.amount.toLocaleString(
+                                                {Number(plan.amount).toLocaleString(
                                                     'en-IN'
                                                 )}
                                             </span>
@@ -345,38 +323,40 @@ function Subscription() {
                                         </p>
 
                                         <div className="subscription-feature-list">
-                                            {features.map(
-                                                (feature, index) => (
-                                                    <Row
-                                                        key={`${plan.key}-${index}`}
-                                                        className="subscription-feature-row"
-                                                    >
-                                                        <Col xs="auto">
-                                                            <FaCircleCheck
-                                                                size={
-                                                                    18
-                                                                }
-                                                                color="#49ac60"
-                                                            />
-                                                        </Col>
+                                            {(plan.features?.length
+                                                ? plan.features
+                                                : fallbackFeatures
+                                            ).map((feature, index) => (
+                                                <Row
+                                                    key={`${plan.code || plan.key}-${index}`}
+                                                    className="subscription-feature-row"
+                                                >
+                                                    <Col xs="auto">
+                                                        <FaCircleCheck
+                                                            size={
+                                                                18
+                                                            }
+                                                            color="#49ac60"
+                                                        />
+                                                    </Col>
 
-                                                        <Col>
-                                                            <p className="m-0">
-                                                                {
-                                                                    feature
-                                                                }
-                                                            </p>
-                                                        </Col>
-                                                    </Row>
-                                                )
+                                                    <Col>
+                                                        <p className="m-0">
+                                                            {
+                                                                feature
+                                                            }
+                                                        </p>
+                                                    </Col>
+                                                </Row>
+                                            )
                                             )}
                                         </div>
 
                                         <CustomButton
-                                            label={`Choose ${plan.title}`}
+                                            label={plan.buttonText || `Choose ${plan.title || plan.name}`}
                                             className="mt-auto mx-auto mb-2 col-11 fw-bold"
                                             onClick={() =>
-                                                handleBuy(plan.key)
+                                                handleBuy(plan.code || plan.key)
                                             }
                                             disabled={loading}
                                         />
@@ -404,8 +384,7 @@ function Subscription() {
             {subscriptionOrder && (
                 <Razorpay
                     action={ACTIONS.ORDERS}
-                    name={`${user?.firstName || ''} ${
-                        user?.lastName || ''
+                    name={`${user?.firstName || ''} ${user?.lastName || ''
                     }`.trim()}
                     email={user?.email || ''}
                     phoneNumber={user?.phoneNumber || ''}

@@ -12,7 +12,7 @@ import * as hotelService from '../../services/hotel.service';
 import * as orderService from '../../services/order.service';
 import { connectSocket } from '../../services/socket.service';
 import { logoutRequest } from '../../store/slice';
-import { USER_ROLES, COMMON_TABS, MANAGER_TABS, OWNER_TABS } from '../../utils/constants';
+import { USER_ROLES, ADMIN_TABS, COMMON_TABS, MANAGER_TABS, OWNER_TABS } from '../../utils/constants';
 import { runBackgroundTask } from '../../utils/refreshBus';
 import Loader from '../Loader';
 import NoHotel from '../NoHotel';
@@ -232,10 +232,12 @@ function Sidebar() {
         const viewData = JSON.parse(
             CryptoJS.AES.decrypt(localStorage.getItem('data'), env.cryptoSecret).toString(CryptoJS.enc.Utf8)
         );
-        if (Object.keys(viewData).length === 1 && viewData.role.toUpperCase() === USER_ROLES[0]) {
+        const role = String(viewData?.role || '').toUpperCase();
+
+        if (Object.keys(viewData).length === 1 && role === USER_ROLES[0]) {
             tabs = [...OWNER_TABS, ...COMMON_TABS].sort((a, b) => a.order - b.order);
-        } else if (Object.keys(viewData).length === 1 && viewData.role.toUpperCase() === USER_ROLES[2]) {
-            tabs = [...MANAGER_TABS, ...COMMON_TABS].sort((a, b) => a.order - b.order);
+        } else if (Object.keys(viewData).length === 1 && role === USER_ROLES[2]) {
+            tabs = [...ADMIN_TABS].sort((a, b) => a.order - b.order);
         } else {
             tabs = [...MANAGER_TABS, ...COMMON_TABS].sort((a, b) => a.order - b.order);
         }

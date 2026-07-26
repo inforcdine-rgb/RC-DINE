@@ -1,70 +1,101 @@
 import crypto from 'crypto';
 import moment from 'moment';
-import { getAdminSettings } from '../../config/adminSettings.js';
 import { db } from '../../config/database.js';
 import env from '../../config/env.js';
 import logger from '../../config/logger.js';
 import hotelUserRelationRepo from '../repositories/hotelUserRelation.repository.js';
+import subscriptionPlanRepo from '../repositories/subscriptionPlan.repository.js';
 import userRepo from '../repositories/user.repository.js';
 import razorpayService from '../services/razorpay.service.js';
 import { CustomError, STATUS_CODE } from '../utils/common.js';
 
-const PLANS = new Proxy({}, {
-    get(target, name) {
-        const settings = getAdminSettings();
-        return settings.plans[name];
-    }
+const serializePlan = (plan) => ({
+    code: plan.code,
+    name: plan.name,
+    title: plan.name,
+    subtitle: plan.subtitle,
+    amount: Number(plan.amount),
+    days: Number(plan.days),
+    features: Array.isArray(plan.features) ? plan.features : [],
+    popular: Boolean(plan.isPopular),
+    isPopular: Boolean(plan.isPopular),
+    isActive: Boolean(plan.isActive),
+    displayOrder: Number(plan.displayOrder),
+    buttonText: plan.buttonText || `Choose ${plan.name}`
 });
 
-const createOrder = async (req, res) => {
-    console.log('CREATE ORDER API HIT');
-    console.log('BODY =>', req.body);
-    console.log('USER =>', req.user);
-    console.log('KEY =>', process.env.RAZORPAY_KEY_ID);
-    console.log('SECRET =>', process.env.RAZORPAY_SECRET);
+const plans = async (req, res) => {
     try {
-        const { plan } = req.body;
-        console.log('PLAN =>', plan);
-        if (!plan || !PLANS[plan]) {
-            throw CustomError(STATUS_CODE.BAD_REQUEST, 'Invalid plan');
+        const rows = await subscriptionPlanRepo.findActive();
+        return res.status(STATUS_CODE.OK).send({
+            success: true,
+            plans: rows.map(serializePlan)
+        });
+    } catch (error) {
+        return res.status(error.code || STATUS_CODE.INTERNAL_SERVER_ERROR).send({
+            success: false,
+            message: error.message
+        });
+    }
+};
+
+const createOrder = async (req, res) => {
+    try {
+        const selectedPlan = await subscriptionPlanRepo.findByCode(req.body?.plan);
+        if (!selectedPlan) {
+            throw CustomError(STATUS_CODE.BAD_REQUEST, 'Invalid or inactive plan');
         }
 
-        const amount = PLANS[plan].amount * 100; // paise
-        console.log('AMOUNT =>', amount);
+        const amountInPaise = Math.round(Number(selectedPlan.amount) * 100);
+        if (!Number.isFinite(amountInPaise) || amountInPaise < 100) {
+            throw CustomError(STATUS_CODE.BAD_REQUEST, 'Plan price is invalid');
+        }
 
-        console.log('CREATING RAZORPAY INSTANCE');
         const data = {
-            amount,
+            amount: amountInPaise,
             currency: 'INR',
-            receipt: `receipt_${Date.now()}`
+            receipt: `subscription_${req.user.id}_${Date.now()}`,
+            notes: {
+                userId: String(req.user.id),
+                plan: selectedPlan.code
+            }
         };
 
         const order = await razorpayService.order(data);
-        console.log('ORDER =>', order);
 
-        return res.status(200).send({
+        return res.status(STATUS_CODE.OK).send({
             success: true,
             order,
             orderId: order.id,
             amount: data.amount,
-            key: env.razorpay.keyId
+            key: env.razorpay.keyId,
+            plan: serializePlan(selectedPlan)
         });
     } catch (error) {
-        console.error('RAZORPAY CREATE ORDER ERROR =>', error);
-        console.error('STACK =>', error?.stack);
-        return res.status(500).json({
+        logger('error', 'Subscription Razorpay order creation failed', { error });
+        return res.status(error.code || STATUS_CODE.INTERNAL_SERVER_ERROR).send({
             success: false,
-            message: error.message,
-            error
+            message: error.message
         });
     }
 };
 
 const verifyPayment = async (req, res) => {
     try {
-        const { razorpay_order_id: razorpayOrderId, razorpay_payment_id: razorpayPaymentId, razorpay_signature: razorpaySignature, plan } = req.body;
+        const {
+            razorpay_order_id: razorpayOrderId,
+            razorpay_payment_id: razorpayPaymentId,
+            razorpay_signature: razorpaySignature,
+            plan
+        } = req.body;
+
         if (!razorpayOrderId || !razorpayPaymentId || !razorpaySignature || !plan) {
             throw CustomError(STATUS_CODE.BAD_REQUEST, 'Missing required fields');
+        }
+
+        const selectedPlan = await subscriptionPlanRepo.findByCode(plan);
+        if (!selectedPlan) {
+            throw CustomError(STATUS_CODE.BAD_REQUEST, 'Invalid or inactive plan');
         }
 
         const generated = crypto
@@ -72,54 +103,57 @@ const verifyPayment = async (req, res) => {
             .update(`${razorpayOrderId}|${razorpayPaymentId}`)
             .digest('hex');
 
-        if (generated !== razorpaySignature) {
+        const generatedBuffer = Buffer.from(generated, 'utf8');
+        const signatureBuffer = Buffer.from(String(razorpaySignature), 'utf8');
+        const validSignature = generatedBuffer.length === signatureBuffer.length &&
+            crypto.timingSafeEqual(generatedBuffer, signatureBuffer);
+
+        if (!validSignature) {
             throw CustomError(STATUS_CODE.FORBIDDEN, 'Invalid signature');
         }
 
-        // Activate subscription for user
         const user = await userRepo.findOne({ where: { id: req.user.id } });
         if (!user) throw CustomError(STATUS_CODE.NOT_FOUND, 'User not found');
 
         const now = moment();
-        const planInfo = PLANS[plan];
-        if (!planInfo) throw CustomError(STATUS_CODE.BAD_REQUEST, 'Invalid plan selected');
-
         let start;
         let end;
+
         if (user.subscriptionEndAt && moment(user.subscriptionEndAt).isAfter(now)) {
             start = user.subscriptionStartAt || now.toISOString();
-            end = moment(user.subscriptionEndAt).add(planInfo.days, 'days').toISOString();
+            end = moment(user.subscriptionEndAt)
+                .add(Number(selectedPlan.days), 'days')
+                .toISOString();
         } else {
             start = now.toISOString();
-            end = moment(now).add(planInfo.days, 'days').toISOString();
+            end = moment(now)
+                .add(Number(selectedPlan.days), 'days')
+                .toISOString();
         }
 
         await userRepo.update({ where: { id: req.user.id } }, {
             subscriptionStartAt: start,
             subscriptionEndAt: end,
             subscriptionStatus: 'ACTIVE',
-            subscriptionPlan: plan,
+            subscriptionPlan: selectedPlan.code,
             razorpayOrderId,
             razorpayPaymentId
         });
 
-        const updatedUser = await userRepo.findOne({ where: { id: req.user.id } });
-        console.log('UPDATED USER =>', {
-            subscriptionStatus: updatedUser.subscriptionStatus,
-            subscriptionStartAt: updatedUser.subscriptionStartAt,
-            subscriptionEndAt: updatedUser.subscriptionEndAt
-        });
-
-        return res.status(200).send({
+        return res.status(STATUS_CODE.OK).send({
             success: true,
             message: 'Subscription activated',
             data: {
                 subscriptionStatus: 'ACTIVE',
-                subscriptionEndAt: end
+                subscriptionEndAt: end,
+                plan: serializePlan(selectedPlan)
             }
         });
     } catch (error) {
-        return res.status(error.code || STATUS_CODE.INTERNAL_SERVER_ERROR || 500).send({ message: error.message });
+        return res.status(error.code || STATUS_CODE.INTERNAL_SERVER_ERROR).send({
+            success: false,
+            message: error.message
+        });
     }
 };
 
@@ -127,8 +161,6 @@ const status = async (req, res) => {
     try {
         let subscriptionUserId = req.user.id;
 
-        // Managers use the cafe owner's subscription. Reading the manager record here
-        // incorrectly starts/shows a separate free trial for the manager account.
         if (String(req.user.role || '').toUpperCase() === 'MANAGER') {
             let managerHotelId = req.user.hotelId;
 
@@ -166,8 +198,8 @@ const status = async (req, res) => {
             statusValue = 'TRIAL';
             try {
                 await userRepo.update({ where: { id: subscriptionUserId } }, { subscriptionStatus: 'TRIAL' });
-            } catch (e) {
-                logger('error', 'Error updating null subscriptionStatus to TRIAL', { e });
+            } catch (error) {
+                logger('error', 'Error updating null subscriptionStatus to TRIAL', { error });
             }
         }
 
@@ -181,8 +213,8 @@ const status = async (req, res) => {
                     trialStartAt: trialStart,
                     trialEndAt: trialEnd
                 });
-            } catch (e) {
-                logger('error', 'Error initializing trial fields in status controller', { e });
+            } catch (error) {
+                logger('error', 'Error initializing trial fields', { error });
             }
         }
 
@@ -190,36 +222,34 @@ const status = async (req, res) => {
         let subscriptionRemaining = null;
 
         if (trialEnd) {
-            const tEnd = moment(trialEnd);
-            trialRemaining = tEnd.isAfter(now) ? tEnd.diff(now, 'seconds') : 0;
-            if (tEnd.isBefore(now) && statusValue === 'TRIAL') {
+            const trialEndMoment = moment(trialEnd);
+            trialRemaining = trialEndMoment.isAfter(now) ? trialEndMoment.diff(now, 'seconds') : 0;
+            if (trialEndMoment.isBefore(now) && statusValue === 'TRIAL') {
                 statusValue = 'EXPIRED';
                 await userRepo.update({ where: { id: subscriptionUserId } }, { subscriptionStatus: 'EXPIRED' });
             }
         }
 
         if (user.subscriptionEndAt) {
-            const sEnd = moment(user.subscriptionEndAt);
-            subscriptionRemaining = sEnd.isAfter(now) ? sEnd.diff(now, 'seconds') : 0;
-            if (sEnd.isBefore(now) && statusValue === 'ACTIVE') {
+            const subscriptionEndMoment = moment(user.subscriptionEndAt);
+            subscriptionRemaining = subscriptionEndMoment.isAfter(now)
+                ? subscriptionEndMoment.diff(now, 'seconds')
+                : 0;
+            if (subscriptionEndMoment.isBefore(now) && statusValue === 'ACTIVE') {
                 statusValue = 'EXPIRED';
                 await userRepo.update({ where: { id: subscriptionUserId } }, { subscriptionStatus: 'EXPIRED' });
             }
         }
 
-        return res.status(200).send({
+        return res.status(STATUS_CODE.OK).send({
             status: statusValue,
             trialRemaining,
             subscriptionRemaining,
             plan: user.subscriptionPlan || null
         });
     } catch (error) {
-        return res.status(error.code || STATUS_CODE.INTERNAL_SERVER_ERROR || 500).send({ message: error.message });
+        return res.status(error.code || STATUS_CODE.INTERNAL_SERVER_ERROR).send({ message: error.message });
     }
 };
 
-export default {
-    createOrder,
-    verifyPayment,
-    status
-};
+export default { createOrder, verifyPayment, status, plans };

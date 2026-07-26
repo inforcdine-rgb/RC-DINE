@@ -1,6 +1,7 @@
 import moment from 'moment';
 import { Op } from 'sequelize';
 import { getAdminSettings, saveAdminSettings } from '../../config/adminSettings.js';
+import subscriptionPlanRepo from '../repositories/subscriptionPlan.repository.js';
 import { db } from '../../config/database.js';
 import env from '../../config/env.js';
 import logger from '../../config/logger.js';
@@ -235,7 +236,17 @@ const getSettings = async (adminId) => {
         return {
             profile: { firstName: admin.firstName, lastName: admin.lastName, email: admin.email, phoneNumber: admin.phoneNumber },
             razorpay: { keyId: settings.razorpay.keyId, keySecret: maskedSecret },
-            plans: settings.plans
+            plans: (await subscriptionPlanRepo.findAll()).reduce((result, plan) => {
+                result[plan.code] = {
+                    name: plan.name,
+                    subtitle: plan.subtitle,
+                    amount: Number(plan.amount),
+                    days: Number(plan.days),
+                    isPopular: Boolean(plan.isPopular),
+                    isActive: Boolean(plan.isActive)
+                };
+                return result;
+            }, {})
         };
     } catch (error) {
         logger('error', 'Error while fetching admin settings service', { error });
@@ -272,12 +283,13 @@ const updateSettings = async (adminId, payload) => {
             }
         }
         if (plans) {
-            if (plans.MONTHLY?.amount) currentSettings.plans.MONTHLY.amount = Number(plans.MONTHLY.amount);
-            if (plans.HALF_YEARLY?.amount) {
-                currentSettings.plans.HALF_YEARLY.amount = Number(plans.HALF_YEARLY.amount);
-                currentSettings.plans.SIX_MONTHS.amount = Number(plans.HALF_YEARLY.amount);
+            const allowedCodes = ['MONTHLY', 'HALF_YEARLY', 'YEARLY'];
+            for (const code of allowedCodes) {
+                const amount = Number(plans[code]?.amount);
+                if (Number.isFinite(amount) && amount > 0) {
+                    await subscriptionPlanRepo.updateByCode(code, { amount });
+                }
             }
-            if (plans.YEARLY?.amount) currentSettings.plans.YEARLY.amount = Number(plans.YEARLY.amount);
         }
 
         saveAdminSettings(currentSettings);
