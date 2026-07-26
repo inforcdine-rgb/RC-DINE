@@ -1,5 +1,6 @@
 import React from 'react';
 import { Routes as Switch, Route, BrowserRouter, Navigate } from 'react-router-dom';
+
 import RCSessionGuard from '../components/RCSessionGuard';
 import features from '../config/features';
 import AdminDashboard from '../pages/AdminDashboard';
@@ -11,6 +12,7 @@ import AdminSettings from '../pages/AdminSettings';
 import Dashboard from '../pages/Dashboard';
 import ForgotPassword from '../pages/ForgetPassword';
 import Hotels from '../pages/Hotels';
+import Landing from '../pages/Landing';
 import Login from '../pages/Login';
 import ManagerPOS from '../pages/ManagerPOS';
 import Managers from '../pages/Managers';
@@ -34,7 +36,7 @@ export default function Routes() {
         <BrowserRouter>
             <Switch>
                 <Route path="/" element={<PublicRoutes />}>
-                    <Route path="" element={<Login />} />
+                    <Route index element={<Landing />} />
                     <Route path="login" element={<Login />} />
                     <Route path="signup" element={<Signup />} />
                     <Route path="forgot-password" element={<ForgotPassword />} />
@@ -55,6 +57,7 @@ export default function Routes() {
                     <Route path="cart/:orderId" element={<OrderTracking />} />
                     <Route path="admin/login" element={<AdminLogin />} />
                 </Route>
+
                 <Route path="/" element={<AuthRoutes />}>
                     <Route path="dashboard" element={<Dashboard />} />
                     <Route path="hotels" element={<Hotels />} />
@@ -72,6 +75,7 @@ export default function Routes() {
                     <Route path="admin/revenue" element={<AdminRevenue />} />
                     <Route path="admin/settings" element={<AdminSettings />} />
                 </Route>
+
                 <Route path="/404" element={<NotFound />} />
                 <Route path="*" element={<Navigate to="/404" />} />
             </Switch>

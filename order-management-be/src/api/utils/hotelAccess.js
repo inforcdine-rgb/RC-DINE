@@ -47,50 +47,90 @@ export const resolveHotelAccess = async (user, requestedHotelId) => {
     return requestedHotelId;
 };
 
-export const resolveHotelAccessByCategoryIds = async (user, categoryIds) => {
-    if (!categoryIds?.length) {
-        throw CustomError(STATUS_CODE.BAD_REQUEST, 'Category id is required');
+export const resolveHotelAccessByCategoryId = async (
+    user,
+    categoryId
+) => {
+    if (!categoryId) {
+        throw CustomError(
+            STATUS_CODE.BAD_REQUEST,
+            'Category id is required'
+        );
     }
 
-    const { rows } = await categoryRepo.find({
-        where: { id: { [Op.in]: categoryIds } },
+    const categoryResult = await categoryRepo.find({
+        where: {
+            id: categoryId
+        },
         attributes: ['hotelId']
     });
 
-    const hotelIds = [...new Set(rows.map((row) => row.hotelId))];
-    if (!hotelIds.length) {
-        throw CustomError(STATUS_CODE.NOT_FOUND, 'Category not found');
-    }
-
-    for (const hotelId of hotelIds) {
-        await resolveHotelAccess(user, hotelId);
-    }
-};
-
-export const resolveHotelAccessByCategoryId = async (user, categoryId) => {
-    if (!categoryId || categoryId === 'undefined' || categoryId === 'null') {
-        throw CustomError(STATUS_CODE.NOT_FOUND, 'Category not found');
-    }
-
-    let rows;
-    try {
-        const result = await categoryRepo.find({
-            where: { id: categoryId },
-            attributes: ['hotelId'],
-            limit: 1
-        });
-        rows = result.rows;
-    } catch (error) {
-        throw CustomError(STATUS_CODE.NOT_FOUND, 'Category not found');
-    }
-
-    const category = rows?.[0];
+    const category =
+        categoryResult?.rows?.[0] ||
+        categoryResult;
 
     if (!category?.hotelId) {
-        throw CustomError(STATUS_CODE.NOT_FOUND, 'Category not found');
+        throw CustomError(
+            STATUS_CODE.NOT_FOUND,
+            'Category not found'
+        );
     }
 
-    return resolveHotelAccess(user, category.hotelId);
+    await resolveHotelAccess(
+        user,
+        category.hotelId
+    );
+
+    return category.hotelId;
+};
+
+export const resolveHotelAccessByCategoryIds = async (
+    user,
+    categoryIds
+) => {
+    if (!categoryIds?.length) {
+        throw CustomError(
+            STATUS_CODE.BAD_REQUEST,
+            'Category id is required'
+        );
+    }
+
+    const { rows } = await categoryRepo.find({
+        where: {
+            id: {
+                [Op.in]: categoryIds
+            }
+        },
+        attributes: ['hotelId']
+    });
+
+    if (!rows?.length) {
+        throw CustomError(
+            STATUS_CODE.NOT_FOUND,
+            'Category not found'
+        );
+    }
+
+    const hotelIds = [
+        ...new Set(
+            rows
+                .map((row) => row.hotelId)
+                .filter(Boolean)
+        )
+    ];
+
+    if (hotelIds.length !== 1) {
+        throw CustomError(
+            STATUS_CODE.BAD_REQUEST,
+            'Categories must belong to the same cafe'
+        );
+    }
+
+    const hotelId = hotelIds[0];
+
+    await resolveHotelAccess(user, hotelId);
+
+    return hotelId;
 };
 
 export const resolveHotelAccessByTableId = async (user, tableId) => {

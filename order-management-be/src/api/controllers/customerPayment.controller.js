@@ -19,7 +19,12 @@ const createOrder = async (req, res) => {
         }
 
         const menuIds = menus.map((item) => item.menuId).filter(Boolean);
-        const liveMenuItems = await db.menu.findAll({ where: { id: { [Op.in]: menuIds } } });
+        const liveMenuItems = await db.menu.findAll({
+            where: {
+                id: { [Op.in]: menuIds },
+                hotelId
+            }
+        });
         const liveMenuById = liveMenuItems.reduce((cur, item) => {
             cur[item.id] = item;
             return cur;
@@ -152,7 +157,7 @@ const verifyPayment = async (req, res) => {
          *
          * Same Razorpay payment ID se dobara order create nahi hoga.
          */
-        const existingPaidOrder = await db.order.findOne({
+        const existingPaidOrder = await db.orders.findOne({
             where: {
                 razorpayPaymentId
             },
@@ -294,16 +299,6 @@ const verifyPayment = async (req, res) => {
             throw CustomError(
                 STATUS_CODE.BAD_REQUEST,
                 'Payment does not belong to this Razorpay order'
-            );
-        }
-
-        /*
-         * Payment captured hona chahiye.
-         */
-        if (razorpayPayment.status !== 'captured') {
-            throw CustomError(
-                STATUS_CODE.BAD_REQUEST,
-                `Payment is not captured. Current status: ${razorpayPayment.status}`
             );
         }
 
@@ -486,6 +481,29 @@ const verifyPayment = async (req, res) => {
             throw CustomError(
                 STATUS_CODE.BAD_REQUEST,
                 'Payment amount does not match the current bill'
+            );
+        }
+
+        /*
+         * Razorpay can return `authorized` immediately after a successful
+         * checkout when automatic capture is disabled or still pending.
+         * Capture only after order/payment ownership, currency and amount
+         * have all been verified on the server.
+         */
+        let verifiedRazorpayPayment = razorpayPayment;
+
+        if (verifiedRazorpayPayment.status === 'authorized') {
+            verifiedRazorpayPayment = await hotelRazorpay.payments.capture(
+                razorpayPaymentId,
+                expectedAmountInPaise,
+                'INR'
+            );
+        }
+
+        if (verifiedRazorpayPayment.status !== 'captured') {
+            throw CustomError(
+                STATUS_CODE.BAD_REQUEST,
+                `Payment is not captured. Current status: ${verifiedRazorpayPayment.status}`
             );
         }
 
