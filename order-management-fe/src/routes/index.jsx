@@ -4,6 +4,7 @@ import { Routes as Switch, Route, BrowserRouter, Navigate } from 'react-router-d
 import RCSessionGuard from '../components/RCSessionGuard';
 import features from '../config/features';
 import AdminDashboard from '../pages/AdminDashboard';
+import AdminLandingSettings from '../pages/AdminLandingSettings';
 import AdminLogin from '../pages/AdminLogin';
 import AdminOwnerDetail from '../pages/AdminOwnerDetail';
 import AdminOwners from '../pages/AdminOwners';
@@ -74,6 +75,7 @@ export default function Routes() {
                     <Route path="admin/owners/:id" element={<AdminOwnerDetail />} />
                     <Route path="admin/revenue" element={<AdminRevenue />} />
                     <Route path="admin/settings" element={<AdminSettings />} />
+                    <Route path="admin/landing-settings" element={<AdminLandingSettings />} />
                 </Route>
 
                 <Route path="/404" element={<NotFound />} />

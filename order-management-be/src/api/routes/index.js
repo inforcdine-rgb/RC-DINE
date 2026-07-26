@@ -13,6 +13,7 @@ import orderRoutes from './order.routes.js';
 import subscriptionRoutes from './subscription.routes.js';
 import tableRoutes from './tables.routes.js';
 import userRoutes from './user.routes.js';
+import websiteSettingsRoutes from './websiteSettings.routes.js';
 
 const router = Router();
 router.use('/user', userRoutes);
@@ -29,5 +30,6 @@ router.use('/customer-payment', customerPaymentRoutes);
 router.use('/customer-auth', customerAuthRoutes);
 router.use('/rc-session', diningSessionRoutes);
 router.use('/admin', adminRoutes);
+router.use('/website-settings', websiteSettingsRoutes);
 
 export default router;

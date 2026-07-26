@@ -67,6 +67,13 @@ export const ADMIN_TABS = [
         Icon: IoMdSettings,
         title: 'Settings',
         path: '/admin/settings'
+    },
+    {
+        order: 5,
+        id: 'admin-landing-settings',
+        Icon: MdOutlineRestaurantMenu,
+        title: 'Landing Page',
+        path: '/admin/landing-settings'
     }
 ];
 

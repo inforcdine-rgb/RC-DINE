@@ -1291,3 +1291,5 @@
         transition-duration: 0.01ms !important;
     }
 }
+
+.landing-logo-image{width:42px;height:42px;object-fit:contain;border-radius:10px}.cinema-video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.42}.cinema-bg:has(.cinema-video) .cinema-scene{opacity:.25}

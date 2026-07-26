@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import * as subscriptionService from '../../services/subscription.service';
+import * as websiteService from '../../services/websiteSettings.service';
 
 import './style.css';
 
@@ -196,6 +197,7 @@ function Landing() {
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const [toast, setToast] = useState('');
     const [plans, setPlans] = useState(fallbackPlans);
+    const [website, setWebsite] = useState({});
 
     const activeDemo = demoTabs[activeTab];
 
@@ -219,6 +221,17 @@ function Landing() {
         };
 
         loadPlans();
+    }, []);
+
+    useEffect(() => {
+        const loadWebsite = async () => {
+            try {
+                setWebsite(await websiteService.getPublic());
+            } catch (error) {
+                console.error('Unable to load website settings', error);
+            }
+        };
+        loadWebsite();
     }, []);
 
     useEffect(() => {
@@ -301,7 +314,7 @@ function Landing() {
             <nav className="landing-nav">
                 <div className="landing-wrap landing-nav-inner">
                     <a className="landing-brand" href="#home" aria-label="RC Dine home">
-                        <span className="landing-logo">R</span>
+                        {website.logoUrl ? <img className="landing-logo-image" src={website.logoUrl} alt="RC Dine" /> : <span className="landing-logo">R</span>}
                         <span>RC DINE</span>
                     </a>
 
@@ -342,6 +355,9 @@ function Landing() {
             <main>
                 <section className="landing-hero" id="home">
                     <div className="cinema-bg" aria-hidden="true">
+                        {website.videoEnabled && website.heroVideoUrl && (
+                            <video className="cinema-video" src={website.heroVideoUrl} autoPlay muted loop playsInline />
+                        )}
                         <div className="cinema-scene" />
                         <div className="cinema-grain" />
                         <div className="light-streak" />
@@ -356,18 +372,8 @@ function Landing() {
                             <span className="landing-tag">
                                 ✦ Built for next-generation restaurants
                             </span>
-                            <h1>
-                                <span className="landing-gradient-text">
-                                    Restaurant Management
-                                </span>
-                                <br />
-                                Reimagined with AI
-                            </h1>
-                            <p>
-                                Run orders, billing, kitchen operations, analytics and
-                                subscriptions from one intelligent platform. Faster service.
-                                Happier teams. Smarter growth.
-                            </p>
+                            <h1><span className="landing-gradient-text">{website.heroTitle || 'Restaurant Management Reimagined with AI'}</span></h1>
+                            <p>{website.heroDescription || 'Run orders, billing, kitchen operations, analytics and subscriptions from one intelligent platform. Faster service. Happier teams. Smarter growth.'}</p>
 
                             <div className="hero-buttons">
                                 <button
@@ -375,10 +381,10 @@ function Landing() {
                                     className="landing-btn primary"
                                     onClick={goToSignup}
                                 >
-                                    Start Free Trial →
+                                    {website.primaryButtonText || 'Start Free Trial →'}
                                 </button>
                                 <a className="landing-btn ghost" href="#demo">
-                                    ▶ Watch Demo
+                                    {website.secondaryButtonText || '▶ Watch Demo'}
                                 </a>
                             </div>
 
@@ -935,7 +941,7 @@ function Landing() {
             <footer className="landing-footer">
                 <div className="landing-wrap footer-inner">
                     <div className="landing-brand">
-                        <span className="landing-logo">R</span>
+                        {website.logoUrl ? <img className="landing-logo-image" src={website.logoUrl} alt="RC Dine" /> : <span className="landing-logo">R</span>}
                         <span>RC DINE</span>
                     </div>
                     <div className="footer-links">

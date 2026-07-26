@@ -56,6 +56,32 @@ export const uploadHotelLogo = multer({
     fileFilter: imageFilter
 });
 
+
+export const uploadLandingLogo = multer({
+    storage: makeStorage({ folder: 'rc-dine/website/logo', width: 512, height: 512, crop: 'fit' }),
+    limits: { fileSize: 2 * 1024 * 1024 },
+    fileFilter: imageFilter
+});
+
+const landingVideoStorage = new CloudinaryStorage({
+    cloudinary,
+    params: {
+        folder: 'rc-dine/website/videos',
+        resource_type: 'video',
+        allowed_formats: ['mp4', 'webm', 'mov']
+    }
+});
+
+export const uploadLandingVideo = multer({
+    storage: landingVideoStorage,
+    limits: { fileSize: 40 * 1024 * 1024 },
+    fileFilter: (req, file, cb) => {
+        const allowed = ['video/mp4', 'video/webm', 'video/quicktime'];
+        if (allowed.includes(file.mimetype)) return cb(null, true);
+        return cb(new Error('Only MP4, WebM and MOV videos are allowed'), false);
+    }
+});
+
 export const deleteImage = async (imageUrl) => {
     try {
         if (!imageUrl || !imageUrl.includes('cloudinary')) return;

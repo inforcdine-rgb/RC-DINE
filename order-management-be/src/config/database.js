@@ -25,6 +25,7 @@ import subscriptionPlanModel from '../api/models/subscriptionPlan.model.js';
 import subscriptionPlanRepo from '../api/repositories/subscriptionPlan.repository.js';
 import tableModel from '../api/models/table.model.js';
 import userModel from '../api/models/user.model.js';
+import websiteSettingsModel from '../api/models/websiteSettings.model.js';
 import { CustomError } from '../api/utils/common.js';
 import { hashPassword } from '../api/utils/password.js';
 import env from './env.js';
@@ -198,6 +199,7 @@ const defineModels = (sequelize) => {
     db.paymentGatewayEntities = paymentGatewayEntitiesModel(sequelize);
     db.subscriptions = subscriptionModel(sequelize);
     db.subscriptionPlans = subscriptionPlanModel(sequelize);
+    db.websiteSettings = websiteSettingsModel(sequelize);
 };
 
 const addOrModifyColumn = async ({
