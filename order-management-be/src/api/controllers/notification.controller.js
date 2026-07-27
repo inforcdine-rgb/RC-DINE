@@ -7,9 +7,9 @@ const getIdentity = (req) =>
     req.user?.id
         ? { userId: req.user.id }
         : {
-              customerId: req.customer?.customerId || null,
-              phoneNumber: req.customer?.phoneNumber || null
-          };
+            customerId: req.customer?.customerId || null,
+            phoneNumber: req.customer?.phoneNumber || null
+        };
 
 const handleError = (res, error, context) => {
     logger('error', context, { message: error.message, code: error.code });

@@ -188,12 +188,12 @@ const uploadLogo = async (req, res) => {
             hotelId,
             file: req.file
                 ? {
-                      fieldname: req.file.fieldname,
-                      mimetype: req.file.mimetype,
-                      size: req.file.size,
-                      path: req.file.path,
-                      filename: req.file.filename
-                  }
+                    fieldname: req.file.fieldname,
+                    mimetype: req.file.mimetype,
+                    size: req.file.size,
+                    path: req.file.path,
+                    filename: req.file.filename
+                }
                 : null
         });
 

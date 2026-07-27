@@ -25,10 +25,8 @@ const normalizePayload = (payload = {}) => ({
 const validate = (data) => {
     if (data.name.length < 2) throw CustomError(STATUS_CODE.BAD_REQUEST, 'Please enter a valid name');
     const digits = data.mobile.replace(/\D/g, '');
-    if (digits.length < 10 || digits.length > 15)
-        throw CustomError(STATUS_CODE.BAD_REQUEST, 'Please enter a valid mobile number');
-    if (data.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email))
-        throw CustomError(STATUS_CODE.BAD_REQUEST, 'Please enter a valid email address');
+    if (digits.length < 10 || digits.length > 15) { throw CustomError(STATUS_CODE.BAD_REQUEST, 'Please enter a valid mobile number'); }
+    if (data.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)) { throw CustomError(STATUS_CODE.BAD_REQUEST, 'Please enter a valid email address'); }
     if (data.message.length < 10) throw CustomError(STATUS_CODE.BAD_REQUEST, 'Message must be at least 10 characters');
 };
 
@@ -78,8 +76,7 @@ const update = async (id, payload = {}) => {
     const enquiry = await db.contactEnquiries.findByPk(id);
     if (!enquiry) throw CustomError(STATUS_CODE.NOT_FOUND, 'Contact enquiry not found');
     const status = clean(payload.status, 20).toUpperCase();
-    if (status && !['NEW', 'CONTACTED', 'CONVERTED', 'CLOSED'].includes(status))
-        throw CustomError(STATUS_CODE.BAD_REQUEST, 'Invalid enquiry status');
+    if (status && !['NEW', 'CONTACTED', 'CONVERTED', 'CLOSED'].includes(status)) { throw CustomError(STATUS_CODE.BAD_REQUEST, 'Invalid enquiry status'); }
     await enquiry.update({
         ...(status ? { status } : {}),
         ...(payload.adminNotes !== undefined ? { adminNotes: clean(payload.adminNotes, 3000) } : {})

@@ -32,8 +32,7 @@ const createOrder = async (req, res) => {
         menus.forEach((item) => {
             const liveItem = liveMenuById[item.menuId];
             if (!liveItem) throw CustomError(STATUS_CODE.NOT_FOUND, `${item.menuName || 'Menu item'} not found`);
-            if (liveItem.status === 'UNAVAILABLE')
-                throw CustomError(STATUS_CODE.BAD_REQUEST, `${liveItem.name} is unavailable`);
+            if (liveItem.status === 'UNAVAILABLE') { throw CustomError(STATUS_CODE.BAD_REQUEST, `${liveItem.name} is unavailable`); }
             item.price = liveItem.price;
             item.menuName = liveItem.name;
         });

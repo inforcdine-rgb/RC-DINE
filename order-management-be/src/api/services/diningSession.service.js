@@ -490,19 +490,19 @@ const getJoinRequestStatus = async ({ requestId, mobileNumber }) => {
             request.status === 'ACCEPTED'
                 ? 'RC Session joined successfully'
                 : request.status === 'REJECTED'
-                  ? 'Host rejected your request'
-                  : request.status === 'EXPIRED'
-                    ? 'Join request expired. Please try again'
-                    : 'Waiting for host approval',
+                    ? 'Host rejected your request'
+                    : request.status === 'EXPIRED'
+                        ? 'Join request expired. Please try again'
+                        : 'Waiting for host approval',
         session:
             request.status === 'ACCEPTED' && session
                 ? {
-                      id: session.id,
-                      sessionCode: session.sessionCode,
-                      status: session.status,
-                      tableId: session.tableId,
-                      hotelId: session.hotelId
-                  }
+                    id: session.id,
+                    sessionCode: session.sessionCode,
+                    status: session.status,
+                    tableId: session.tableId,
+                    hotelId: session.hotelId
+                }
                 : null
     };
 };

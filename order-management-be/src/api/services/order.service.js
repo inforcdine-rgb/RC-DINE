@@ -383,9 +383,9 @@ const placeOrder = async (payload) => {
         }
         let activeSession = table.activeSessionId
             ? await db.diningSessions.findOne({
-                  where: { id: table.activeSessionId, tableId, hotelId, status: 'ACTIVE' },
-                  attributes: ['id']
-              })
+                where: { id: table.activeSessionId, tableId, hotelId, status: 'ACTIVE' },
+                attributes: ['id']
+            })
             : null;
 
         // QR checkout must never take a successful payment and then reject the food order
