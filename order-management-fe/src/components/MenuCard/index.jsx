@@ -135,7 +135,9 @@ function MenuCard({
         };
         const removed = (payload) => {
             const ownMobile = localStorage.getItem('rcCustomerMobile');
-            if (String(payload?.mobileNumber) === String(ownMobile)) { clearRcSession('Host removed you from the session.'); } else refresh();
+            if (String(payload?.mobileNumber) === String(ownMobile)) {
+                clearRcSession('Host removed you from the session.');
+            } else refresh();
         };
         socket.on('session:join-requested', receiveRequest);
         socket.on('session:members-updated', refresh);

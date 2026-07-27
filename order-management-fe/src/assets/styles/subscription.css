@@ -248,3 +248,8 @@
         margin-top: 34px;
     }
 }
+
+.subscription-card-selected {
+    outline: 3px solid rgba(255, 107, 44, 0.7);
+    transform: translateY(-4px);
+}

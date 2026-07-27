@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { toast } from 'react-toastify';
 
 import * as contactService from '../../services/contactEnquiry.service';
+import { setPageSeo } from '../../utils/seo';
 import './style.css';
 
 const initialForm = {
@@ -16,6 +17,14 @@ const initialForm = {
 export default function Contact() {
     const [form, setForm] = useState(initialForm);
     const [submitting, setSubmitting] = useState(false);
+    const [submitError, setSubmitError] = useState('');
+
+    useEffect(() => {
+        setPageSeo({
+            title: 'Contact RC Dine',
+            description: 'Contact RC Dine for QR ordering, restaurant POS, billing and subscription support.'
+        });
+    }, []);
 
     const change = (event) => {
         setForm((current) => ({
@@ -26,14 +35,18 @@ export default function Contact() {
 
     const submit = async (event) => {
         event.preventDefault();
+        if (submitting) return;
         setSubmitting(true);
+        setSubmitError('');
 
         try {
             const result = await contactService.createEnquiry(form);
             toast.success(result.message || 'Enquiry sent successfully');
             setForm(initialForm);
         } catch (error) {
-            toast.error(error.message);
+            const message = error?.message || 'Unable to submit enquiry. Please try again.';
+            setSubmitError(message);
+            toast.error(message);
         } finally {
             setSubmitting(false);
         }
@@ -117,6 +130,15 @@ export default function Contact() {
                             required
                         />
                     </label>
+
+                    {submitError && (
+                        <div className="contact-submit-error" role="alert">
+                            <span>{submitError}</span>
+                            <button type="button" onClick={() => setSubmitError('')}>
+                                Dismiss
+                            </button>
+                        </div>
+                    )}
 
                     <button type="submit" disabled={submitting}>
                         {submitting ? 'Sending...' : 'Send Enquiry →'}

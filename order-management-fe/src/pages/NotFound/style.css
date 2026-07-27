@@ -1,0 +1,61 @@
+.rc-not-found {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    text-align: center;
+    background: radial-gradient(circle at top, #242424, #070707 62%);
+    color: #fff;
+}
+
+.rc-not-found > span {
+    font-size: clamp(7rem, 22vw, 18rem);
+    font-weight: 900;
+    line-height: 0.8;
+    opacity: 0.12;
+}
+
+.rc-not-found h1 {
+    font-size: clamp(2rem, 6vw, 4rem);
+    margin: 22px 0 10px;
+}
+
+.rc-not-found p {
+    color: #bdbdbd;
+    max-width: 520px;
+}
+
+.rc-not-found-actions {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-top: 24px;
+}
+
+.rc-not-found-actions a {
+    padding: 13px 20px;
+    border-radius: 999px;
+    background: #ff6b2c;
+    color: #fff;
+    text-decoration: none;
+    font-weight: 700;
+}
+
+.rc-not-found-actions a.secondary {
+    background: transparent;
+    border: 1px solid #555;
+}
+
+@media (max-width: 520px) {
+    .rc-not-found-actions {
+        flex-direction: column;
+        width: 100%;
+    }
+
+    .rc-not-found-actions a {
+        width: 100%;
+    }
+}

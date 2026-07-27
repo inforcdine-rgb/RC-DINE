@@ -194,7 +194,9 @@ function CreateMenuWithImageModal({ categoryId, hotelId, onClose, onSuccess }) {
         const errs = {};
         rows.forEach((r) => {
             if (!r.name.trim()) errs[`${r.id}-name`] = 'Name required';
-            if (!r.price || isNaN(Number(r.price)) || Number(r.price) <= 0) { errs[`${r.id}-price`] = 'Valid price required'; }
+            if (!r.price || isNaN(Number(r.price)) || Number(r.price) <= 0) {
+                errs[`${r.id}-price`] = 'Valid price required';
+            }
             if (!['VEG', 'NON_VEG'].includes(r.foodType)) errs[`${r.id}-foodType`] = 'Select Veg or Non-Veg';
         });
         setErrors(errs);

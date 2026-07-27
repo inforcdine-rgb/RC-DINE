@@ -11,6 +11,7 @@ import CustomFormGroup from '../../components/CustomFormGroup';
 import CustomLink from '../../components/CustomLink';
 import env from '../../config/env';
 import { registerRequest } from '../../store/slice';
+import { saveSelectedPlan, setPageSeo } from '../../utils/seo';
 import { userRegistrationSchema } from '../../validations/auth';
 
 function Signup() {
@@ -29,6 +30,14 @@ function Signup() {
     const [invite, setInvite] = useState({ status: false, email: '', id: '' });
 
     useEffect(() => {
+        setPageSeo({
+            title: 'Create Account – RC Dine',
+            description: 'Create your RC Dine owner account and start managing restaurant orders.'
+        });
+        const params = new URLSearchParams(window.location.search);
+        const requestedPlan = params.get('plan');
+        if (requestedPlan) saveSelectedPlan(requestedPlan);
+
         (async () => {
             try {
                 const url = new URL(window.location.href);
@@ -51,7 +60,9 @@ function Signup() {
                     setInvite({ status: true, email: data.email, id: data.inviteId });
                 }
 
+                const selectedPlan = localStorage.getItem('rcdine:selected-plan');
                 localStorage.clear();
+                if (selectedPlan) localStorage.setItem('rcdine:selected-plan', selectedPlan);
             } catch (err) {
                 toast.error(`Failed to validate invite: ${err.message}`);
             }

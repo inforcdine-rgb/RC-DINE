@@ -303,3 +303,25 @@
     height: 42px;
     flex-basis: 42px;
 }
+
+/* Patch 5: admin/sidebar polish */
+.sidebar-nav-item,
+.sidebar-tab {
+    transition:
+        background-color 0.2s ease,
+        color 0.2s ease,
+        transform 0.2s ease;
+}
+.sidebar-nav-item:hover,
+.sidebar-tab:hover {
+    transform: translateX(2px);
+}
+@media (max-width: 767px) {
+    .sidebar {
+        overscroll-behavior: contain;
+    }
+    .sidebar-nav-item,
+    .sidebar-tab {
+        min-height: 46px;
+    }
+}

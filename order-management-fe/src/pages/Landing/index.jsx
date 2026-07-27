@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import * as subscriptionService from '../../services/subscription.service';
 import * as websiteService from '../../services/websiteSettings.service';
+import { saveSelectedPlan, setPageSeo } from '../../utils/seo';
 
 import './style.css';
 
@@ -94,7 +95,30 @@ const demoTabs = {
     }
 };
 
-const fallbackPlans = [];
+const fallbackPlans = [
+    {
+        code: 'MONTHLY',
+        name: 'Monthly',
+        amount: 999,
+        days: 30,
+        features: ['QR ordering', 'Manager POS', 'Live orders']
+    },
+    {
+        code: 'HALF_YEARLY',
+        name: 'Half Yearly',
+        amount: 4999,
+        days: 180,
+        popular: true,
+        features: ['Everything in Monthly', 'Priority support', 'Better savings']
+    },
+    {
+        code: 'YEARLY',
+        name: 'Yearly',
+        amount: 8999,
+        days: 365,
+        features: ['Everything in Half Yearly', 'Best annual value', 'Full-year access']
+    }
+];
 
 const reviews = [
     {
@@ -198,6 +222,8 @@ function Landing() {
     const [toast, setToast] = useState('');
     const [plans, setPlans] = useState(fallbackPlans);
     const [website, setWebsite] = useState({});
+    const [plansLoading, setPlansLoading] = useState(true);
+    const [plansError, setPlansError] = useState('');
 
     const activeDemo = demoTabs[activeTab];
 
@@ -212,6 +238,8 @@ function Landing() {
 
     useEffect(() => {
         const loadPlans = async () => {
+            setPlansLoading(true);
+            setPlansError('');
             try {
                 const response = await subscriptionService.getPlans();
                 const loadedPlans = Array.isArray(response)
@@ -222,7 +250,10 @@ function Landing() {
                     setPlans(loadedPlans);
                 }
             } catch (error) {
-                console.error('Unable to load landing subscription plans', error);
+                setPlansError('Live prices are temporarily unavailable. Showing standard plans.');
+                setPlans(fallbackPlans);
+            } finally {
+                setPlansLoading(false);
             }
         };
 
@@ -234,7 +265,7 @@ function Landing() {
             try {
                 setWebsite(await websiteService.getPublic());
             } catch (error) {
-                console.error('Unable to load website settings', error);
+                setWebsite({});
             }
         };
         loadWebsite();
@@ -291,13 +322,20 @@ function Landing() {
         window.__rcDineLandingToastTimer = window.setTimeout(() => setToast(''), 2200);
     };
 
+    useEffect(() => {
+        setPageSeo({
+            title: 'RC Dine – QR Restaurant Ordering & Management',
+            description:
+                'RC Dine connects QR ordering, manager POS, live kitchen updates, billing and restaurant analytics.'
+        });
+    }, []);
+
     const goToLogin = () => navigate('/login');
     const goToSignup = () => navigate('/signup');
     const choosePlan = (planCode) => {
-        localStorage.setItem('rcdine_selected_plan', planCode);
+        saveSelectedPlan(planCode);
         navigate(`/signup?plan=${encodeURIComponent(planCode)}`);
     };
-
     const handleFeatureTilt = (event) => {
         const card = event.currentTarget;
         const rect = card.getBoundingClientRect();
@@ -798,6 +836,8 @@ function Landing() {
                             <p>Choose a plan and upgrade as your restaurant grows.</p>
                         </div>
 
+                        {plansLoading && <p className="pricing-state">Loading latest plans...</p>}
+                        {plansError && <p className="pricing-state pricing-warning">{plansError}</p>}
                         <div className="pricing-grid">
                             {plans.map((plan) => (
                                 <article

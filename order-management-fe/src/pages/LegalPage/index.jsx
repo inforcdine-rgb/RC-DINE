@@ -1,18 +1,14 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 import Loader from '../../components/Loader';
 import * as legalPageService from '../../services/legalPage.service';
+import { setPageSeo } from '../../utils/seo';
 import './style.css';
 
 const formatDate = (value) => {
     if (!value) return '';
-
-    return new Intl.DateTimeFormat('en-IN', {
-        day: '2-digit',
-        month: 'long',
-        year: 'numeric'
-    }).format(new Date(value));
+    return new Intl.DateTimeFormat('en-IN', { day: '2-digit', month: 'long', year: 'numeric' }).format(new Date(value));
 };
 
 export default function LegalPage() {
@@ -23,38 +19,28 @@ export default function LegalPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
 
-    useEffect(() => {
-        let active = true;
-
-        const loadPage = async () => {
-            setLoading(true);
-            setError('');
-
-            try {
-                const response = await legalPageService.getPublic(slug);
-                if (active) setPage(response);
-            } catch (requestError) {
-                if (active) setError(requestError.message);
-            } finally {
-                if (active) setLoading(false);
-            }
-        };
-
-        loadPage();
-
-        return () => {
-            active = false;
-        };
+    const loadPage = useCallback(async () => {
+        setLoading(true);
+        setError('');
+        try {
+            setPage(await legalPageService.getPublic(slug));
+        } catch (requestError) {
+            setError(requestError?.message || 'Unable to load this page.');
+        } finally {
+            setLoading(false);
+        }
     }, [slug]);
 
     useEffect(() => {
-        if (!page) return;
+        loadPage();
+    }, [loadPage]);
 
-        document.title = page.metaTitle || page.title || 'RC Dine';
-        const description = document.querySelector('meta[name="description"]');
-        if (description && page.metaDescription) {
-            description.setAttribute('content', page.metaDescription);
-        }
+    useEffect(() => {
+        if (!page) return;
+        setPageSeo({
+            title: page.metaTitle || `${page.title} – RC Dine`,
+            description: page.metaDescription || `Read the RC Dine ${page.title}.`
+        });
     }, [page]);
 
     if (loading) return <Loader />;
@@ -66,15 +52,19 @@ export default function LegalPage() {
                     ← RC Dine
                 </button>
             </header>
-
             <main className="legal-public-card">
                 {error ? (
                     <div className="legal-public-error">
                         <h1>Page unavailable</h1>
                         <p>{error}</p>
-                        <button type="button" onClick={() => navigate('/')}>
-                            Return Home
-                        </button>
+                        <div className="legal-public-actions">
+                            <button type="button" onClick={loadPage}>
+                                Retry
+                            </button>
+                            <button type="button" onClick={() => navigate('/')}>
+                                Return Home
+                            </button>
+                        </div>
                     </div>
                 ) : (
                     <>

@@ -2596,3 +2596,18 @@
 .footer-link-button:hover {
     color: #fff;
 }
+
+.pricing-state {
+    text-align: center;
+    color: #cfcfcf;
+    margin: 12px 0;
+}
+.pricing-warning {
+    color: #ffbf69;
+}
+.pricing-grid:empty:after {
+    content: 'No plans available';
+    display: block;
+    text-align: center;
+    color: #aaa;
+}

@@ -175,3 +175,22 @@
         padding: 24px;
     }
 }
+
+.contact-submit-error {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    align-items: center;
+    padding: 12px;
+    border-radius: 12px;
+    background: #fff1f0;
+    color: #9f1c14;
+    margin-bottom: 12px;
+}
+.contact-submit-error button {
+    width: auto;
+    padding: 7px 12px;
+    background: transparent;
+    color: inherit;
+    border: 1px solid currentColor;
+}

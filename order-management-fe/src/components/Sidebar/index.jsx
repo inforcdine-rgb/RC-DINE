@@ -139,9 +139,6 @@ function Sidebar() {
                     response?.details ||
                     response?.data?.details ||
                     {};
-                console.log('Dashboard Response:', response);
-                console.log('Hotel Details:', details);
-                console.log('Logo URL:', details?.logo);
 
                 if (active) {
                     setHotelBrand({

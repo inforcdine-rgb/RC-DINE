@@ -15,6 +15,7 @@ import {
     setSubscriptionOrder,
     verifySubscriptionPaymentRequest
 } from '../../store/slice';
+import { clearSelectedPlan, getSelectedPlan, setPageSeo } from '../../utils/seo';
 
 const fallbackFeatures = [
     'Online menu ordering',
@@ -43,6 +44,13 @@ function Subscription() {
     const navigate = useNavigate();
 
     useEffect(() => {
+        setPageSeo({
+            title: 'Subscription Plans – RC Dine',
+            description: 'Choose an RC Dine subscription plan for your restaurant.'
+        });
+        const savedPlan = getSelectedPlan();
+        if (savedPlan) setSelectedPlan(savedPlan);
+
         const fetchStatus = async () => {
             try {
                 const [statusResponse, plansResponse] = await Promise.all([
@@ -51,7 +59,10 @@ function Subscription() {
                 ]);
 
                 setStatusData(statusResponse);
-                setPlanOptions(plansResponse?.plans || []);
+                const loadedPlans = Array.isArray(plansResponse)
+                    ? plansResponse
+                    : plansResponse?.plans || plansResponse?.data?.plans || plansResponse?.data || [];
+                setPlanOptions(Array.isArray(loadedPlans) ? loadedPlans : []);
             } catch (err) {
                 setError(err?.message || 'Unable to load subscription status');
             } finally {
@@ -86,6 +97,7 @@ function Subscription() {
     const handleBuy = (planKey) => {
         setError('');
         setSelectedPlan(planKey);
+        localStorage.setItem('rcdine:selected-plan', planKey);
         setShowModal(true);
     };
 
@@ -105,6 +117,7 @@ function Subscription() {
     };
 
     const handleSuccess = ({ orderId, paymentId, razorpaySignature }) => {
+        clearSelectedPlan();
         dispatch(
             verifySubscriptionPaymentRequest({
                 razorpayOrderId: orderId,
@@ -218,7 +231,7 @@ function Subscription() {
                                 <Card
                                     className={`text-center subscription-card ${
                                         plan.popular ? 'subscription-card-popular' : ''
-                                    }`}
+                                    } ${selectedPlan === (plan.code || plan.key) ? 'subscription-card-selected' : ''}`}
                                 >
                                     <Card.Body className="d-flex flex-column">
                                         {plan.popular && (
