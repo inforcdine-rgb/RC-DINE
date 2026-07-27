@@ -14,8 +14,7 @@ const logPushEvent = (event, details = {}) => {
     console.info('[RCDINE_PUSH]', { event, ...details, timestamp: new Date().toISOString() });
 };
 
-const isPageVisible = () =>
-    !pageExiting && document.visibilityState === 'visible' && document.hasFocus();
+const isPageVisible = () => !pageExiting && document.visibilityState === 'visible' && document.hasFocus();
 
 const stopPresenceHeartbeat = () => {
     if (!heartbeatTimer) return;
@@ -42,20 +41,28 @@ const emitWithAcknowledgement = (eventName, payload, onAcknowledged) => {
 const emitNotificationPresence = () => {
     if (!socket?.connected || !notificationPresenceToken) return;
     const visible = isPageVisible();
-    emitWithAcknowledgement('notification:bind', {
-        presenceToken: notificationPresenceToken,
-        visible,
-        clientTimestamp: Date.now()
-    }, () => logPushEvent('presence_bound', { visible, socketId: socket?.id }));
+    emitWithAcknowledgement(
+        'notification:bind',
+        {
+            presenceToken: notificationPresenceToken,
+            visible,
+            clientTimestamp: Date.now()
+        },
+        () => logPushEvent('presence_bound', { visible, socketId: socket?.id })
+    );
 };
 
 const emitNotificationVisibility = (explicitVisible) => {
     if (!socket?.connected || !notificationPresenceToken) return;
     const visible = typeof explicitVisible === 'boolean' ? explicitVisible : isPageVisible();
-    emitWithAcknowledgement('notification:visibility', {
-        visible,
-        clientTimestamp: Date.now()
-    }, () => logPushEvent('visibility_updated', { visible }));
+    emitWithAcknowledgement(
+        'notification:visibility',
+        {
+            visible,
+            clientTimestamp: Date.now()
+        },
+        () => logPushEvent('visibility_updated', { visible })
+    );
 };
 
 const emitPresenceHeartbeat = () => {
@@ -121,10 +128,7 @@ export const connectSocket = () => {
 
             auth: (callback) => {
                 callback({
-                    token:
-                        localStorage.getItem('token') ||
-                        localStorage.getItem('rcCustomerToken') ||
-                        ''
+                    token: localStorage.getItem('token') || localStorage.getItem('rcCustomerToken') || ''
                 });
             },
 

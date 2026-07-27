@@ -1,7 +1,7 @@
 .admin-landing-grid {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    gap: 24px
+    gap: 24px;
 }
 
 .admin-logo-preview {
@@ -10,7 +10,7 @@
     object-fit: contain;
     border: 1px solid #ddd;
     border-radius: 16px;
-    margin: 12px 0
+    margin: 12px 0;
 }
 
 .admin-video-preview {
@@ -18,11 +18,11 @@
     max-height: 260px;
     object-fit: cover;
     border-radius: 14px;
-    margin: 12px 0
+    margin: 12px 0;
 }
 
-@media(max-width:900px) {
+@media (max-width: 900px) {
     .admin-landing-grid {
-        grid-template-columns: 1fr
+        grid-template-columns: 1fr;
     }
 }

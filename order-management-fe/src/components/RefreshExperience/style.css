@@ -30,15 +30,11 @@ Navbar and sidebar remain fixed to the viewport.
 .refresh-experience .main-container {
     transition:
         margin 0.5s,
-        transform 360ms cubic-bezier(.22, 1, .36, 1);
+        transform 360ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .refresh-experience.is-pulling .main-container {
-    transform: translate3d(
-        0,
-        min(var(--content-pull), 78px),
-        0
-    );
+    transform: translate3d(0, min(var(--content-pull), 78px), 0);
     will-change: transform;
     backface-visibility: hidden;
 }
@@ -63,16 +59,18 @@ Navbar and sidebar remain fixed to the viewport.
     gap: 9px;
     min-height: 42px;
     padding: 9px 14px;
-    border: 1px solid rgba(255, 255, 255, .8);
+    border: 1px solid rgba(255, 255, 255, 0.8);
     border-radius: 999px;
-    background: rgba(255, 255, 255, .94);
-    box-shadow: 0 10px 30px rgba(16, 24, 40, .15);
+    background: rgba(255, 255, 255, 0.94);
+    box-shadow: 0 10px 30px rgba(16, 24, 40, 0.15);
     color: #344054;
     font-size: 12px;
     opacity: 0;
     pointer-events: none;
-    transform: translate3d(-50%, calc(var(--pull-distance) - 58px), 0) scale(.96);
-    transition: opacity 160ms ease, transform 360ms cubic-bezier(.22, 1, .36, 1);
+    transform: translate3d(-50%, calc(var(--pull-distance) - 58px), 0) scale(0.96);
+    transition:
+        opacity 160ms ease,
+        transform 360ms cubic-bezier(0.22, 1, 0.36, 1);
     will-change: transform, opacity;
     backface-visibility: hidden;
     -webkit-backdrop-filter: blur(12px);
@@ -94,7 +92,7 @@ Navbar and sidebar remain fixed to the viewport.
 }
 
 .pull-spinner.spinning {
-    animation: refreshSpin .72s linear infinite;
+    animation: refreshSpin 0.72s linear infinite;
 }
 
 .offline-banner {
@@ -110,7 +108,7 @@ Navbar and sidebar remain fixed to the viewport.
     background: #172033;
     color: #fff;
     font-size: 13px;
-    box-shadow: 0 12px 28px rgba(16, 24, 40, .22);
+    box-shadow: 0 12px 28px rgba(16, 24, 40, 0.22);
     animation: refreshFadeIn 220ms ease both;
 }
 
@@ -129,25 +127,41 @@ img {
 }
 
 .refresh-insert {
-    animation: refreshInsert 420ms cubic-bezier(.22, 1, .36, 1) both;
+    animation: refreshInsert 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 @keyframes refreshSpin {
-    to { transform: rotate(360deg) translateZ(0); }
+    to {
+        transform: rotate(360deg) translateZ(0);
+    }
 }
 
 @keyframes refreshFadeIn {
-    from { opacity: 0; transform: translate3d(-50%, 8px, 0); }
+    from {
+        opacity: 0;
+        transform: translate3d(-50%, 8px, 0);
+    }
 }
 
 @keyframes refreshInsert {
-    from { opacity: 0; transform: translate3d(0, -8px, 0) scale(.985); }
+    from {
+        opacity: 0;
+        transform: translate3d(0, -8px, 0) scale(0.985);
+    }
 }
 
 @media (prefers-reduced-motion: reduce) {
-    html { scroll-behavior: auto; }
+    html {
+        scroll-behavior: auto;
+    }
     .refresh-content,
-    .pull-refresh-indicator { transition-duration: 1ms; }
-    .pull-spinner.spinning { animation-duration: 1.4s; }
-    .refresh-insert { animation: none; }
+    .pull-refresh-indicator {
+        transition-duration: 1ms;
+    }
+    .pull-spinner.spinning {
+        animation-duration: 1.4s;
+    }
+    .refresh-insert {
+        animation: none;
+    }
 }

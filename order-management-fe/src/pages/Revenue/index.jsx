@@ -47,7 +47,9 @@ function Revenue() {
                     <div className="revenue-summary-grid">
                         {cards.map(({ key, title, icon: Icon }) => (
                             <article className={`revenue-summary-card revenue-card-${key}`} key={key}>
-                                <div className="revenue-card-icon"><Icon /></div>
+                                <div className="revenue-card-icon">
+                                    <Icon />
+                                </div>
                                 <div className="revenue-card-copy">
                                     <span>{title}</span>
                                     <strong>{formatCurrency(summary?.[key])}</strong>
@@ -66,25 +68,47 @@ function Revenue() {
                         <div className="revenue-chart-body">
                             {weeklyTrend?.[0]?.data?.length ? (
                                 <LineChart data={weeklyTrend} xLabel="Day" yLabel="Revenue" />
-                            ) : <NoData />}
+                            ) : (
+                                <NoData />
+                            )}
                         </div>
                     </section>
 
                     <div className="revenue-secondary-grid">
                         <section className="revenue-chart-card">
-                            <div className="revenue-section-heading"><h5>Yearly Revenue by Month</h5></div>
+                            <div className="revenue-section-heading">
+                                <h5>Yearly Revenue by Month</h5>
+                            </div>
                             <div className="revenue-chart-body">
                                 {monthlyTrend?.length ? (
-                                    <BarChart keys={['value']} index="month" data={monthlyTrend} xlabel="month" ylabel="Revenue" />
-                                ) : <NoData />}
+                                    <BarChart
+                                        keys={['value']}
+                                        index="month"
+                                        data={monthlyTrend}
+                                        xlabel="month"
+                                        ylabel="Revenue"
+                                    />
+                                ) : (
+                                    <NoData />
+                                )}
                             </div>
                         </section>
                         <section className="revenue-chart-card">
-                            <div className="revenue-section-heading"><h5>Hotel-wise Revenue</h5></div>
+                            <div className="revenue-section-heading">
+                                <h5>Hotel-wise Revenue</h5>
+                            </div>
                             <div className="revenue-chart-body">
                                 {hotelChartData.length ? (
-                                    <BarChart keys={['value']} index="hotel" data={hotelChartData} xlabel="hotel" ylabel="Revenue" />
-                                ) : <NoData />}
+                                    <BarChart
+                                        keys={['value']}
+                                        index="hotel"
+                                        data={hotelChartData}
+                                        xlabel="hotel"
+                                        ylabel="Revenue"
+                                    />
+                                ) : (
+                                    <NoData />
+                                )}
                             </div>
                         </section>
                     </div>

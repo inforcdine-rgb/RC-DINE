@@ -25,13 +25,21 @@
 }
 
 .notification-pop {
-    animation: notificationPop 260ms cubic-bezier(.22, 1, .36, 1);
+    animation: notificationPop 260ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 @keyframes notificationPop {
-    0% { opacity: .55; transform: translateZ(0) scale(.72); }
-    70% { transform: translateZ(0) scale(1.16); }
-    100% { opacity: 1; transform: translateZ(0) scale(1); }
+    0% {
+        opacity: 0.55;
+        transform: translateZ(0) scale(0.72);
+    }
+    70% {
+        transform: translateZ(0) scale(1.16);
+    }
+    100% {
+        opacity: 1;
+        transform: translateZ(0) scale(1);
+    }
 }
 
 .notification-bell {
@@ -46,9 +54,9 @@
     margin: 0 10px;
     padding: 0;
     place-items: center;
-    border: 1px solid rgba(255, 255, 255, .2);
+    border: 1px solid rgba(255, 255, 255, 0.2);
     border-radius: 50%;
-    background: rgba(255, 255, 255, .08);
+    background: rgba(255, 255, 255, 0.08);
 }
 
 .notification-bell-button .notification-text {

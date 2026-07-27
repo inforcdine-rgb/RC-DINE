@@ -31,11 +31,7 @@ import {
     verifyCustomerPaymentRequest
 } from '../../store/slice';
 import { NOTIFICATION_ACTIONS, ORDER_STATUS, PAYMENT_PREFERENCE, TABLE_STATUS } from '../../utils/constants';
-import {
-    getBackgroundRequestVersion,
-    registerRefreshHandler,
-    waitForBackgroundRequests
-} from '../../utils/refreshBus';
+import { getBackgroundRequestVersion, registerRefreshHandler, waitForBackgroundRequests } from '../../utils/refreshBus';
 
 function OrderPlacement() {
     const { token } = useParams();
@@ -63,20 +59,26 @@ function OrderPlacement() {
         tracking: viewOrderDetails?.data
     });
 
-    useEffect(() => registerRefreshHandler('customer-ordering', async () => {
-        const before = refreshSnapshotRef.current;
-        const checkpoint = getBackgroundRequestVersion();
-        if (tableDetails?.id) dispatch(getTableDetailsRequest(tableDetails.id));
-        if (tableDetails?.hotel?.id && tableDetails?.customer?.id) {
-            dispatch(getMenuDetailsRequest({
-                hotelId: tableDetails.hotel.id,
-                customerId: tableDetails.customer.id
-            }));
-            dispatch(getCustomerOrderDetailsRequest(tableDetails.customer.id));
-        }
-        await waitForBackgroundRequests({ checkpoint });
-        return before !== refreshSnapshotRef.current;
-    }), [dispatch, tableDetails?.customer?.id, tableDetails?.hotel?.id, tableDetails?.id]);
+    useEffect(
+        () =>
+            registerRefreshHandler('customer-ordering', async () => {
+                const before = refreshSnapshotRef.current;
+                const checkpoint = getBackgroundRequestVersion();
+                if (tableDetails?.id) dispatch(getTableDetailsRequest(tableDetails.id));
+                if (tableDetails?.hotel?.id && tableDetails?.customer?.id) {
+                    dispatch(
+                        getMenuDetailsRequest({
+                            hotelId: tableDetails.hotel.id,
+                            customerId: tableDetails.customer.id
+                        })
+                    );
+                    dispatch(getCustomerOrderDetailsRequest(tableDetails.customer.id));
+                }
+                await waitForBackgroundRequests({ checkpoint });
+                return before !== refreshSnapshotRef.current;
+            }),
+        [dispatch, tableDetails?.customer?.id, tableDetails?.hotel?.id, tableDetails?.id]
+    );
     const gstPercent = gstEnabled ? Number(tableDetails?.hotel?.gstPercent || 0) : 0;
     const getGstSummary = (amount = 0) => {
         const subtotal = Number(amount) || 0;
@@ -97,7 +99,9 @@ function OrderPlacement() {
         const totalGst = Math.round(taxableAmount * (gstPercent / 100));
         const sgst = Number(viewOrderDetails?.sgstAmount || 0) || Math.round(totalGst / 2);
         const cgst = Number(viewOrderDetails?.cgstAmount || 0) || totalGst - sgst;
-        const finalAmount = Number(viewOrderDetails?.finalAmount || 0) || taxableAmount + sgst + cgst + Number(viewOrderDetails?.tipAmount || 0);
+        const finalAmount =
+            Number(viewOrderDetails?.finalAmount || 0) ||
+            taxableAmount + sgst + cgst + Number(viewOrderDetails?.tipAmount || 0);
 
         return {
             discountType,
@@ -478,15 +482,24 @@ function OrderPlacement() {
                         {!Object.values(viewOrderDetails?.data || []).find((obj) => obj.status === ORDER_STATUS[0]) &&
                             [
                                 ...(getGstSummary(viewOrderDetails.totalPrice).discountAmount > 0
-                                    ? [{
-                                        title: getGstSummary(viewOrderDetails.totalPrice).discountType === 'PERCENT'
-                                            ? `Discount (${getGstSummary(viewOrderDetails.totalPrice).discountValue}%)`
-                                            : 'Discount',
-                                        value: `- ${getGstSummary(viewOrderDetails.totalPrice).discountAmount}`
-                                    }]
+                                    ? [
+                                        {
+                                            title:
+                                                  getGstSummary(viewOrderDetails.totalPrice).discountType === 'PERCENT'
+                                                      ? `Discount (${getGstSummary(viewOrderDetails.totalPrice).discountValue}%)`
+                                                      : 'Discount',
+                                            value: `- ${getGstSummary(viewOrderDetails.totalPrice).discountAmount}`
+                                        }
+                                    ]
                                     : []),
-                                { title: `SGST Price (${gstPercent / 2}%)`, value: getGstSummary(viewOrderDetails.totalPrice).sgst },
-                                { title: `CGST Price (${gstPercent / 2}%)`, value: getGstSummary(viewOrderDetails.totalPrice).cgst },
+                                {
+                                    title: `SGST Price (${gstPercent / 2}%)`,
+                                    value: getGstSummary(viewOrderDetails.totalPrice).sgst
+                                },
+                                {
+                                    title: `CGST Price (${gstPercent / 2}%)`,
+                                    value: getGstSummary(viewOrderDetails.totalPrice).cgst
+                                },
                                 {
                                     title: 'Total Price',
                                     value: getGstSummary(viewOrderDetails.totalPrice).total
@@ -502,7 +515,8 @@ function OrderPlacement() {
                                 </div>
                             ))}
                         <div className="alert alert-warning mt-4 mb-2" role="alert" style={{ fontSize: '14px' }}>
-                            <strong>⚠️ Note:</strong> No refund will be provided once payment is completed. You can cancel the order within 5 minutes of placement.
+                            <strong>⚠️ Note:</strong> No refund will be provided once payment is completed. You can
+                            cancel the order within 5 minutes of placement.
                         </div>
                     </div>
                 }

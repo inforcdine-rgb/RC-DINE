@@ -9,11 +9,7 @@ import BarChart from '../../components/BarChart';
 import LineChart from '../../components/LineChart';
 import NoData from '../../components/NoData';
 import { getDashboardRequest } from '../../store/slice';
-import {
-    getBackgroundRequestVersion,
-    registerRefreshHandler,
-    waitForBackgroundRequests
-} from '../../utils/refreshBus';
+import { getBackgroundRequestVersion, registerRefreshHandler, waitForBackgroundRequests } from '../../utils/refreshBus';
 
 function Dashboard() {
     const dispatch = useDispatch();
@@ -40,14 +36,18 @@ function Dashboard() {
         }
     }, [hotelId]);
 
-    useEffect(() => registerRefreshHandler('manager-dashboard', async () => {
-        if (!hotelId) return false;
-        const before = refreshSnapshotRef.current;
-        const checkpoint = getBackgroundRequestVersion();
-        dispatch(getDashboardRequest(hotelId));
-        await waitForBackgroundRequests({ checkpoint });
-        return before !== refreshSnapshotRef.current;
-    }), [dispatch, hotelId]);
+    useEffect(
+        () =>
+            registerRefreshHandler('manager-dashboard', async () => {
+                if (!hotelId) return false;
+                const before = refreshSnapshotRef.current;
+                const checkpoint = getBackgroundRequestVersion();
+                dispatch(getDashboardRequest(hotelId));
+                await waitForBackgroundRequests({ checkpoint });
+                return before !== refreshSnapshotRef.current;
+            }),
+        [dispatch, hotelId]
+    );
 
     const cardDetails = {
         orders: {

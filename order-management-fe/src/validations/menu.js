@@ -81,7 +81,10 @@ export const validateCreateMenuItem = (initialValues, data = []) => {
             return;
         }
         if (key.startsWith('price-')) {
-            valid[key] = Yup.number().typeError('Price is required').required('Price is required').min(0, 'Price cannot be negative');
+            valid[key] = Yup.number()
+                .typeError('Price is required')
+                .required('Price is required')
+                .min(0, 'Price cannot be negative');
             return;
         }
         if (key.startsWith('foodType-')) {

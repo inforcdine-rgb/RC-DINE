@@ -124,7 +124,7 @@
     border-right-color: #49ac60 !important;
 }
 .brand-title {
-    font-family: "Brush Script MT", serif;
+    font-family: 'Brush Script MT', serif;
     font-size: 34px;
     font-weight: normal;
     letter-spacing: 1px;
@@ -215,7 +215,6 @@
     }
 }
 
-
 /* Active hotel branding: shown consistently on every manager page */
 .sidebar-brand-wrap {
     min-width: 0;
@@ -272,7 +271,6 @@
     flex-basis: 42px;
     border-radius: 11px;
 }
-
 
 /* RC-Dine app brand: keep R + logo + C-Dine on one line */
 .sidebar-brand-wrap {

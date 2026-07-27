@@ -13,11 +13,12 @@ const logPushEvent = (event, details = {}) => {
     console.info('[RCDINE_PUSH]', { event, ...details, timestamp: new Date().toISOString() });
 };
 
-const normalizeVapidKey = (value) => String(value || '')
-    .trim()
-    .replace(/\+/g, '-')
-    .replace(/\//g, '_')
-    .replace(/=+$/, '');
+const normalizeVapidKey = (value) =>
+    String(value || '')
+        .trim()
+        .replace(/\+/g, '-')
+        .replace(/\//g, '_')
+        .replace(/=+$/, '');
 
 const urlBase64ToUint8Array = (base64String) => {
     const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
@@ -63,7 +64,8 @@ const getPlatform = () => {
 export const getPushCapability = () => {
     const supported = 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
     const ios = /iPad|iPhone|iPod/.test(navigator.userAgent || '');
-    const standalone = window.matchMedia?.('(display-mode: standalone)').matches || window.navigator.standalone === true;
+    const standalone =
+        window.matchMedia?.('(display-mode: standalone)').matches || window.navigator.standalone === true;
     return {
         supported,
         permission: supported ? Notification.permission : 'unsupported',
@@ -135,9 +137,8 @@ const syncSubscription = async ({ audience, token }) => {
         deviceId,
         platform: getPlatform()
     };
-    const result = audience === 'customer'
-        ? await customerApi('post', '/subscribe', payload, token)
-        : await subscribe(payload);
+    const result =
+        audience === 'customer' ? await customerApi('post', '/subscribe', payload, token) : await subscribe(payload);
 
     if (result?.vapidPublicKey && normalizeVapidKey(result.vapidPublicKey) !== configuredVapidKey) {
         try {
@@ -268,9 +269,13 @@ export const initializeNotificationLifecycle = () => {
         localStorage.removeItem(LAST_SYNC_KEY);
         silentSync(true);
     });
-    document.addEventListener('visibilitychange', () => {
-        if (document.visibilityState === 'visible') silentSync();
-    }, { passive: true });
+    document.addEventListener(
+        'visibilitychange',
+        () => {
+            if (document.visibilityState === 'visible') silentSync();
+        },
+        { passive: true }
+    );
     navigator.serviceWorker.addEventListener('controllerchange', () => silentSync(true));
     window.setInterval(silentSync, SYNC_INTERVAL_MS);
 };

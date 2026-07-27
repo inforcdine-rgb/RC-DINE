@@ -105,150 +105,192 @@ function Orders() {
         rowAnimationTimerRef.current = window.setTimeout(() => setRowAnimations({}), 520);
     }, []);
 
-    useEffect(() => () => {
-        if (rowAnimationTimerRef.current) window.clearTimeout(rowAnimationTimerRef.current);
-    }, []);
+    useEffect(
+        () => () => {
+            if (rowAnimationTimerRef.current) window.clearTimeout(rowAnimationTimerRef.current);
+        },
+        []
+    );
 
-    const loadOrders = useCallback(async ({ silent = false } = {}) => {
-        if (!hotelId) return;
+    const loadOrders = useCallback(
+        async ({ silent = false } = {}) => {
+            if (!hotelId) return;
 
-        const dayStart = startOfLocalDay(selectedDate);
-        const dayEnd = addDays(dayStart, 1);
+            const dayStart = startOfLocalDay(selectedDate);
+            const dayEnd = addDays(dayStart, 1);
 
-        if (!silent && ordersRef.current.length === 0) setLoading(true);
-        try {
-            const response = await orderService.getCompletedOrders({
-                hotelId,
-                skip: 0,
-                limit: 5000,
-                sortKey: 'orderTime',
-                sortOrder: 'desc',
-                dateFrom: dayStart.toISOString(),
-                dateTo: dayEnd.toISOString()
-            });
+            if (!silent && ordersRef.current.length === 0) setLoading(true);
+            try {
+                const response = await orderService.getCompletedOrders({
+                    hotelId,
+                    skip: 0,
+                    limit: 5000,
+                    sortKey: 'orderTime',
+                    sortOrder: 'desc',
+                    dateFrom: dayStart.toISOString(),
+                    dateTo: dayEnd.toISOString()
+                });
 
-            const responseData = response?.data?.data || response?.data || response?.rows || [];
-            const rows = Array.isArray(responseData) ? responseData : [];
+                const responseData = response?.data?.data || response?.data || response?.rows || [];
+                const rows = Array.isArray(responseData) ? responseData : [];
 
-            // Safety filter: selected date ke alawa koi bhi order UI me nahi dikhega.
-            const selectedDateKey = dateKey(dayStart);
-            const selectedDateOrders = rows.filter((order) => {
-                if (!order?.orderTime) return false;
-                return dateKey(new Date(order.orderTime)) === selectedDateKey;
-            });
+                // Safety filter: selected date ke alawa koi bhi order UI me nahi dikhega.
+                const selectedDateKey = dateKey(dayStart);
+                const selectedDateOrders = rows.filter((order) => {
+                    if (!order?.orderTime) return false;
+                    return dateKey(new Date(order.orderTime)) === selectedDateKey;
+                });
 
-            const sortedRows = [...selectedDateOrders].sort(
-                (first, second) => new Date(second.orderTime) - new Date(first.orderTime)
-            );
+                const sortedRows = [...selectedDateOrders].sort(
+                    (first, second) => new Date(second.orderTime) - new Date(first.orderTime)
+                );
 
-            const previousRows = ordersRef.current;
-            const previousFingerprint = JSON.stringify(previousRows.map((order) => [order.orderId, order.orderStatus, order.updatedAt]));
-            const nextFingerprint = JSON.stringify(sortedRows.map((order) => [order.orderId, order.orderStatus, order.updatedAt]));
-            const changed = previousFingerprint !== nextFingerprint;
-            if (changed) {
-                if (previousRows.length) {
-                    const previousById = new Map(previousRows.map((order) => [String(order.orderId), order]));
-                    const animations = {};
-                    sortedRows.forEach((order) => {
-                        const previous = previousById.get(String(order.orderId));
-                        if (!previous) animations[order.orderId] = 'refresh-insert';
-                        else if (previous.orderStatus !== order.orderStatus) {
-                            animations[order.orderId] = 'refresh-status-change';
-                        }
-                    });
-                    animateRows(animations);
+                const previousRows = ordersRef.current;
+                const previousFingerprint = JSON.stringify(
+                    previousRows.map((order) => [order.orderId, order.orderStatus, order.updatedAt])
+                );
+                const nextFingerprint = JSON.stringify(
+                    sortedRows.map((order) => [order.orderId, order.orderStatus, order.updatedAt])
+                );
+                const changed = previousFingerprint !== nextFingerprint;
+                if (changed) {
+                    if (previousRows.length) {
+                        const previousById = new Map(previousRows.map((order) => [String(order.orderId), order]));
+                        const animations = {};
+                        sortedRows.forEach((order) => {
+                            const previous = previousById.get(String(order.orderId));
+                            if (!previous) animations[order.orderId] = 'refresh-insert';
+                            else if (previous.orderStatus !== order.orderStatus) {
+                                animations[order.orderId] = 'refresh-status-change';
+                            }
+                        });
+                        animateRows(animations);
+                    }
+                    ordersRef.current = sortedRows;
+                    setOrders(sortedRows);
                 }
-                ordersRef.current = sortedRows;
-                setOrders(sortedRows);
+                return changed;
+            } catch (error) {
+                console.error('Failed to load orders', error);
+                if (!silent) toast.error('Orders load nahi ho paaye');
+                if (!ordersRef.current.length) setOrders([]);
+                throw error;
+            } finally {
+                setLoading(false);
             }
-            return changed;
-        } catch (error) {
-            console.error('Failed to load orders', error);
-            if (!silent) toast.error('Orders load nahi ho paaye');
-            if (!ordersRef.current.length) setOrders([]);
-            throw error;
-        } finally {
-            setLoading(false);
-        }
-    }, [animateRows, hotelId, selectedDate]);
+        },
+        [animateRows, hotelId, selectedDate]
+    );
 
-    const loadOpenOrders = useCallback(async ({ silent = false } = {}) => {
-        if (!hotelId) return false;
-        try {
-            if (!silent && openOrdersRef.current.length === 0) setOpenOrdersLoading(true);
-            const response = await orderService.getOpenOrders(hotelId);
-            const rows = response?.orders || response?.data?.orders || [];
-            const nextOrders = Array.isArray(rows) ? rows : [];
-            const before = JSON.stringify(openOrdersRef.current.map((order) => [
-                order.id, order.status, order.revision, order.itemCount, order.runningTotal, order.updatedAt
-            ]));
-            const after = JSON.stringify(nextOrders.map((order) => [
-                order.id, order.status, order.revision, order.itemCount, order.runningTotal, order.updatedAt
-            ]));
-            if (before !== after) setOpenOrders(nextOrders);
-            return before !== after;
-        } catch (error) {
-            console.error('Failed to load open orders', error);
-            if (!silent) toast.error('Open orders load nahi ho paaye');
-            return false;
-        } finally {
-            setOpenOrdersLoading(false);
-        }
-    }, [hotelId]);
-
-    const loadCompletedOpenOrders = useCallback(async ({ silent = false } = {}) => {
-        if (!hotelId) return false;
-        const dayStart = activeView === 'today'
-            ? startOfLocalDay(new Date())
-            : startOfLocalDay(selectedDate);
-        const dayEnd = addDays(dayStart, 1);
-        try {
-            if (!silent && completedOpenOrdersRef.current.length === 0) {
-                setCompletedOpenOrdersLoading(true);
+    const loadOpenOrders = useCallback(
+        async ({ silent = false } = {}) => {
+            if (!hotelId) return false;
+            try {
+                if (!silent && openOrdersRef.current.length === 0) setOpenOrdersLoading(true);
+                const response = await orderService.getOpenOrders(hotelId);
+                const rows = response?.orders || response?.data?.orders || [];
+                const nextOrders = Array.isArray(rows) ? rows : [];
+                const before = JSON.stringify(
+                    openOrdersRef.current.map((order) => [
+                        order.id,
+                        order.status,
+                        order.revision,
+                        order.itemCount,
+                        order.runningTotal,
+                        order.updatedAt
+                    ])
+                );
+                const after = JSON.stringify(
+                    nextOrders.map((order) => [
+                        order.id,
+                        order.status,
+                        order.revision,
+                        order.itemCount,
+                        order.runningTotal,
+                        order.updatedAt
+                    ])
+                );
+                if (before !== after) setOpenOrders(nextOrders);
+                return before !== after;
+            } catch (error) {
+                console.error('Failed to load open orders', error);
+                if (!silent) toast.error('Open orders load nahi ho paaye');
+                return false;
+            } finally {
+                setOpenOrdersLoading(false);
             }
-            const response = await orderService.getCompletedOpenOrders({
-                hotelId,
-                dateFrom: dayStart.toISOString(),
-                dateTo: dayEnd.toISOString()
-            });
-            const rows = response?.orders || response?.data?.orders || [];
-            const targetDateKey = dateKey(dayStart);
+        },
+        [hotelId]
+    );
 
-            // Backend response par kabhi stale/all-date data aaye tab bhi UI me
-            // sirf selected payment date ke COMPLETED + PAID POS orders hi dikhayein.
-            const nextOrders = (Array.isArray(rows) ? rows : [])
-                .filter((order) => {
-                    if (order?.status !== 'COMPLETED') return false;
-                    if (order?.paymentStatus && order.paymentStatus !== 'PAID') return false;
+    const loadCompletedOpenOrders = useCallback(
+        async ({ silent = false } = {}) => {
+            if (!hotelId) return false;
+            const dayStart = activeView === 'today' ? startOfLocalDay(new Date()) : startOfLocalDay(selectedDate);
+            const dayEnd = addDays(dayStart, 1);
+            try {
+                if (!silent && completedOpenOrdersRef.current.length === 0) {
+                    setCompletedOpenOrdersLoading(true);
+                }
+                const response = await orderService.getCompletedOpenOrders({
+                    hotelId,
+                    dateFrom: dayStart.toISOString(),
+                    dateTo: dayEnd.toISOString()
+                });
+                const rows = response?.orders || response?.data?.orders || [];
+                const targetDateKey = dateKey(dayStart);
 
-                    const paidDate = order.paidAt || order.paymentCompletedAt || order.completedAt;
-                    if (!paidDate) return false;
+                // Backend response par kabhi stale/all-date data aaye tab bhi UI me
+                // sirf selected payment date ke COMPLETED + PAID POS orders hi dikhayein.
+                const nextOrders = (Array.isArray(rows) ? rows : [])
+                    .filter((order) => {
+                        if (order?.status !== 'COMPLETED') return false;
+                        if (order?.paymentStatus && order.paymentStatus !== 'PAID') return false;
 
-                    const parsedDate = new Date(paidDate);
-                    if (Number.isNaN(parsedDate.getTime())) return false;
-                    return dateKey(parsedDate) === targetDateKey;
-                })
-                .sort((first, second) => new Date(second.paidAt) - new Date(first.paidAt));
+                        const paidDate = order.paidAt || order.paymentCompletedAt || order.completedAt;
+                        if (!paidDate) return false;
 
-            const before = JSON.stringify(completedOpenOrdersRef.current.map((order) => [
-                order.id, order.status, order.revision, order.finalAmount, order.paidAt, order.updatedAt
-            ]));
-            const after = JSON.stringify(nextOrders.map((order) => [
-                order.id, order.status, order.revision, order.finalAmount, order.paidAt, order.updatedAt
-            ]));
-            if (before !== after) {
-                completedOpenOrdersRef.current = nextOrders;
-                setCompletedOpenOrders(nextOrders);
+                        const parsedDate = new Date(paidDate);
+                        if (Number.isNaN(parsedDate.getTime())) return false;
+                        return dateKey(parsedDate) === targetDateKey;
+                    })
+                    .sort((first, second) => new Date(second.paidAt) - new Date(first.paidAt));
+
+                const before = JSON.stringify(
+                    completedOpenOrdersRef.current.map((order) => [
+                        order.id,
+                        order.status,
+                        order.revision,
+                        order.finalAmount,
+                        order.paidAt,
+                        order.updatedAt
+                    ])
+                );
+                const after = JSON.stringify(
+                    nextOrders.map((order) => [
+                        order.id,
+                        order.status,
+                        order.revision,
+                        order.finalAmount,
+                        order.paidAt,
+                        order.updatedAt
+                    ])
+                );
+                if (before !== after) {
+                    completedOpenOrdersRef.current = nextOrders;
+                    setCompletedOpenOrders(nextOrders);
+                }
+                return before !== after;
+            } catch (error) {
+                console.error('Failed to load completed open orders', error);
+                if (!silent) toast.error('Completed POS orders load nahi ho paaye');
+                return false;
+            } finally {
+                setCompletedOpenOrdersLoading(false);
             }
-            return before !== after;
-        } catch (error) {
-            console.error('Failed to load completed open orders', error);
-            if (!silent) toast.error('Completed POS orders load nahi ho paaye');
-            return false;
-        } finally {
-            setCompletedOpenOrdersLoading(false);
-        }
-    }, [activeView, hotelId, selectedDate]);
+        },
+        [activeView, hotelId, selectedDate]
+    );
 
     useEffect(() => {
         loadOrders().catch(() => {});
@@ -256,14 +298,18 @@ function Orders() {
         loadCompletedOpenOrders().catch(() => {});
     }, [loadCompletedOpenOrders, loadOpenOrders, loadOrders]);
 
-    useEffect(() => registerRefreshHandler('manager-orders', async () => {
-        const [normalChanged, openChanged, completedOpenChanged] = await Promise.all([
-            loadOrders({ silent: true }),
-            loadOpenOrders({ silent: true }),
-            loadCompletedOpenOrders({ silent: true })
-        ]);
-        return normalChanged || openChanged || completedOpenChanged;
-    }), [loadCompletedOpenOrders, loadOpenOrders, loadOrders]);
+    useEffect(
+        () =>
+            registerRefreshHandler('manager-orders', async () => {
+                const [normalChanged, openChanged, completedOpenChanged] = await Promise.all([
+                    loadOrders({ silent: true }),
+                    loadOpenOrders({ silent: true }),
+                    loadCompletedOpenOrders({ silent: true })
+                ]);
+                return normalChanged || openChanged || completedOpenChanged;
+            }),
+        [loadCompletedOpenOrders, loadOpenOrders, loadOrders]
+    );
 
     useEffect(() => {
         setPage(1);
@@ -290,9 +336,8 @@ function Orders() {
 
     useEffect(() => {
         const handleServiceWorkerMessage = (event) => {
-            const refreshOrdersInBackground = () => (
-                runBackgroundTask(() => loadOrders({ silent: true })).catch(() => {})
-            );
+            const refreshOrdersInBackground = () =>
+                runBackgroundTask(() => loadOrders({ silent: true })).catch(() => {});
             handleManagerServiceWorkerMessage(event, {
                 showToast: false,
                 onOrderPlacement: refreshOrdersInBackground,
@@ -324,11 +369,13 @@ function Orders() {
         const socket = connectSocket();
         const joinHotelRoom = () => socket.emit('join-hotel', hotelId);
         const refreshFromApi = () => {
-            runBackgroundTask(() => Promise.all([
-                loadOrders({ silent: true }),
-                loadOpenOrders({ silent: true }),
-                loadCompletedOpenOrders({ silent: true })
-            ])).catch(() => {});
+            runBackgroundTask(() =>
+                Promise.all([
+                    loadOrders({ silent: true }),
+                    loadOpenOrders({ silent: true }),
+                    loadCompletedOpenOrders({ silent: true })
+                ])
+            ).catch(() => {});
         };
         const handleNewOrder = (payload) => {
             if (String(payload?.hotelId) !== String(hotelId)) return;
@@ -349,17 +396,17 @@ function Orders() {
         };
         const handleOrderStatusUpdated = (payload) => {
             if (String(payload?.hotelId) !== String(hotelId)) return;
-            const index = ordersRef.current.findIndex(
-                (order) => String(order.orderId) === String(payload?.orderId)
-            );
+            const index = ordersRef.current.findIndex((order) => String(order.orderId) === String(payload?.orderId));
             if (index < 0 || !payload?.status) {
                 refreshFromApi();
                 return;
             }
 
-            const nextOrders = ordersRef.current.map((order, orderIndex) => orderIndex === index
-                ? { ...order, orderStatus: payload.status, updatedAt: payload.updatedAt || order.updatedAt }
-                : order);
+            const nextOrders = ordersRef.current.map((order, orderIndex) =>
+                orderIndex === index
+                    ? { ...order, orderStatus: payload.status, updatedAt: payload.updatedAt || order.updatedAt }
+                    : order
+            );
             ordersRef.current = nextOrders;
             setOrders(nextOrders);
             animateRows({ [payload.orderId]: 'refresh-status-change' });
@@ -397,27 +444,32 @@ function Orders() {
 
     const filteredOpenOrders = useMemo(() => {
         if (!normalizedCustomerSearch) return openOrders;
-        return openOrders.filter((order) => String(order.customerName || 'Walk-in Guest')
-            .toLowerCase()
-            .includes(normalizedCustomerSearch));
+        return openOrders.filter((order) =>
+            String(order.customerName || 'Walk-in Guest')
+                .toLowerCase()
+                .includes(normalizedCustomerSearch)
+        );
     }, [normalizedCustomerSearch, openOrders]);
 
     const filteredCompletedOpenOrders = useMemo(() => {
         if (!normalizedCustomerSearch) return completedOpenOrders;
-        return completedOpenOrders.filter((order) => String(order.customerName || 'Walk-in Guest')
-            .toLowerCase()
-            .includes(normalizedCustomerSearch));
+        return completedOpenOrders.filter((order) =>
+            String(order.customerName || 'Walk-in Guest')
+                .toLowerCase()
+                .includes(normalizedCustomerSearch)
+        );
     }, [completedOpenOrders, normalizedCustomerSearch]);
 
-    const completedPageCount = Math.max(
-        1,
-        Math.ceil(filteredCompletedOpenOrders.length / PAID_POS_ORDERS_PER_PAGE)
-    );
+    const completedPageCount = Math.max(1, Math.ceil(filteredCompletedOpenOrders.length / PAID_POS_ORDERS_PER_PAGE));
     const safeCompletedPage = Math.min(completedPage, completedPageCount);
-    const visibleCompletedOpenOrders = useMemo(() => filteredCompletedOpenOrders.slice(
-        (safeCompletedPage - 1) * PAID_POS_ORDERS_PER_PAGE,
-        safeCompletedPage * PAID_POS_ORDERS_PER_PAGE
-    ), [filteredCompletedOpenOrders, safeCompletedPage]);
+    const visibleCompletedOpenOrders = useMemo(
+        () =>
+            filteredCompletedOpenOrders.slice(
+                (safeCompletedPage - 1) * PAID_POS_ORDERS_PER_PAGE,
+                safeCompletedPage * PAID_POS_ORDERS_PER_PAGE
+            ),
+        [filteredCompletedOpenOrders, safeCompletedPage]
+    );
 
     const filteredOrders = useMemo(() => {
         const query = searchText.trim().toLowerCase();
@@ -427,9 +479,8 @@ function Orders() {
             if (!statusMatches) return false;
             if (!query) return true;
 
-            const searchableValue = searchField === 'tableNumber'
-                ? String(order.tableNumber || '')
-                : String(order.orderNumber || '');
+            const searchableValue =
+                searchField === 'tableNumber' ? String(order.tableNumber || '') : String(order.orderNumber || '');
 
             return searchableValue.toLowerCase().includes(query);
         });
@@ -437,10 +488,10 @@ function Orders() {
 
     const pageCount = Math.max(1, Math.ceil(filteredOrders.length / ORDERS_PER_PAGE));
     const safePage = Math.min(page, pageCount);
-    const visibleOrders = useMemo(() => filteredOrders.slice(
-        (safePage - 1) * ORDERS_PER_PAGE,
-        safePage * ORDERS_PER_PAGE
-    ), [filteredOrders, safePage]);
+    const visibleOrders = useMemo(
+        () => filteredOrders.slice((safePage - 1) * ORDERS_PER_PAGE, safePage * ORDERS_PER_PAGE),
+        [filteredOrders, safePage]
+    );
 
     const viewRunningOrder = async (order) => {
         if (!order?.id) return;
@@ -560,10 +611,9 @@ function Orders() {
     const OrderDetailsModal = () => {
         if (!orderDetails) return null;
 
-        const subtotal = orderDetails.subtotal ?? (orderDetails.orderedItems || []).reduce(
-            (sum, item) => sum + (Number(item.itemPrice) || 0),
-            0
-        );
+        const subtotal =
+            orderDetails.subtotal ??
+            (orderDetails.orderedItems || []).reduce((sum, item) => sum + (Number(item.itemPrice) || 0), 0);
         const sgst = orderDetails.sgst ?? Math.round(subtotal * 0.025);
         const cgst = orderDetails.cgst ?? Math.round(subtotal * 0.025);
         const tip = orderDetails.tipAmount ?? 0;
@@ -580,18 +630,30 @@ function Orders() {
                     <div className="order-details-container">
                         <Row className="mb-3">
                             <Col md={6}>
-                                <p><strong>Order Number:</strong> {orderDetails.orderNumber}</p>
-                                <p><strong>Daily Sr. No.:</strong> {orderDetails.srNo || '-'}</p>
-                                <p><strong>Table Number:</strong> {orderDetails.tableNumber}</p>
+                                <p>
+                                    <strong>Order Number:</strong> {orderDetails.orderNumber}
+                                </p>
+                                <p>
+                                    <strong>Daily Sr. No.:</strong> {orderDetails.srNo || '-'}
+                                </p>
+                                <p>
+                                    <strong>Table Number:</strong> {orderDetails.tableNumber}
+                                </p>
                                 <p>
                                     <strong>Source:</strong>{' '}
                                     {orderDetails.source === 'MANAGER_POS' ? 'Manager POS' : 'Customer QR'}
                                 </p>
                             </Col>
                             <Col md={6}>
-                                <p><strong>Date/Time:</strong> {new Date(orderDetails.orderDateTime).toLocaleString()}</p>
-                                <p><strong>Status:</strong> {orderDetails.orderStatus}</p>
-                                <p><strong>Payment Mode:</strong> {orderDetails.paymentMode}</p>
+                                <p>
+                                    <strong>Date/Time:</strong> {new Date(orderDetails.orderDateTime).toLocaleString()}
+                                </p>
+                                <p>
+                                    <strong>Status:</strong> {orderDetails.orderStatus}
+                                </p>
+                                <p>
+                                    <strong>Payment Mode:</strong> {orderDetails.paymentMode}
+                                </p>
                             </Col>
                         </Row>
 
@@ -615,19 +677,46 @@ function Orders() {
                                             <td className="text-end">₹ {item.itemPrice}</td>
                                         </tr>
                                     ))}
-                                    <tr><td colSpan="3" className="text-end fw-bold">Subtotal:</td><td className="text-end">₹ {subtotal}</td></tr>
-                                    <tr><td colSpan="3" className="text-end fw-bold">Tip:</td><td className="text-end">₹ {tip}</td></tr>
+                                    <tr>
+                                        <td colSpan="3" className="text-end fw-bold">
+                                            Subtotal:
+                                        </td>
+                                        <td className="text-end">₹ {subtotal}</td>
+                                    </tr>
+                                    <tr>
+                                        <td colSpan="3" className="text-end fw-bold">
+                                            Tip:
+                                        </td>
+                                        <td className="text-end">₹ {tip}</td>
+                                    </tr>
                                     {discountAmount > 0 && (
                                         <tr>
                                             <td colSpan="3" className="text-end fw-bold">
-                                                {discountType === 'PERCENT' ? `Discount (${discountValue}%):` : 'Discount:'}
+                                                {discountType === 'PERCENT'
+                                                    ? `Discount (${discountValue}%):`
+                                                    : 'Discount:'}
                                             </td>
                                             <td className="text-end text-danger">- ₹ {discountAmount}</td>
                                         </tr>
                                     )}
-                                    <tr><td colSpan="3" className="text-end fw-bold">SGST:</td><td className="text-end">₹ {sgst}</td></tr>
-                                    <tr><td colSpan="3" className="text-end fw-bold">CGST:</td><td className="text-end">₹ {cgst}</td></tr>
-                                    <tr><td colSpan="3" className="text-end fw-bold">Final Amount:</td><td className="text-end fw-bold">₹ {totalAmount}</td></tr>
+                                    <tr>
+                                        <td colSpan="3" className="text-end fw-bold">
+                                            SGST:
+                                        </td>
+                                        <td className="text-end">₹ {sgst}</td>
+                                    </tr>
+                                    <tr>
+                                        <td colSpan="3" className="text-end fw-bold">
+                                            CGST:
+                                        </td>
+                                        <td className="text-end">₹ {cgst}</td>
+                                    </tr>
+                                    <tr>
+                                        <td colSpan="3" className="text-end fw-bold">
+                                            Final Amount:
+                                        </td>
+                                        <td className="text-end fw-bold">₹ {totalAmount}</td>
+                                    </tr>
                                 </tbody>
                             </table>
                         </div>
@@ -661,7 +750,11 @@ function Orders() {
                     <button type="button" className={activeView === 'today' ? 'active' : ''} onClick={selectToday}>
                         Today
                     </button>
-                    <button type="button" className={activeView === 'previous' ? 'active' : ''} onClick={selectPrevious}>
+                    <button
+                        type="button"
+                        className={activeView === 'previous' ? 'active' : ''}
+                        onClick={selectPrevious}
+                    >
                         Previous
                     </button>
                 </div>
@@ -677,7 +770,9 @@ function Orders() {
                     aria-label="Search orders by customer name"
                 />
                 {customerSearchText && (
-                    <button type="button" onClick={() => setCustomerSearchText('')}>Clear</button>
+                    <button type="button" onClick={() => setCustomerSearchText('')}>
+                        Clear
+                    </button>
                 )}
             </div>
 
@@ -686,16 +781,24 @@ function Orders() {
                     <div className="running-orders-head">
                         <div>
                             <span className="running-orders-kicker">LIVE RUNNING ORDERS</span>
-                            <h5>Customer Open Orders <b>{filteredOpenOrders.length}</b></h5>
+                            <h5>
+                                Customer Open Orders <b>{filteredOpenOrders.length}</b>
+                            </h5>
                             <p>Customer name aur table dekhkar same order me naye items add karo.</p>
                         </div>
-                        <button type="button" onClick={() => navigate('/walkin-pos')}>+ New Order</button>
+                        <button type="button" onClick={() => navigate('/walkin-pos')}>
+                            + New Order
+                        </button>
                     </div>
 
                     {openOrdersLoading && openOrders.length === 0 ? (
                         <div className="running-orders-loading">Open orders loading...</div>
                     ) : filteredOpenOrders.length === 0 ? (
-                        <div className="running-orders-empty">{customerSearchText ? 'Is customer name se koi open order nahi mila.' : 'Abhi koi open customer order nahi hai.'}</div>
+                        <div className="running-orders-empty">
+                            {customerSearchText
+                                ? 'Is customer name se koi open order nahi mila.'
+                                : 'Abhi koi open customer order nahi hai.'}
+                        </div>
                     ) : (
                         <div className="running-orders-grid">
                             {filteredOpenOrders.map((order) => {
@@ -704,7 +807,10 @@ function Orders() {
                                     : String(order.orderType || 'WALK_IN').replaceAll('_', ' ');
                                 const items = Array.isArray(order.items) ? order.items : [];
                                 const itemSummary = items.length
-                                    ? items.slice(0, 3).map((item) => `${item.itemName || item.name} ×${item.quantity}`).join(', ')
+                                    ? items
+                                        .slice(0, 3)
+                                        .map((item) => `${item.itemName || item.name} ×${item.quantity}`)
+                                        .join(', ')
                                     : `${order.itemCount || 0} item${Number(order.itemCount || 0) === 1 ? '' : 's'}`;
                                 return (
                                     <article
@@ -726,16 +832,24 @@ function Orders() {
                                                 <span className="running-customer-label">CUSTOMER</span>
                                                 <h3>{order.customerName || 'Walk-in Guest'}</h3>
                                             </div>
-                                            <span className={`running-status ${String(order.status || '').toLowerCase()}`}>{order.status}</span>
+                                            <span
+                                                className={`running-status ${String(order.status || '').toLowerCase()}`}
+                                            >
+                                                {order.status}
+                                            </span>
                                         </div>
                                         <div className="running-order-meta">
                                             <strong>{tableLabel}</strong>
                                             <span>{order.orderNumber}</span>
                                         </div>
-                                        <p className="running-order-items" title={itemSummary}>{itemSummary}</p>
+                                        <p className="running-order-items" title={itemSummary}>
+                                            {itemSummary}
+                                        </p>
                                         <div className="running-order-total">
                                             <span>Running Total</span>
-                                            <strong>₹ {Number(order.runningTotal ?? order.subtotalAmount ?? 0).toFixed(2)}</strong>
+                                            <strong>
+                                                ₹ {Number(order.runningTotal ?? order.subtotalAmount ?? 0).toFixed(2)}
+                                            </strong>
                                         </div>
                                         <div className="running-order-actions">
                                             <button
@@ -744,7 +858,9 @@ function Orders() {
                                                 disabled={order.status !== 'OPEN'}
                                                 onClick={(event) => {
                                                     event.stopPropagation();
-                                                    navigate(`/walkin-pos?openOrderId=${encodeURIComponent(order.id)}&action=add`);
+                                                    navigate(
+                                                        `/walkin-pos?openOrderId=${encodeURIComponent(order.id)}&action=add`
+                                                    );
                                                 }}
                                             >
                                                 {order.status === 'OPEN' ? '+ Add Order' : 'Items Locked'}
@@ -762,7 +878,9 @@ function Orders() {
                                                 className="running-payment-button"
                                                 onClick={(event) => {
                                                     event.stopPropagation();
-                                                    navigate(`/walkin-pos?openOrderId=${encodeURIComponent(order.id)}&action=payment`);
+                                                    navigate(
+                                                        `/walkin-pos?openOrderId=${encodeURIComponent(order.id)}&action=payment`
+                                                    );
                                                 }}
                                             >
                                                 {order.status === 'BILLED' ? 'Complete Payment' : 'Complete'}
@@ -803,15 +921,30 @@ function Orders() {
                 <div className="completed-pos-orders-head">
                     <div>
                         <span className="completed-pos-orders-kicker">PAID MANAGER POS ORDERS</span>
-                        <h5>{activeView === 'today' ? 'Today Complete Orders' : `Completed Orders · ${formatDate(selectedDate)}`} <b>{filteredCompletedOpenOrders.length}</b></h5>
-                        <p>{activeView === 'today' ? `${formatDate(startOfLocalDay(new Date()))} ko payment complete hue orders.` : 'Upar date select karo; sirf us din payment complete hue orders dikhenge.'}</p>
+                        <h5>
+                            {activeView === 'today'
+                                ? 'Today Complete Orders'
+                                : `Completed Orders · ${formatDate(selectedDate)}`}{' '}
+                            <b>{filteredCompletedOpenOrders.length}</b>
+                        </h5>
+                        <p>
+                            {activeView === 'today'
+                                ? `${formatDate(startOfLocalDay(new Date()))} ko payment complete hue orders.`
+                                : 'Upar date select karo; sirf us din payment complete hue orders dikhenge.'}
+                        </p>
                     </div>
                 </div>
 
                 {completedOpenOrdersLoading && completedOpenOrders.length === 0 ? (
                     <div className="completed-pos-orders-empty">Completed orders loading...</div>
                 ) : filteredCompletedOpenOrders.length === 0 ? (
-                    <div className="completed-pos-orders-empty">{customerSearchText ? 'Is customer name se koi completed order nahi mila.' : activeView === 'today' ? 'Aaj koi completed Manager POS order nahi hai.' : 'Selected date par koi completed Manager POS order nahi hai.'}</div>
+                    <div className="completed-pos-orders-empty">
+                        {customerSearchText
+                            ? 'Is customer name se koi completed order nahi mila.'
+                            : activeView === 'today'
+                                ? 'Aaj koi completed Manager POS order nahi hai.'
+                                : 'Selected date par koi completed Manager POS order nahi hai.'}
+                    </div>
                 ) : (
                     <div className="completed-pos-orders-grid">
                         {visibleCompletedOpenOrders.map((order) => {
@@ -820,7 +953,10 @@ function Orders() {
                                 : String(order.orderType || 'WALK_IN').replaceAll('_', ' ');
                             const items = Array.isArray(order.items) ? order.items : [];
                             const itemSummary = items.length
-                                ? items.slice(0, 4).map((item) => `${item.itemName || item.name} ×${item.quantity}`).join(', ')
+                                ? items
+                                    .slice(0, 4)
+                                    .map((item) => `${item.itemName || item.name} ×${item.quantity}`)
+                                    .join(', ')
                                 : `${order.itemCount || 0} items`;
                             return (
                                 <button
@@ -842,8 +978,13 @@ function Orders() {
                                     </div>
                                     <p title={itemSummary}>{itemSummary}</p>
                                     <div className="completed-pos-order-footer">
-                                        <span>{order.paymentMethod || 'PAID'} · {formatTime(order.paidAt || order.updatedAt)}</span>
-                                        <strong>₹ {Number(order.finalAmount ?? order.runningTotal ?? 0).toFixed(2)}</strong>
+                                        <span>
+                                            {order.paymentMethod || 'PAID'} ·{' '}
+                                            {formatTime(order.paidAt || order.updatedAt)}
+                                        </span>
+                                        <strong>
+                                            ₹ {Number(order.finalAmount ?? order.runningTotal ?? 0).toFixed(2)}
+                                        </strong>
                                     </div>
                                     <small className="completed-pos-touch-hint">Touch to view details</small>
                                 </button>
@@ -861,7 +1002,9 @@ function Orders() {
                         >
                             <BsChevronLeft /> Previous
                         </button>
-                        <span>Page {safeCompletedPage} of {completedPageCount}</span>
+                        <span>
+                            Page {safeCompletedPage} of {completedPageCount}
+                        </span>
                         <button
                             type="button"
                             disabled={safeCompletedPage === completedPageCount}
@@ -881,11 +1024,19 @@ function Orders() {
                     value={searchText}
                     onChange={(event) => setSearchText(event.target.value)}
                 />
-                <select className="form-select" value={searchField} onChange={(event) => setSearchField(event.target.value)}>
+                <select
+                    className="form-select"
+                    value={searchField}
+                    onChange={(event) => setSearchField(event.target.value)}
+                >
                     <option value="orderNumber">Order Number</option>
                     <option value="tableNumber">Table Number</option>
                 </select>
-                <select className="form-select" value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>
+                <select
+                    className="form-select"
+                    value={statusFilter}
+                    onChange={(event) => setStatusFilter(event.target.value)}
+                >
                     <option value="ALL">All Status</option>
                     <option value="PENDING">Pending</option>
                     <option value="PREPARING">Preparing</option>
@@ -893,7 +1044,14 @@ function Orders() {
                     <option value="COMPLETED">Completed</option>
                 </select>
                 {(searchText || statusFilter !== 'ALL') && (
-                    <button type="button" className="btn btn-outline-secondary" onClick={() => { setSearchText(''); setStatusFilter('ALL'); }}>
+                    <button
+                        type="button"
+                        className="btn btn-outline-secondary"
+                        onClick={() => {
+                            setSearchText('');
+                            setStatusFilter('ALL');
+                        }}
+                    >
                         Clear
                     </button>
                 )}
@@ -908,7 +1066,10 @@ function Orders() {
                 <div className="orders-skeleton" role="status" aria-label="Loading orders">
                     {[0, 1, 2, 3].map((item) => (
                         <span className="orders-skeleton-card" key={item}>
-                            <b /><small /><small /><i />
+                            <b />
+                            <small />
+                            <small />
+                            <i />
                         </span>
                     ))}
                 </div>
@@ -916,7 +1077,11 @@ function Orders() {
                 <div className="orders-empty">
                     <BsCalendar3 size={34} />
                     <h5>No orders found</h5>
-                    <p>{activeView === 'today' ? 'New orders ke liye screen ready hai.' : 'Is date par koi order nahi hai.'}</p>
+                    <p>
+                        {activeView === 'today'
+                            ? 'New orders ke liye screen ready hai.'
+                            : 'Is date par koi order nahi hai.'}
+                    </p>
                 </div>
             ) : (
                 <div className="orders-card-grid">
@@ -947,10 +1112,14 @@ function Orders() {
                                     {isManagerOrder ? 'Manager POS' : 'Customer QR'}
                                 </span>
                                 <div className="order-card-meta">
-                                    <span>Table <strong>{order.tableNumber || '-'}</strong></span>
+                                    <span>
+                                        Table <strong>{order.tableNumber || '-'}</strong>
+                                    </span>
                                     <span>{formatTime(order.orderTime)}</span>
                                 </div>
-                                <p className="order-card-items" title={itemSummary}>{itemSummary || 'No items'}</p>
+                                <p className="order-card-items" title={itemSummary}>
+                                    {itemSummary || 'No items'}
+                                </p>
                                 <div className="order-card-total">
                                     <span>Total</span>
                                     <strong>₹ {order.totalPrice ?? 0}</strong>
@@ -963,11 +1132,21 @@ function Orders() {
 
             {pageCount > 1 && (
                 <div className="orders-pagination">
-                    <button type="button" disabled={safePage === 1} onClick={() => setPage((value) => Math.max(1, value - 1))}>
+                    <button
+                        type="button"
+                        disabled={safePage === 1}
+                        onClick={() => setPage((value) => Math.max(1, value - 1))}
+                    >
                         <BsChevronLeft /> Previous
                     </button>
-                    <span>Page {safePage} of {pageCount}</span>
-                    <button type="button" disabled={safePage === pageCount} onClick={() => setPage((value) => Math.min(pageCount, value + 1))}>
+                    <span>
+                        Page {safePage} of {pageCount}
+                    </span>
+                    <button
+                        type="button"
+                        disabled={safePage === pageCount}
+                        onClick={() => setPage((value) => Math.min(pageCount, value + 1))}
+                    >
                         Next <BsChevronRight />
                     </button>
                 </div>
@@ -980,29 +1159,71 @@ function Orders() {
                     description={
                         <div className="running-order-details">
                             <div className="running-order-details-summary">
-                                <div><span>Status</span><strong>{selectedRunningOrder.status || 'OPEN'}</strong></div>
-                                <div><span>Table</span><strong>{selectedRunningOrder.table?.tableNumber ? `Table ${selectedRunningOrder.table.tableNumber}` : String(selectedRunningOrder.orderType || 'WALK_IN').replaceAll('_', ' ')}</strong></div>
-                                <div><span>Customer</span><strong>{selectedRunningOrder.customerName || 'Walk-in Guest'}</strong></div>
-                                <div><span>Last Updated</span><strong>{formatTime(selectedRunningOrder.lastUpdated || selectedRunningOrder.updatedAt)}</strong></div>
+                                <div>
+                                    <span>Status</span>
+                                    <strong>{selectedRunningOrder.status || 'OPEN'}</strong>
+                                </div>
+                                <div>
+                                    <span>Table</span>
+                                    <strong>
+                                        {selectedRunningOrder.table?.tableNumber
+                                            ? `Table ${selectedRunningOrder.table.tableNumber}`
+                                            : String(selectedRunningOrder.orderType || 'WALK_IN').replaceAll('_', ' ')}
+                                    </strong>
+                                </div>
+                                <div>
+                                    <span>Customer</span>
+                                    <strong>{selectedRunningOrder.customerName || 'Walk-in Guest'}</strong>
+                                </div>
+                                <div>
+                                    <span>Last Updated</span>
+                                    <strong>
+                                        {formatTime(selectedRunningOrder.lastUpdated || selectedRunningOrder.updatedAt)}
+                                    </strong>
+                                </div>
                             </div>
                             <div className="running-order-details-items">
                                 <div className="running-order-details-row running-order-details-head">
-                                    <span>Item</span><span>Qty</span><span>KOT</span><span>Amount</span>
+                                    <span>Item</span>
+                                    <span>Qty</span>
+                                    <span>KOT</span>
+                                    <span>Amount</span>
                                 </div>
-                                {(Array.isArray(selectedRunningOrder.items) ? selectedRunningOrder.items : []).map((item, index) => (
-                                    <div className="running-order-details-row" key={item.id || `${item.itemName || item.name}-${index}`}>
-                                        <span>{item.itemName || item.name || 'Item'}</span>
-                                        <span>{item.quantity || 0}</span>
-                                        <span className={item.kotPrintedAt ? 'kot-done' : 'kot-new'}>{item.kotPrintedAt ? 'Printed' : 'New'}</span>
-                                        <span>₹ {Number(item.lineTotal ?? item.totalAmount ?? ((item.unitPrice ?? item.price ?? 0) * (item.quantity || 0))).toFixed(2)}</span>
-                                    </div>
-                                ))}
+                                {(Array.isArray(selectedRunningOrder.items) ? selectedRunningOrder.items : []).map(
+                                    (item, index) => (
+                                        <div
+                                            className="running-order-details-row"
+                                            key={item.id || `${item.itemName || item.name}-${index}`}
+                                        >
+                                            <span>{item.itemName || item.name || 'Item'}</span>
+                                            <span>{item.quantity || 0}</span>
+                                            <span className={item.kotPrintedAt ? 'kot-done' : 'kot-new'}>
+                                                {item.kotPrintedAt ? 'Printed' : 'New'}
+                                            </span>
+                                            <span>
+                                                ₹{' '}
+                                                {Number(
+                                                    item.lineTotal ??
+                                                        item.totalAmount ??
+                                                        (item.unitPrice ?? item.price ?? 0) * (item.quantity || 0)
+                                                ).toFixed(2)}
+                                            </span>
+                                        </div>
+                                    )
+                                )}
                             </div>
                             <div className="running-order-details-total">
                                 <span>Running Total</span>
-                                <strong>₹ {Number(selectedRunningOrder.runningTotal ?? selectedRunningOrder.subtotalAmount ?? 0).toFixed(2)}</strong>
+                                <strong>
+                                    ₹{' '}
+                                    {Number(
+                                        selectedRunningOrder.runningTotal ?? selectedRunningOrder.subtotalAmount ?? 0
+                                    ).toFixed(2)}
+                                </strong>
                             </div>
-                            {runningOrderDetailsLoading && <p className="running-order-details-loading">Latest details loading...</p>}
+                            {runningOrderDetailsLoading && (
+                                <p className="running-order-details-loading">Latest details loading...</p>
+                            )}
                         </div>
                     }
                     handleClose={() => setSelectedRunningOrder(null)}
@@ -1016,11 +1237,18 @@ function Orders() {
                             variant: 'outline-dark',
                             disabled: Boolean(kotPrintingOrderId)
                         },
-                        ...(selectedRunningOrder.status === 'OPEN' ? [{
-                            text: '+ Add Order',
-                            onClick: () => navigate(`/walkin-pos?openOrderId=${encodeURIComponent(selectedRunningOrder.id)}&action=add`),
-                            variant: 'primary'
-                        }] : [])
+                        ...(selectedRunningOrder.status === 'OPEN'
+                            ? [
+                                {
+                                    text: '+ Add Order',
+                                    onClick: () =>
+                                        navigate(
+                                            `/walkin-pos?openOrderId=${encodeURIComponent(selectedRunningOrder.id)}&action=add`
+                                        ),
+                                    variant: 'primary'
+                                }
+                            ]
+                            : [])
                     ]}
                 />
             )}
@@ -1032,29 +1260,112 @@ function Orders() {
                     description={
                         <div className="completed-pos-details">
                             <div className="completed-pos-details-summary">
-                                <div><span>Status</span><strong>PAID · COMPLETED</strong></div>
-                                <div><span>Table</span><strong>{selectedCompletedPosOrder.table?.tableNumber ? `Table ${selectedCompletedPosOrder.table.tableNumber}` : String(selectedCompletedPosOrder.orderType || 'WALK_IN').replaceAll('_', ' ')}</strong></div>
-                                <div><span>Payment</span><strong>{selectedCompletedPosOrder.paymentMethod || 'PAID'}</strong></div>
-                                <div><span>Completed</span><strong>{selectedCompletedPosOrder.paidAt || selectedCompletedPosOrder.updatedAt ? `${formatDate(new Date(selectedCompletedPosOrder.paidAt || selectedCompletedPosOrder.updatedAt))}, ${formatTime(selectedCompletedPosOrder.paidAt || selectedCompletedPosOrder.updatedAt)}` : '-'}</strong></div>
+                                <div>
+                                    <span>Status</span>
+                                    <strong>PAID · COMPLETED</strong>
+                                </div>
+                                <div>
+                                    <span>Table</span>
+                                    <strong>
+                                        {selectedCompletedPosOrder.table?.tableNumber
+                                            ? `Table ${selectedCompletedPosOrder.table.tableNumber}`
+                                            : String(selectedCompletedPosOrder.orderType || 'WALK_IN').replaceAll(
+                                                '_',
+                                                ' '
+                                            )}
+                                    </strong>
+                                </div>
+                                <div>
+                                    <span>Payment</span>
+                                    <strong>{selectedCompletedPosOrder.paymentMethod || 'PAID'}</strong>
+                                </div>
+                                <div>
+                                    <span>Completed</span>
+                                    <strong>
+                                        {selectedCompletedPosOrder.paidAt || selectedCompletedPosOrder.updatedAt
+                                            ? `${formatDate(new Date(selectedCompletedPosOrder.paidAt || selectedCompletedPosOrder.updatedAt))}, ${formatTime(selectedCompletedPosOrder.paidAt || selectedCompletedPosOrder.updatedAt)}`
+                                            : '-'}
+                                    </strong>
+                                </div>
                             </div>
                             <div className="completed-pos-details-items">
                                 <div className="completed-pos-details-row completed-pos-details-head">
-                                    <span>Item</span><span>Qty</span><span>Amount</span>
+                                    <span>Item</span>
+                                    <span>Qty</span>
+                                    <span>Amount</span>
                                 </div>
-                                {(Array.isArray(selectedCompletedPosOrder.items) ? selectedCompletedPosOrder.items : []).map((item, index) => (
-                                    <div className="completed-pos-details-row" key={item.id || `${item.itemName || item.name}-${index}`}>
+                                {(Array.isArray(selectedCompletedPosOrder.items)
+                                    ? selectedCompletedPosOrder.items
+                                    : []
+                                ).map((item, index) => (
+                                    <div
+                                        className="completed-pos-details-row"
+                                        key={item.id || `${item.itemName || item.name}-${index}`}
+                                    >
                                         <span>{item.itemName || item.name || 'Item'}</span>
                                         <span>{item.quantity || 0}</span>
-                                        <span>₹ {Number(item.lineTotal ?? item.totalAmount ?? ((item.unitPrice ?? item.price ?? 0) * (item.quantity || 0))).toFixed(2)}</span>
+                                        <span>
+                                            ₹{' '}
+                                            {Number(
+                                                item.lineTotal ??
+                                                    item.totalAmount ??
+                                                    (item.unitPrice ?? item.price ?? 0) * (item.quantity || 0)
+                                            ).toFixed(2)}
+                                        </span>
                                     </div>
                                 ))}
                             </div>
                             <div className="completed-pos-details-totals">
-                                <div><span>Subtotal</span><strong>₹ {Number(selectedCompletedPosOrder.subtotalAmount ?? selectedCompletedPosOrder.runningTotal ?? 0).toFixed(2)}</strong></div>
-                                {Number(selectedCompletedPosOrder.discountAmount || 0) > 0 && <div><span>Discount</span><strong>- ₹ {Number(selectedCompletedPosOrder.discountAmount).toFixed(2)}</strong></div>}
-                                {Number(selectedCompletedPosOrder.taxAmount || selectedCompletedPosOrder.gstAmount || 0) > 0 && <div><span>GST</span><strong>₹ {Number(selectedCompletedPosOrder.taxAmount || selectedCompletedPosOrder.gstAmount).toFixed(2)}</strong></div>}
-                                {Number(selectedCompletedPosOrder.tipAmount || 0) > 0 && <div><span>Tip</span><strong>₹ {Number(selectedCompletedPosOrder.tipAmount).toFixed(2)}</strong></div>}
-                                <div className="completed-pos-details-grand"><span>Paid Total</span><strong>₹ {Number(selectedCompletedPosOrder.finalAmount ?? selectedCompletedPosOrder.runningTotal ?? 0).toFixed(2)}</strong></div>
+                                <div>
+                                    <span>Subtotal</span>
+                                    <strong>
+                                        ₹{' '}
+                                        {Number(
+                                            selectedCompletedPosOrder.subtotalAmount ??
+                                                selectedCompletedPosOrder.runningTotal ??
+                                                0
+                                        ).toFixed(2)}
+                                    </strong>
+                                </div>
+                                {Number(selectedCompletedPosOrder.discountAmount || 0) > 0 && (
+                                    <div>
+                                        <span>Discount</span>
+                                        <strong>
+                                            - ₹ {Number(selectedCompletedPosOrder.discountAmount).toFixed(2)}
+                                        </strong>
+                                    </div>
+                                )}
+                                {Number(
+                                    selectedCompletedPosOrder.taxAmount || selectedCompletedPosOrder.gstAmount || 0
+                                ) > 0 && (
+                                    <div>
+                                        <span>GST</span>
+                                        <strong>
+                                            ₹{' '}
+                                            {Number(
+                                                selectedCompletedPosOrder.taxAmount ||
+                                                    selectedCompletedPosOrder.gstAmount
+                                            ).toFixed(2)}
+                                        </strong>
+                                    </div>
+                                )}
+                                {Number(selectedCompletedPosOrder.tipAmount || 0) > 0 && (
+                                    <div>
+                                        <span>Tip</span>
+                                        <strong>₹ {Number(selectedCompletedPosOrder.tipAmount).toFixed(2)}</strong>
+                                    </div>
+                                )}
+                                <div className="completed-pos-details-grand">
+                                    <span>Paid Total</span>
+                                    <strong>
+                                        ₹{' '}
+                                        {Number(
+                                            selectedCompletedPosOrder.finalAmount ??
+                                                selectedCompletedPosOrder.runningTotal ??
+                                                0
+                                        ).toFixed(2)}
+                                    </strong>
+                                </div>
                             </div>
                         </div>
                     }
@@ -1070,15 +1381,29 @@ function Orders() {
                     <div className="orders-kot-slip">
                         <h1>KITCHEN ORDER TICKET</h1>
                         <div className="orders-kot-meta">
-                            <p><span>Order</span><b>{kotPrintData.orderNumber}</b></p>
-                            <p><span>Table / Type</span><b>{kotPrintData.tableLabel}</b></p>
-                            <p><span>KOT Batch</span><b>#{kotPrintData.batchNumber}</b></p>
-                            <p><span>Printed</span><b>{new Date(kotPrintData.printedAt).toLocaleString()}</b></p>
+                            <p>
+                                <span>Order</span>
+                                <b>{kotPrintData.orderNumber}</b>
+                            </p>
+                            <p>
+                                <span>Table / Type</span>
+                                <b>{kotPrintData.tableLabel}</b>
+                            </p>
+                            <p>
+                                <span>KOT Batch</span>
+                                <b>#{kotPrintData.batchNumber}</b>
+                            </p>
+                            <p>
+                                <span>Printed</span>
+                                <b>{new Date(kotPrintData.printedAt).toLocaleString()}</b>
+                            </p>
                         </div>
                         <div className="orders-kot-rule" />
                         {kotPrintData.items.map((item) => (
                             <div className="orders-kot-item" key={item.id}>
-                                <b>{item.quantity} × {item.itemName}</b>
+                                <b>
+                                    {item.quantity} × {item.itemName}
+                                </b>
                                 {item.notes ? <span>Note: {item.notes}</span> : null}
                             </div>
                         ))}
@@ -1093,7 +1418,9 @@ function Orders() {
                     show={paymentRequest}
                     title={paymentRequest.title}
                     description={<p>{paymentRequest.message}</p>}
-                    handleSubmit={() => dispatch(paymentConfirmationRequest({ manual: true, customerId: paymentRequest.customerId }))}
+                    handleSubmit={() =>
+                        dispatch(paymentConfirmationRequest({ manual: true, customerId: paymentRequest.customerId }))
+                    }
                     size="md"
                     submitText={paymentRequest.submitText}
                 />

@@ -30,24 +30,48 @@ function ThermalReceipt({ receipt, printerWidth = '58' }) {
 
                 <div className="thermal-rule" />
                 <div className="thermal-meta">
-                    <p><span>Bill No</span><b>{receipt.orderNumber || '-'}</b></p>
-                    <p><span>Order Type</span><b>{receipt.orderType || '-'}</b></p>
-                    <p><span>Table</span><b>{receipt.tableNumber || '-'}</b></p>
-                    <p><span>Customer</span><b>{receipt.customerName || 'Guest'}</b></p>
-                    <p><span>Date</span><b>{receipt.dateTime || '-'}</b></p>
-                    <p><span>Cashier</span><b>{receipt.cashierName || 'Manager'}</b></p>
+                    <p>
+                        <span>Bill No</span>
+                        <b>{receipt.orderNumber || '-'}</b>
+                    </p>
+                    <p>
+                        <span>Order Type</span>
+                        <b>{receipt.orderType || '-'}</b>
+                    </p>
+                    <p>
+                        <span>Table</span>
+                        <b>{receipt.tableNumber || '-'}</b>
+                    </p>
+                    <p>
+                        <span>Customer</span>
+                        <b>{receipt.customerName || 'Guest'}</b>
+                    </p>
+                    <p>
+                        <span>Date</span>
+                        <b>{receipt.dateTime || '-'}</b>
+                    </p>
+                    <p>
+                        <span>Cashier</span>
+                        <b>{receipt.cashierName || 'Manager'}</b>
+                    </p>
                 </div>
 
                 <div className="thermal-rule" />
                 <div className="thermal-items-four thermal-items-head">
-                    <span>Item</span><span>Qty</span><span>Rate</span><span>Amount</span>
+                    <span>Item</span>
+                    <span>Qty</span>
+                    <span>Rate</span>
+                    <span>Amount</span>
                 </div>
                 {(receipt.items || []).map((item, index) => {
                     const qty = Number(item.quantity || 0);
                     const rate = Number(item.unitPrice ?? item.rate ?? item.price ?? 0);
-                    const amount = Number(item.itemPrice ?? item.amount ?? (rate * qty));
+                    const amount = Number(item.itemPrice ?? item.amount ?? rate * qty);
                     return (
-                        <div className="thermal-items-four thermal-item" key={`${item.menuId || item.id || item.name || index}-${index}`}>
+                        <div
+                            className="thermal-items-four thermal-item"
+                            key={`${item.menuId || item.id || item.name || index}-${index}`}
+                        >
                             <span>{item.itemName || item.menuName || item.name || 'Item'}</span>
                             <span>{qty}</span>
                             <span>{money(rate)}</span>
@@ -58,19 +82,58 @@ function ThermalReceipt({ receipt, printerWidth = '58' }) {
 
                 <div className="thermal-rule" />
                 <div className="thermal-totals">
-                    <p><span>Subtotal</span><b>₹{money(receipt.subtotal)}</b></p>
-                    {Number(receipt.discountAmount || 0) > 0 ? <p><span>Discount</span><b>-₹{money(receipt.discountAmount)}</b></p> : null}
-                    {Number(receipt.cgst || 0) > 0 ? <p><span>CGST</span><b>₹{money(receipt.cgst)}</b></p> : null}
-                    {Number(receipt.sgst || 0) > 0 ? <p><span>SGST</span><b>₹{money(receipt.sgst)}</b></p> : null}
-                    {Number(receipt.tipAmount || 0) > 0 ? <p><span>Tip</span><b>₹{money(receipt.tipAmount)}</b></p> : null}
-                    <p className="thermal-grand"><span>Grand Total</span><b>₹{money(receipt.grandTotal)}</b></p>
+                    <p>
+                        <span>Subtotal</span>
+                        <b>₹{money(receipt.subtotal)}</b>
+                    </p>
+                    {Number(receipt.discountAmount || 0) > 0 ? (
+                        <p>
+                            <span>Discount</span>
+                            <b>-₹{money(receipt.discountAmount)}</b>
+                        </p>
+                    ) : null}
+                    {Number(receipt.cgst || 0) > 0 ? (
+                        <p>
+                            <span>CGST</span>
+                            <b>₹{money(receipt.cgst)}</b>
+                        </p>
+                    ) : null}
+                    {Number(receipt.sgst || 0) > 0 ? (
+                        <p>
+                            <span>SGST</span>
+                            <b>₹{money(receipt.sgst)}</b>
+                        </p>
+                    ) : null}
+                    {Number(receipt.tipAmount || 0) > 0 ? (
+                        <p>
+                            <span>Tip</span>
+                            <b>₹{money(receipt.tipAmount)}</b>
+                        </p>
+                    ) : null}
+                    <p className="thermal-grand">
+                        <span>Grand Total</span>
+                        <b>₹{money(receipt.grandTotal)}</b>
+                    </p>
                 </div>
 
                 <div className="thermal-rule" />
                 <div className="thermal-meta">
-                    <p><span>Payment</span><b>{paymentLabel(receipt.paymentMethod)}</b></p>
-                    {isCash ? <p><span>Received</span><b>₹{money(receipt.cashReceived)}</b></p> : null}
-                    {isCash ? <p><span>Change</span><b>₹{money(receipt.changeAmount)}</b></p> : null}
+                    <p>
+                        <span>Payment</span>
+                        <b>{paymentLabel(receipt.paymentMethod)}</b>
+                    </p>
+                    {isCash ? (
+                        <p>
+                            <span>Received</span>
+                            <b>₹{money(receipt.cashReceived)}</b>
+                        </p>
+                    ) : null}
+                    {isCash ? (
+                        <p>
+                            <span>Change</span>
+                            <b>₹{money(receipt.changeAmount)}</b>
+                        </p>
+                    ) : null}
                 </div>
 
                 <div className="thermal-rule" />

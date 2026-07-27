@@ -8,10 +8,7 @@ const clearHotelDashboardCache = (hotelId) => {
     for (let index = 0; index < localStorage.length; index += 1) {
         const key = localStorage.key(index);
 
-        if (
-            key?.startsWith('rcdine-api-cache:') &&
-            key.includes(`/hotel/dashboard/${hotelId}`)
-        ) {
+        if (key?.startsWith('rcdine-api-cache:') && key.includes(`/hotel/dashboard/${hotelId}`)) {
             keysToRemove.push(key);
         }
     }
@@ -150,13 +147,9 @@ export const uploadLogo = async (hotelId, file) => {
     const { instance } = await import('../api/apiClient');
 
     try {
-        const response = await instance.post(
-            `/hotel/${hotelId}/logo`,
-            formData,
-            {
-                timeout: 60000
-            }
-        );
+        const response = await instance.post(`/hotel/${hotelId}/logo`, formData, {
+            timeout: 60000
+        });
 
         clearHotelDashboardCache(hotelId);
 
@@ -168,10 +161,7 @@ export const uploadLogo = async (hotelId, file) => {
             message: error?.message
         });
 
-        throw new Error(
-            error?.response?.data?.message ||
-            'Hotel logo upload failed'
-        );
+        throw new Error(error?.response?.data?.message || 'Hotel logo upload failed');
     }
 };
 

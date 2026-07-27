@@ -1,16 +1,7 @@
 import React, { memo, useEffect, useRef, useState } from 'react';
 import './style.css';
 
-function SmartImage({
-    className = '',
-    alt = '',
-    eager = false,
-    src,
-    fallbackSrc,
-    onLoad,
-    onError,
-    ...props
-}) {
+function SmartImage({ className = '', alt = '', eager = false, src, fallbackSrc, onLoad, onError, ...props }) {
     const containerRef = useRef(null);
     const [visible, setVisible] = useState(eager);
     const [loaded, setLoaded] = useState(false);
@@ -34,11 +25,14 @@ function SmartImage({
             return undefined;
         }
 
-        const observer = new IntersectionObserver(([entry]) => {
-            if (!entry.isIntersecting) return;
-            setVisible(true);
-            observer.disconnect();
-        }, { rootMargin: '320px 0px' });
+        const observer = new IntersectionObserver(
+            ([entry]) => {
+                if (!entry.isIntersecting) return;
+                setVisible(true);
+                observer.disconnect();
+            },
+            { rootMargin: '320px 0px' }
+        );
 
         if (containerRef.current) observer.observe(containerRef.current);
         return () => observer.disconnect();

@@ -43,14 +43,19 @@ function Navbars() {
         dispatch(logoutRequest());
     };
 
-    const handleUnreadChange = useCallback((count) => {
-        const currentNotifications = notificationsDataRef.current;
-        if (currentNotifications.count === count) return;
-        dispatch(setNotificationData({
-            ...currentNotifications,
-            count
-        }));
-    }, [dispatch]);
+    const handleUnreadChange = useCallback(
+        (count) => {
+            const currentNotifications = notificationsDataRef.current;
+            if (currentNotifications.count === count) return;
+            dispatch(
+                setNotificationData({
+                    ...currentNotifications,
+                    count
+                })
+            );
+        },
+        [dispatch]
+    );
 
     let viewData = {};
     try {
@@ -66,11 +71,12 @@ function Navbars() {
     }
 
     useEffect(() => {
-        const syncNotifications = () => runBackgroundTask(async () => {
-            const checkpoint = getBackgroundRequestVersion();
-            dispatch(getNotificationRequest());
-            await waitForBackgroundRequests({ checkpoint });
-        }).catch(() => {});
+        const syncNotifications = () =>
+            runBackgroundTask(async () => {
+                const checkpoint = getBackgroundRequestVersion();
+                dispatch(getNotificationRequest());
+                await waitForBackgroundRequests({ checkpoint });
+            }).catch(() => {});
         const incrementNotification = (key) => {
             if (key && seenNotificationKeysRef.current.has(key)) return;
             if (key) {
@@ -97,13 +103,17 @@ function Navbars() {
         };
     }, [dispatch]);
 
-    useEffect(() => registerRefreshHandler('manager-notifications', async () => {
-        const before = notificationSnapshotRef.current;
-        const checkpoint = getBackgroundRequestVersion();
-        dispatch(getNotificationRequest());
-        await waitForBackgroundRequests({ checkpoint });
-        return before !== notificationSnapshotRef.current;
-    }), [dispatch]);
+    useEffect(
+        () =>
+            registerRefreshHandler('manager-notifications', async () => {
+                const before = notificationSnapshotRef.current;
+                const checkpoint = getBackgroundRequestVersion();
+                dispatch(getNotificationRequest());
+                await waitForBackgroundRequests({ checkpoint });
+                return before !== notificationSnapshotRef.current;
+            }),
+        [dispatch]
+    );
 
     useEffect(() => {
         if (!user.id) {

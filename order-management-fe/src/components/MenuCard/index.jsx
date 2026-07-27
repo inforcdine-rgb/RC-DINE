@@ -44,10 +44,10 @@ function MenuCard({
     name = '',
     tableNumber,
     restaurant = {},
-    handleClick = () => { },
-    handleOnChange = () => { },
+    handleClick = () => {},
+    handleOnChange = () => {},
     tipAmount = 0,
-    onTipAmountChange = () => { }
+    onTipAmountChange = () => {}
 }) {
     const [showSplash, setShowSplash] = useState(() => !sessionStorage.getItem('rcdineSplashSeen'));
     const [searchText, setSearchText] = useState('');
@@ -86,7 +86,7 @@ function MenuCard({
     useEffect(() => {
         const notificationToken = customerToken || localStorage.getItem('rcCustomerPushToken');
         if (!notificationToken || !('Notification' in window) || Notification.permission !== 'granted') return;
-        initializeWebPush({ audience: 'customer', token: notificationToken }).catch(() => { });
+        initializeWebPush({ audience: 'customer', token: notificationToken }).catch(() => {});
     }, [customerToken]);
 
     const clearRcSession = useCallback((message) => {
@@ -118,10 +118,7 @@ function MenuCard({
         }
     }, [clearRcSession, customerToken, rcSession?.tableId]);
 
-    useEffect(
-        () => registerRefreshHandler('customer-rc-session', loadSessionDetails),
-        [loadSessionDetails]
-    );
+    useEffect(() => registerRefreshHandler('customer-rc-session', loadSessionDetails), [loadSessionDetails]);
 
     useEffect(() => {
         if (!rcSession?.id) return undefined;
@@ -129,15 +126,16 @@ function MenuCard({
         const socket = joinRcSessionRoom(rcSession.id);
         const refresh = () => loadSessionDetails();
         const receiveRequest = (request) => {
-            setPendingRequests((current) => current.some((item) => item.id === request.requestId)
-                ? current
-                : [...current, { ...request, id: request.requestId }]);
+            setPendingRequests((current) =>
+                current.some((item) => item.id === request.requestId)
+                    ? current
+                    : [...current, { ...request, id: request.requestId }]
+            );
             setJoinRequestPopup({ ...request, id: request.requestId });
         };
         const removed = (payload) => {
             const ownMobile = localStorage.getItem('rcCustomerMobile');
-            if (String(payload?.mobileNumber) === String(ownMobile)) clearRcSession('Host removed you from the session.');
-            else refresh();
+            if (String(payload?.mobileNumber) === String(ownMobile)) { clearRcSession('Host removed you from the session.'); } else refresh();
         };
         socket.on('session:join-requested', receiveRequest);
         socket.on('session:members-updated', refresh);
@@ -278,12 +276,20 @@ function MenuCard({
     const hotelDetails = useMemo(() => {
         const directHotel = data?.hotel || data?.restaurant || data?.business || data?.customer?.hotel || {};
         const pageHotel = pagesList.find((page) => page?.hotel || page?.restaurant || page?.business) || {};
-        const source = directHotel?.id ? directHotel : pageHotel.hotel || pageHotel.restaurant || pageHotel.business || directHotel;
+        const source = directHotel?.id
+            ? directHotel
+            : pageHotel.hotel || pageHotel.restaurant || pageHotel.business || directHotel;
         return {
             cafeName: name || source?.name || source?.hotelName || source?.businessName || 'R&C Cafe',
             rating: source?.rating || source?.averageRating || source?.ratings || 'Not rated yet',
             address: source?.address || source?.location || source?.fullAddress || '',
-            phone: source?.phone || source?.phoneNumber || source?.mobile || source?.contact || source?.contactNumber || '',
+            phone:
+                source?.phone ||
+                source?.phoneNumber ||
+                source?.mobile ||
+                source?.contact ||
+                source?.contactNumber ||
+                '',
             timing: source?.timing || source?.hours || source?.openingHours || source?.businessHours || '',
             about: source?.about || source?.description || source?.bio || '',
             logo: restaurant?.logo || source?.logo || source?.logoUrl || ''
@@ -318,8 +324,10 @@ function MenuCard({
     const filteredItems = useMemo(() => {
         const query = searchText.trim().toLowerCase();
         const nextItems = allItems.filter((item) => {
-            const categoryOk = activeCategory === 'all' || normalizeCategory(item.categoryName) === normalizeCategory(activeCategory);
-            const searchableText = `${item.name || ''} ${item.categoryName || ''} ${getItemDescription(item)}`.toLowerCase();
+            const categoryOk =
+                activeCategory === 'all' || normalizeCategory(item.categoryName) === normalizeCategory(activeCategory);
+            const searchableText =
+                `${item.name || ''} ${item.categoryName || ''} ${getItemDescription(item)}`.toLowerCase();
             const searchOk = !query || searchableText.includes(query);
             const itemFoodType = String(getFoodType(item)).toUpperCase().replace('-', '_');
             const foodTypeOk =
@@ -405,17 +413,22 @@ function MenuCard({
     }, [currentOrder]);
 
     const cartSuggestionItems = useMemo(
-        () => allItems
-            .filter((item) => item.isCartSuggestion === true)
-            .filter(isItemAvailable)
-            .slice(0, 4),
+        () =>
+            allItems
+                .filter((item) => item.isCartSuggestion === true)
+                .filter(isItemAvailable)
+                .slice(0, 4),
         [allItems]
     );
 
     const subtotal = useMemo(() => cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0), [cartItems]);
     const gstEnabled = Boolean(restaurant?.gstEnabled || data?.hotel?.gstEnabled || data?.gstEnabled);
-    const gstPercent = gstEnabled ? Number(restaurant?.gstPercent || data?.hotel?.gstPercent || data?.gstPercent || 0) : 0;
-    const discountEnabled = Boolean(restaurant?.discountEnabled || data?.hotel?.discountEnabled || data?.discountEnabled);
+    const gstPercent = gstEnabled
+        ? Number(restaurant?.gstPercent || data?.hotel?.gstPercent || data?.gstPercent || 0)
+        : 0;
+    const discountEnabled = Boolean(
+        restaurant?.discountEnabled || data?.hotel?.discountEnabled || data?.discountEnabled
+    );
     const discountType = restaurant?.discountType || data?.hotel?.discountType || data?.discountType || '';
     const discountValue = Number(restaurant?.discountValue || data?.hotel?.discountValue || data?.discountValue || 0);
     const discountAmount = useMemo(() => {
@@ -487,13 +500,9 @@ function MenuCard({
     };
 
     const logoutCustomer = () => {
-        [
-            'rcCustomerToken',
-            'rcCustomerPushToken',
-            'rcCustomerMobile',
-            'rcCustomerName',
-            'rcSession'
-        ].forEach((key) => localStorage.removeItem(key));
+        ['rcCustomerToken', 'rcCustomerPushToken', 'rcCustomerMobile', 'rcCustomerName', 'rcSession'].forEach((key) =>
+            localStorage.removeItem(key)
+        );
         sessionStorage.removeItem('rcdineUnreadCount');
         setOpenPanel('');
         window.dispatchEvent(new CustomEvent('rcdine:session-cleared'));
@@ -638,7 +647,9 @@ function MenuCard({
                             type="button"
                             onClick={() => handleCategorySelect('all')}
                         >
-                            <span className="rc-category-brand-icon"><img src={defaultLogo} alt="" /></span>
+                            <span className="rc-category-brand-icon">
+                                <img src={defaultLogo} alt="" />
+                            </span>
                             <span className="rc-category-label">All</span>
                         </button>
                         {categories.map((category) => (
@@ -648,12 +659,13 @@ function MenuCard({
                                 type="button"
                                 onClick={() => handleCategorySelect(category.name)}
                             >
-                                <span className="rc-category-brand-icon"><img src={defaultLogo} alt="" /></span>
+                                <span className="rc-category-brand-icon">
+                                    <img src={defaultLogo} alt="" />
+                                </span>
                                 <span className="rc-category-label">{category.name}</span>
                             </button>
                         ))}
                     </div>
-
                 </div>
 
                 <div className="rc-menu-scroll-area">
@@ -667,9 +679,16 @@ function MenuCard({
                                 {todayDealItems.map((item) => {
                                     const quantity = getQuantity(item.id);
                                     return (
-                                        <div key={item.id} className={`rc-food-card rc-glass ${!isItemAvailable(item) ? 'is-unavailable' : ''}`}>
+                                        <div
+                                            key={item.id}
+                                            className={`rc-food-card rc-glass ${!isItemAvailable(item) ? 'is-unavailable' : ''}`}
+                                        >
                                             <FoodMedia item={item} />
-                                            <FoodContent item={item} quantity={quantity} setMenuQuantity={setMenuQuantity} />
+                                            <FoodContent
+                                                item={item}
+                                                quantity={quantity}
+                                                setMenuQuantity={setMenuQuantity}
+                                            />
                                         </div>
                                     );
                                 })}
@@ -687,9 +706,16 @@ function MenuCard({
                                 {bestSellerItems.map((item) => {
                                     const quantity = getQuantity(item.id);
                                     return (
-                                        <div key={item.id} className={`rc-food-card rc-glass ${!isItemAvailable(item) ? 'is-unavailable' : ''}`}>
+                                        <div
+                                            key={item.id}
+                                            className={`rc-food-card rc-glass ${!isItemAvailable(item) ? 'is-unavailable' : ''}`}
+                                        >
                                             <FoodMedia item={item} />
-                                            <FoodContent item={item} quantity={quantity} setMenuQuantity={setMenuQuantity} />
+                                            <FoodContent
+                                                item={item}
+                                                quantity={quantity}
+                                                setMenuQuantity={setMenuQuantity}
+                                            />
                                         </div>
                                     );
                                 })}
@@ -709,9 +735,17 @@ function MenuCard({
                                     const quantity = getQuantity(item.id);
 
                                     return (
-                                        <div key={item.id} className={`rc-food-card rc-combo-card rc-glass ${!isItemAvailable(item) ? 'is-unavailable' : ''}`}>
+                                        <div
+                                            key={item.id}
+                                            className={`rc-food-card rc-combo-card rc-glass ${!isItemAvailable(item) ? 'is-unavailable' : ''}`}
+                                        >
                                             <ComboImageSlider combo={item} allItems={allItems} />
-                                            <FoodContent item={item} quantity={quantity} setMenuQuantity={setMenuQuantity} isCombo />
+                                            <FoodContent
+                                                item={item}
+                                                quantity={quantity}
+                                                setMenuQuantity={setMenuQuantity}
+                                                isCombo
+                                            />
                                         </div>
                                     );
                                 })}
@@ -729,14 +763,23 @@ function MenuCard({
                                 filteredItems.map((item) => {
                                     const quantity = getQuantity(item.id);
                                     return (
-                                        <div key={item.id} className={`rc-food-list-card rc-glass ${!isItemAvailable(item) ? 'is-unavailable' : ''}`}>
+                                        <div
+                                            key={item.id}
+                                            className={`rc-food-list-card rc-glass ${!isItemAvailable(item) ? 'is-unavailable' : ''}`}
+                                        >
                                             <FoodMedia item={item} />
-                                            <FoodContent item={item} quantity={quantity} setMenuQuantity={setMenuQuantity} />
+                                            <FoodContent
+                                                item={item}
+                                                quantity={quantity}
+                                                setMenuQuantity={setMenuQuantity}
+                                            />
                                         </div>
                                     );
                                 })
                             ) : (
-                                <div className="rc-empty rc-glass">No {activeCategory === 'all' ? 'food' : activeCategory} available</div>
+                                <div className="rc-empty rc-glass">
+                                    No {activeCategory === 'all' ? 'food' : activeCategory} available
+                                </div>
                             )}
                         </div>
                     </section>
@@ -755,7 +798,9 @@ function MenuCard({
                                 <div className="rc-filter-handle" />
                                 <div className="rc-filter-title-row">
                                     <h3>Filter</h3>
-                                    <button type="button" onClick={() => setShowFilter(false)}>×</button>
+                                    <button type="button" onClick={() => setShowFilter(false)}>
+                                        ×
+                                    </button>
                                 </div>
 
                                 <div className="rc-filter-group">
@@ -798,8 +843,12 @@ function MenuCard({
                                 </div>
 
                                 <div className="rc-filter-actions">
-                                    <button className="rc-filter-clear" type="button" onClick={clearFilters}>Clear</button>
-                                    <button className="rc-filter-apply" type="button" onClick={applyFilters}>Apply</button>
+                                    <button className="rc-filter-clear" type="button" onClick={clearFilters}>
+                                        Clear
+                                    </button>
+                                    <button className="rc-filter-apply" type="button" onClick={applyFilters}>
+                                        Apply
+                                    </button>
                                 </div>
                             </div>
                         </div>,
@@ -808,7 +857,11 @@ function MenuCard({
 
                 {cartItems.length > 0 &&
                     createPortal(
-                        <button className="rc-floating-cart rc-glass" type="button" onClick={() => setShowCartScreen(true)}>
+                        <button
+                            className="rc-floating-cart rc-glass"
+                            type="button"
+                            onClick={() => setShowCartScreen(true)}
+                        >
                             <span className="rc-cart-icon">
                                 🛒<span className="rc-badge">{cartCount}</span>
                             </span>
@@ -846,35 +899,131 @@ function MenuCard({
 
                 <SideDrawer open={openPanel === 'profile'} title="My Profile" onClose={() => setOpenPanel('')}>
                     <div className="rc-profile-card rc-glass">
-                        <div className="rc-profile-avatar" aria-hidden="true">👤</div>
+                        <div className="rc-profile-avatar" aria-hidden="true">
+                            👤
+                        </div>
                         <div>
                             <h3>{customerName}</h3>
                             {features.customerOtpLogin && <p>{customerMobile || 'Mobile number not available'}</p>}
                         </div>
                     </div>
-                    <button className="rc-option rc-profile-option rc-glass" type="button" onClick={openMyOrders}><span>🧾</span><b>My Orders</b><small>View current and previous orders</small></button>
-                    <button className="rc-option rc-profile-option rc-glass" type="button" onClick={() => showComingSoon('Favorites')}><span>❤️</span><b>Favorites</b><small>Your saved food items</small></button>
-                    <button className="rc-option rc-profile-option rc-glass" type="button" onClick={() => showComingSoon('Recently Visited')}><span>🏪</span><b>Recently Visited</b><small>Restaurants visited with RC Dine</small></button>
-                    <button className="rc-option rc-profile-option rc-glass" type="button" onClick={() => showComingSoon('Saved Addresses')}><span>📍</span><b>Saved Addresses</b><small>Manage delivery addresses</small></button>
-                    <button className="rc-option rc-profile-option rc-glass" type="button" onClick={() => showComingSoon('Payment Methods')}><span>💳</span><b>Payment Methods</b><small>Manage cards and UPI</small></button>
-                    <button className="rc-option rc-profile-option rc-glass" type="button" onClick={() => setOpenPanel('notifications')}><span>🔔</span><b>Notifications</b><small>Order and restaurant updates</small></button>
+                    <button className="rc-option rc-profile-option rc-glass" type="button" onClick={openMyOrders}>
+                        <span>🧾</span>
+                        <b>My Orders</b>
+                        <small>View current and previous orders</small>
+                    </button>
+                    <button
+                        className="rc-option rc-profile-option rc-glass"
+                        type="button"
+                        onClick={() => showComingSoon('Favorites')}
+                    >
+                        <span>❤️</span>
+                        <b>Favorites</b>
+                        <small>Your saved food items</small>
+                    </button>
+                    <button
+                        className="rc-option rc-profile-option rc-glass"
+                        type="button"
+                        onClick={() => showComingSoon('Recently Visited')}
+                    >
+                        <span>🏪</span>
+                        <b>Recently Visited</b>
+                        <small>Restaurants visited with RC Dine</small>
+                    </button>
+                    <button
+                        className="rc-option rc-profile-option rc-glass"
+                        type="button"
+                        onClick={() => showComingSoon('Saved Addresses')}
+                    >
+                        <span>📍</span>
+                        <b>Saved Addresses</b>
+                        <small>Manage delivery addresses</small>
+                    </button>
+                    <button
+                        className="rc-option rc-profile-option rc-glass"
+                        type="button"
+                        onClick={() => showComingSoon('Payment Methods')}
+                    >
+                        <span>💳</span>
+                        <b>Payment Methods</b>
+                        <small>Manage cards and UPI</small>
+                    </button>
+                    <button
+                        className="rc-option rc-profile-option rc-glass"
+                        type="button"
+                        onClick={() => setOpenPanel('notifications')}
+                    >
+                        <span>🔔</span>
+                        <b>Notifications</b>
+                        <small>Order and restaurant updates</small>
+                    </button>
                     {features.customerOtpLogin && (
-                        <button className="rc-option rc-profile-option rc-glass" type="button" onClick={() => showComingSoon('Logged-in Devices')}><span>📱</span><b>Logged-in Devices</b><small>Manage active sessions</small></button>
+                        <button
+                            className="rc-option rc-profile-option rc-glass"
+                            type="button"
+                            onClick={() => showComingSoon('Logged-in Devices')}
+                        >
+                            <span>📱</span>
+                            <b>Logged-in Devices</b>
+                            <small>Manage active sessions</small>
+                        </button>
                     )}
-                    <button className="rc-option rc-profile-option rc-glass" type="button" onClick={() => setOpenPanel('help')}><span>❓</span><b>Help & Support</b><small>Get support for your order</small></button>
-                    <button className="rc-option rc-profile-option rc-glass" type="button" onClick={() => setOpenPanel('privacy')}><span>🔒</span><b>Privacy Policy</b><small>How RC Dine uses your data</small></button>
-                    <button className="rc-option rc-profile-option rc-glass" type="button" onClick={() => setOpenPanel('terms')}><span>📄</span><b>Terms & Conditions</b><small>Read customer terms</small></button>
+                    <button
+                        className="rc-option rc-profile-option rc-glass"
+                        type="button"
+                        onClick={() => setOpenPanel('help')}
+                    >
+                        <span>❓</span>
+                        <b>Help & Support</b>
+                        <small>Get support for your order</small>
+                    </button>
+                    <button
+                        className="rc-option rc-profile-option rc-glass"
+                        type="button"
+                        onClick={() => setOpenPanel('privacy')}
+                    >
+                        <span>🔒</span>
+                        <b>Privacy Policy</b>
+                        <small>How RC Dine uses your data</small>
+                    </button>
+                    <button
+                        className="rc-option rc-profile-option rc-glass"
+                        type="button"
+                        onClick={() => setOpenPanel('terms')}
+                    >
+                        <span>📄</span>
+                        <b>Terms & Conditions</b>
+                        <small>Read customer terms</small>
+                    </button>
                     {features.customerOtpLogin && (
-                        <button className="rc-option rc-profile-option rc-profile-logout" type="button" onClick={logoutCustomer}><span>↪</span><b>Logout</b><small>Logout from this device</small></button>
+                        <button
+                            className="rc-option rc-profile-option rc-profile-logout"
+                            type="button"
+                            onClick={logoutCustomer}
+                        >
+                            <span>↪</span>
+                            <b>Logout</b>
+                            <small>Logout from this device</small>
+                        </button>
                     )}
                 </SideDrawer>
 
                 <SideDrawer open={openPanel === 'info'} title="Restaurant Info" onClose={() => setOpenPanel('')}>
                     <div className="rc-restaurant-profile-card rc-glass">
                         <span className="rc-restaurant-profile-logo">
-                            <SmartImage src={hotelDetails.logo || defaultLogo} alt={`${hotelDetails.cafeName} logo`} fallbackSrc={defaultLogo} />
+                            <SmartImage
+                                src={hotelDetails.logo || defaultLogo}
+                                alt={`${hotelDetails.cafeName} logo`}
+                                fallbackSrc={defaultLogo}
+                            />
                         </span>
-                        <div><h3>{hotelDetails.cafeName}</h3><p>⭐ {getCleanText(hotelDetails.rating, 'Rating not available')} · Table {tableNumber ?? '-'}</p></div>
+                        <div>
+                            <h3>{hotelDetails.cafeName}</h3>
+                            <p>
+                                ⭐ {getCleanText(hotelDetails.rating, 'Rating not available')} · Table{' '}
+                                {tableNumber ?? '-'}
+                            </p>
+                        </div>
                     </div>
                     <div className="rc-restaurant-info-card rc-glass">
                         <p>📍 {getCleanText(hotelDetails.address, 'Address not available')}</p>
@@ -884,82 +1033,194 @@ function MenuCard({
                     </div>
                     {features.rcSession && rcSession?.sessionCode && (
                         <>
-                            <button className="rc-option rc-glass" type="button" onClick={copySessionCode}>🔢 Copy Session Code</button>
-                            <button className="rc-option rc-glass" type="button" onClick={shareSessionCode}>📤 Share Session Code</button>
-                            <button className="rc-option rc-glass" type="button" onClick={() => setOpenPanel('members')}>👥 Session Members</button>
-                            {sessionDetails?.isHost && <button className="rc-option rc-glass rc-session-menu-row" type="button" onClick={() => setOpenPanel('pending')}><span>⏳ Pending Requests</span>{pendingRequests.length > 0 && <span className="rc-badge">{pendingRequests.length}</span>}</button>}
-                            {sessionDetails?.isHost && <button className="rc-option rc-glass rc-session-danger" type="button" onClick={() => setOpenPanel('end-session')}>End Session</button>}
+                            <button className="rc-option rc-glass" type="button" onClick={copySessionCode}>
+                                🔢 Copy Session Code
+                            </button>
+                            <button className="rc-option rc-glass" type="button" onClick={shareSessionCode}>
+                                📤 Share Session Code
+                            </button>
+                            <button
+                                className="rc-option rc-glass"
+                                type="button"
+                                onClick={() => setOpenPanel('members')}
+                            >
+                                👥 Session Members
+                            </button>
+                            {sessionDetails?.isHost && (
+                                <button
+                                    className="rc-option rc-glass rc-session-menu-row"
+                                    type="button"
+                                    onClick={() => setOpenPanel('pending')}
+                                >
+                                    <span>⏳ Pending Requests</span>
+                                    {pendingRequests.length > 0 && (
+                                        <span className="rc-badge">{pendingRequests.length}</span>
+                                    )}
+                                </button>
+                            )}
+                            {sessionDetails?.isHost && (
+                                <button
+                                    className="rc-option rc-glass rc-session-danger"
+                                    type="button"
+                                    onClick={() => setOpenPanel('end-session')}
+                                >
+                                    End Session
+                                </button>
+                            )}
                         </>
                     )}
-                    <button className="rc-option rc-glass" type="button" onClick={shareCafe}>📤 Share Restaurant</button>
-                    <button className="rc-option rc-glass" type="button" onClick={callRestaurant}>📞 Call Restaurant</button>
-                    <button className="rc-option rc-glass" type="button" onClick={() => showComingSoon('Table Info')}>🍽 Table Info</button>
-                    <button className="rc-option rc-glass" type="button" onClick={() => setOpenPanel('report')}>🚩 Report Restaurant</button>
-                    <button className="rc-option rc-glass" type="button" onClick={() => setOpenPanel('help')}>❓ Help & Support</button>
-                    <button className="rc-option rc-glass" type="button" onClick={() => setOpenPanel('privacy')}>🔒 Privacy Policy</button>
-                    <button className="rc-option rc-glass" type="button" onClick={() => setOpenPanel('terms')}>📄 Terms & Conditions</button>
+                    <button className="rc-option rc-glass" type="button" onClick={shareCafe}>
+                        📤 Share Restaurant
+                    </button>
+                    <button className="rc-option rc-glass" type="button" onClick={callRestaurant}>
+                        📞 Call Restaurant
+                    </button>
+                    <button className="rc-option rc-glass" type="button" onClick={() => showComingSoon('Table Info')}>
+                        🍽 Table Info
+                    </button>
+                    <button className="rc-option rc-glass" type="button" onClick={() => setOpenPanel('report')}>
+                        🚩 Report Restaurant
+                    </button>
+                    <button className="rc-option rc-glass" type="button" onClick={() => setOpenPanel('help')}>
+                        ❓ Help & Support
+                    </button>
+                    <button className="rc-option rc-glass" type="button" onClick={() => setOpenPanel('privacy')}>
+                        🔒 Privacy Policy
+                    </button>
+                    <button className="rc-option rc-glass" type="button" onClick={() => setOpenPanel('terms')}>
+                        📄 Terms & Conditions
+                    </button>
                 </SideDrawer>
 
-                <BottomSheet open={features.rcSession && openPanel === 'session-details'} title="Session Details" onClose={() => setOpenPanel('')}>
+                <BottomSheet
+                    open={features.rcSession && openPanel === 'session-details'}
+                    title="Session Details"
+                    onClose={() => setOpenPanel('')}
+                >
                     <div className="rc-session-details-card rc-glass">
                         <small>RC Session Code</small>
                         <strong>RC: {rcSession?.sessionCode}</strong>
                         <p>{sessionDetails?.isHost ? 'You are the host' : 'You are a member'}</p>
-                        <button type="button" className="rc-session-primary" onClick={copySessionCode}>Copy Session Code</button>
-                        <button type="button" className="rc-session-secondary" onClick={shareSessionCode}>Share Session Code</button>
+                        <button type="button" className="rc-session-primary" onClick={copySessionCode}>
+                            Copy Session Code
+                        </button>
+                        <button type="button" className="rc-session-secondary" onClick={shareSessionCode}>
+                            Share Session Code
+                        </button>
                     </div>
                 </BottomSheet>
 
-                <SideDrawer open={features.rcSession && openPanel === 'members'} title="Session Members" onClose={() => setOpenPanel('')}>
+                <SideDrawer
+                    open={features.rcSession && openPanel === 'members'}
+                    title="Session Members"
+                    onClose={() => setOpenPanel('')}
+                >
                     {(sessionDetails?.members || []).map((member) => (
                         <div key={member.id} className="rc-option rc-glass rc-session-member-row">
                             <span>
                                 <b>{member.role === 'OWNER' ? '👑 Host' : '👤 Member'}</b>
-                                <small>{String(member.mobileNumber).slice(0, 2)}xxxxxx{String(member.mobileNumber).slice(-2)}</small>
+                                <small>
+                                    {String(member.mobileNumber).slice(0, 2)}xxxxxx
+                                    {String(member.mobileNumber).slice(-2)}
+                                </small>
                             </span>
                             {sessionDetails?.isHost && member.role !== 'OWNER' && (
-                                <button type="button" disabled={sessionBusy} onClick={() => removeMember(member.id)}>Remove Member</button>
+                                <button type="button" disabled={sessionBusy} onClick={() => removeMember(member.id)}>
+                                    Remove Member
+                                </button>
                             )}
                         </div>
                     ))}
                     {!sessionDetails?.isHost && (
-                        <button className="rc-session-danger-button" type="button" disabled={sessionBusy} onClick={leaveSession}>
+                        <button
+                            className="rc-session-danger-button"
+                            type="button"
+                            disabled={sessionBusy}
+                            onClick={leaveSession}
+                        >
                             Leave Session
                         </button>
                     )}
                 </SideDrawer>
 
-                <SideDrawer open={features.rcSession && openPanel === 'pending'} title="Pending Requests" onClose={() => setOpenPanel('')}>
+                <SideDrawer
+                    open={features.rcSession && openPanel === 'pending'}
+                    title="Pending Requests"
+                    onClose={() => setOpenPanel('')}
+                >
                     {pendingRequests.length === 0 && <div className="rc-option rc-glass">No pending requests</div>}
                     {pendingRequests.map((request) => (
                         <div key={request.id} className="rc-option rc-glass rc-join-request-card">
                             <b>{request.requesterName || 'Friend'} wants to join your session.</b>
-                            <p>Phone: {String(request.mobileNumber).slice(0, 2)}xxxxxx{String(request.mobileNumber).slice(-2)}</p>
+                            <p>
+                                Phone: {String(request.mobileNumber).slice(0, 2)}xxxxxx
+                                {String(request.mobileNumber).slice(-2)}
+                            </p>
                             <div>
-                                <button type="button" disabled={sessionBusy} onClick={() => respondToJoinRequest(request, 'REJECT')}>Reject</button>
-                                <button type="button" disabled={sessionBusy} onClick={() => respondToJoinRequest(request, 'ACCEPT')}>Accept</button>
+                                <button
+                                    type="button"
+                                    disabled={sessionBusy}
+                                    onClick={() => respondToJoinRequest(request, 'REJECT')}
+                                >
+                                    Reject
+                                </button>
+                                <button
+                                    type="button"
+                                    disabled={sessionBusy}
+                                    onClick={() => respondToJoinRequest(request, 'ACCEPT')}
+                                >
+                                    Accept
+                                </button>
                             </div>
                         </div>
                     ))}
                 </SideDrawer>
 
-                <BottomSheet open={features.rcSession && Boolean(joinRequestPopup)} title="Join Request" onClose={() => setJoinRequestPopup(null)}>
+                <BottomSheet
+                    open={features.rcSession && Boolean(joinRequestPopup)}
+                    title="Join Request"
+                    onClose={() => setJoinRequestPopup(null)}
+                >
                     {joinRequestPopup && (
                         <div className="rc-join-request-card rc-glass">
                             <h3>{joinRequestPopup.requesterName || 'Friend'} wants to join your session.</h3>
-                            <p>Phone: {String(joinRequestPopup.mobileNumber).slice(0, 2)}xxxxxx{String(joinRequestPopup.mobileNumber).slice(-2)}</p>
+                            <p>
+                                Phone: {String(joinRequestPopup.mobileNumber).slice(0, 2)}xxxxxx
+                                {String(joinRequestPopup.mobileNumber).slice(-2)}
+                            </p>
                             <div>
-                                <button type="button" disabled={sessionBusy} onClick={() => respondToJoinRequest(joinRequestPopup, 'REJECT')}>Reject</button>
-                                <button type="button" disabled={sessionBusy} onClick={() => respondToJoinRequest(joinRequestPopup, 'ACCEPT')}>Accept</button>
+                                <button
+                                    type="button"
+                                    disabled={sessionBusy}
+                                    onClick={() => respondToJoinRequest(joinRequestPopup, 'REJECT')}
+                                >
+                                    Reject
+                                </button>
+                                <button
+                                    type="button"
+                                    disabled={sessionBusy}
+                                    onClick={() => respondToJoinRequest(joinRequestPopup, 'ACCEPT')}
+                                >
+                                    Accept
+                                </button>
                             </div>
                         </div>
                     )}
                 </BottomSheet>
 
-                <BottomSheet open={features.rcSession && openPanel === 'end-session'} title="End Session?" onClose={() => setOpenPanel('')}>
+                <BottomSheet
+                    open={features.rcSession && openPanel === 'end-session'}
+                    title="End Session?"
+                    onClose={() => setOpenPanel('')}
+                >
                     <div className="rc-session-confirm">
                         <p>This removes all pending requests and returns every member to normal customer mode.</p>
-                        <button type="button" className="rc-session-danger-button" disabled={sessionBusy} onClick={endSession}>
+                        <button
+                            type="button"
+                            className="rc-session-danger-button"
+                            disabled={sessionBusy}
+                            onClick={endSession}
+                        >
                             {sessionBusy ? 'Ending…' : 'End Session'}
                         </button>
                     </div>
@@ -968,19 +1229,30 @@ function MenuCard({
                 <BottomSheet open={openPanel === 'help'} title="Help & Support" onClose={() => setOpenPanel('')}>
                     <div className="rc-restaurant-info-card rc-glass">
                         <p>For order assistance, please contact the restaurant staff.</p>
-                        <button className="rc-option rc-glass" type="button" onClick={callRestaurant}>📞 Call Restaurant</button>
+                        <button className="rc-option rc-glass" type="button" onClick={callRestaurant}>
+                            📞 Call Restaurant
+                        </button>
                     </div>
                 </BottomSheet>
 
                 <BottomSheet open={openPanel === 'privacy'} title="Privacy Policy" onClose={() => setOpenPanel('')}>
-                    <p className="rc-muted">RC Dine stores the minimum customer and order information required to provide ordering, payment and support services.</p>
+                    <p className="rc-muted">
+                        RC Dine stores the minimum customer and order information required to provide ordering, payment
+                        and support services.
+                    </p>
                     <p className="rc-muted">Detailed production policy text can be connected here later.</p>
                 </BottomSheet>
 
                 <BottomSheet open={openPanel === 'report'} title="Report Restaurant" onClose={() => setOpenPanel('')}>
                     <div className="rc-restaurant-info-card rc-glass">
                         <p>Report incorrect menu, pricing, hygiene or service information.</p>
-                        <button className="rc-session-danger-button" type="button" onClick={() => showComingSoon('Restaurant reporting')}>Continue</button>
+                        <button
+                            className="rc-session-danger-button"
+                            type="button"
+                            onClick={() => showComingSoon('Restaurant reporting')}
+                        >
+                            Continue
+                        </button>
                     </div>
                 </BottomSheet>
 
@@ -1013,7 +1285,9 @@ function MenuCard({
                                         <div key={item.id} className="rc-cart-screen-item rc-glass">
                                             <div>
                                                 <b>{item.name}</b>
-                                                <small>{item.quantity} × ₹{item.price}</small>
+                                                <small>
+                                                    {item.quantity} × ₹{item.price}
+                                                </small>
                                             </div>
                                             <b>₹{item.quantity * item.price}</b>
                                         </div>
@@ -1042,7 +1316,9 @@ function MenuCard({
                                     </div>
                                     {discountAmount > 0 && (
                                         <div>
-                                            <span>Discount {discountType === 'PERCENT' ? `(${discountValue}%)` : ''}</span>
+                                            <span>
+                                                Discount {discountType === 'PERCENT' ? `(${discountValue}%)` : ''}
+                                            </span>
                                             <b>-₹{discountAmount.toFixed(0)}</b>
                                         </div>
                                     )}
@@ -1056,7 +1332,9 @@ function MenuCard({
                                     </div>
                                     <div className="total">
                                         <span>Grand Total</span>
-                                        <b key={grandTotal} className="rc-cart-value-pop">₹{grandTotal.toFixed(2)}</b>
+                                        <b key={grandTotal} className="rc-cart-value-pop">
+                                            ₹{grandTotal.toFixed(2)}
+                                        </b>
                                     </div>
                                 </div>
                             </div>
@@ -1080,7 +1358,9 @@ function MenuCard({
                                 onClick={() => setShowUpsellPopup(false)}
                             />
                             <div className="rc-upsell-modal">
-                                <div className="rc-upsell-icon">🛒<span>✓</span></div>
+                                <div className="rc-upsell-icon">
+                                    🛒<span>✓</span>
+                                </div>
                                 <h2>Almost Done! 🎉</h2>
                                 <p>Would you like to add something else to make your meal perfect?</p>
 
@@ -1096,14 +1376,25 @@ function MenuCard({
                                                     <small>{getItemDescription(item)}</small>
                                                 </div>
                                                 <strong>₹{item.price}</strong>
-                                                <QtyButton item={item} quantity={quantity} setMenuQuantity={setMenuQuantity} />
+                                                <QtyButton
+                                                    item={item}
+                                                    quantity={quantity}
+                                                    setMenuQuantity={setMenuQuantity}
+                                                />
                                             </div>
                                         );
                                     })}
                                 </div>
 
                                 <div className="rc-upsell-actions">
-                                    <button type="button" className="rc-no-thanks" onClick={() => { setShowUpsellPopup(false); finishPayment(); }}>
+                                    <button
+                                        type="button"
+                                        className="rc-no-thanks"
+                                        onClick={() => {
+                                            setShowUpsellPopup(false);
+                                            finishPayment();
+                                        }}
+                                    >
                                         No Thanks
                                     </button>
                                     <button type="button" className="rc-add-continue" onClick={handleAddAndContinue}>
@@ -1114,19 +1405,32 @@ function MenuCard({
                         </div>,
                         document.body
                     )}
-
             </div>
         </div>
     );
 }
 
 const getComboItemIds = (combo = {}) => {
-    if (Array.isArray(combo.comboItems)) return combo.comboItems.map((item) => (typeof item === 'object' ? String(item.id || item.menuId || '') : String(item))).filter(Boolean);
-    if (Array.isArray(combo.items)) return combo.items.map((item) => (typeof item === 'object' ? String(item.id || item.menuId || '') : String(item))).filter(Boolean);
-    if (Array.isArray(combo.foodItems)) return combo.foodItems.map((item) => (typeof item === 'object' ? String(item.id || item.menuId || '') : String(item))).filter(Boolean);
+    if (Array.isArray(combo.comboItems)) {
+        return combo.comboItems
+            .map((item) => (typeof item === 'object' ? String(item.id || item.menuId || '') : String(item)))
+            .filter(Boolean);
+    }
+    if (Array.isArray(combo.items)) {
+        return combo.items
+            .map((item) => (typeof item === 'object' ? String(item.id || item.menuId || '') : String(item)))
+            .filter(Boolean);
+    }
+    if (Array.isArray(combo.foodItems)) {
+        return combo.foodItems
+            .map((item) => (typeof item === 'object' ? String(item.id || item.menuId || '') : String(item)))
+            .filter(Boolean);
+    }
 
     try {
-        return JSON.parse(combo.comboItems || '[]').map((item) => (typeof item === 'object' ? String(item.id || item.menuId || '') : String(item))).filter(Boolean);
+        return JSON.parse(combo.comboItems || '[]')
+            .map((item) => (typeof item === 'object' ? String(item.id || item.menuId || '') : String(item)))
+            .filter(Boolean);
     } catch (error) {
         return [];
     }
@@ -1198,14 +1502,27 @@ function ComboImageSlider({ combo, allItems }) {
 function FoodMedia({ item }) {
     const image = getItemImage(item);
     if (image) return <SmartImage className="rc-food-img" src={image} alt={item.name || 'Food'} />;
-    return <div className="rc-food-placeholder">{String(item.name || 'F').trim().charAt(0).toUpperCase()}</div>;
+    return (
+        <div className="rc-food-placeholder">
+            {String(item.name || 'F')
+                .trim()
+                .charAt(0)
+                .toUpperCase()}
+        </div>
+    );
 }
 
 function FoodContent({ item, quantity, setMenuQuantity, isCombo = false }) {
     return (
         <div className="rc-food-info">
             <div className="rc-food-line">
-                <span className={isCombo ? 'rc-combo-mini-badge' : getFoodType(item) === 'NON_VEG' ? 'rc-nonveg' : 'rc-veg'}>{isCombo ? 'COMBO' : getFoodType(item) === 'NON_VEG' ? 'NON VEG' : 'VEG'}</span>
+                <span
+                    className={
+                        isCombo ? 'rc-combo-mini-badge' : getFoodType(item) === 'NON_VEG' ? 'rc-nonveg' : 'rc-veg'
+                    }
+                >
+                    {isCombo ? 'COMBO' : getFoodType(item) === 'NON_VEG' ? 'NON VEG' : 'VEG'}
+                </span>
                 <span>⭐ {item.rating || '4.7'}</span>
             </div>
             <h4>{item.name}</h4>
@@ -1219,17 +1536,33 @@ function FoodContent({ item, quantity, setMenuQuantity, isCombo = false }) {
 }
 
 function QtyButton({ item, quantity, setMenuQuantity }) {
-    if (!isItemAvailable(item)) return <button className="rc-add-btn" type="button" disabled>+</button>;
+    if (!isItemAvailable(item)) {
+        return (
+            <button className="rc-add-btn" type="button" disabled>
+                +
+            </button>
+        );
+    }
     if (quantity > 0) {
         return (
             <div className="rc-qty">
-                <button type="button" onClick={() => setMenuQuantity(item, Math.max(0, quantity - 1))}>-</button>
-                <b key={quantity} className="rc-quantity-pop">{quantity}</b>
-                <button type="button" onClick={() => setMenuQuantity(item, quantity + 1)}>+</button>
+                <button type="button" onClick={() => setMenuQuantity(item, Math.max(0, quantity - 1))}>
+                    -
+                </button>
+                <b key={quantity} className="rc-quantity-pop">
+                    {quantity}
+                </b>
+                <button type="button" onClick={() => setMenuQuantity(item, quantity + 1)}>
+                    +
+                </button>
             </div>
         );
     }
-    return <button className="rc-add-btn" type="button" onClick={() => setMenuQuantity(item, 1)}>+</button>;
+    return (
+        <button className="rc-add-btn" type="button" onClick={() => setMenuQuantity(item, 1)}>
+            +
+        </button>
+    );
 }
 
 function BottomSheet({ open, title, children, onClose }) {
@@ -1237,7 +1570,9 @@ function BottomSheet({ open, title, children, onClose }) {
         <div className={`rc-sheet rc-glass ${open ? 'open' : ''}`} data-preserve-scroll>
             <div className="rc-panel-head">
                 <h3>{title}</h3>
-                <button type="button" onClick={onClose}>×</button>
+                <button type="button" onClick={onClose}>
+                    ×
+                </button>
             </div>
             {children}
         </div>,
@@ -1250,7 +1585,9 @@ function SideDrawer({ open, title, children, onClose }) {
         <div className={`rc-drawer rc-glass ${open ? 'open' : ''}`} data-preserve-scroll>
             <div className="rc-panel-head">
                 <h3>{title}</h3>
-                <button type="button" onClick={onClose}>×</button>
+                <button type="button" onClick={onClose}>
+                    ×
+                </button>
             </div>
             {children}
         </div>,

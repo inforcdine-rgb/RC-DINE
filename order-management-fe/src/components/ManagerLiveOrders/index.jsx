@@ -21,9 +21,7 @@ function ManagerLiveOrders() {
                 return;
             }
 
-            const isManagerPosOrder =
-                payload?.source === 'MANAGER_POS' ||
-                payload?.type === 'MANAGER_POS';
+            const isManagerPosOrder = payload?.source === 'MANAGER_POS' || payload?.type === 'MANAGER_POS';
 
             if (isManagerPosOrder) {
                 return;
@@ -31,13 +29,14 @@ function ManagerLiveOrders() {
 
             const orderKey = payload?.orderId || payload?.orderNumber || Date.now();
             playManagerBell(orderKey);
-            window.dispatchEvent(new CustomEvent('rcdine:manager-notification', {
-                detail: { key: `new-order:${orderKey}` }
-            }));
+            window.dispatchEvent(
+                new CustomEvent('rcdine:manager-notification', {
+                    detail: { key: `new-order:${orderKey}` }
+                })
+            );
 
             const tableLabel =
-                payload?.tableNumber &&
-                Number(payload.tableNumber) > 0
+                payload?.tableNumber && Number(payload.tableNumber) > 0
                     ? `Table ${payload.tableNumber}`
                     : 'Customer QR';
 
@@ -57,27 +56,26 @@ function ManagerLiveOrders() {
 
             const orderKey = payload?.orderId || payload?.orderNumber || Date.now();
             playOrderCancelledSound(orderKey);
-            window.dispatchEvent(new CustomEvent('rcdine:manager-notification', {
-                detail: { key: `order-cancelled:${orderKey}` }
-            }));
+            window.dispatchEvent(
+                new CustomEvent('rcdine:manager-notification', {
+                    detail: { key: `order-cancelled:${orderKey}` }
+                })
+            );
 
             const tableLabel =
                 payload?.tableNumber && Number(payload.tableNumber) > 0
                     ? `Table ${payload.tableNumber}`
                     : 'Customer order';
 
-            toast.error(
-                `❌ ${tableLabel}${payload?.orderNumber ? ` · ${payload.orderNumber}` : ''} cancelled`,
-                {
-                    toastId: `order-cancelled-${orderKey}`,
-                    position: 'top-right',
-                    autoClose: 6000,
-                    hideProgressBar: false,
-                    closeOnClick: true,
-                    pauseOnHover: true,
-                    draggable: true
-                }
-            );
+            toast.error(`❌ ${tableLabel}${payload?.orderNumber ? ` · ${payload.orderNumber}` : ''} cancelled`, {
+                toastId: `order-cancelled-${orderKey}`,
+                position: 'top-right',
+                autoClose: 6000,
+                hideProgressBar: false,
+                closeOnClick: true,
+                pauseOnHover: true,
+                draggable: true
+            });
         };
 
         if (socket.connected) {

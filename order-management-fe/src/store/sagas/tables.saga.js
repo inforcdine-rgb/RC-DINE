@@ -17,7 +17,12 @@ function* getTablesRequestSaga(action) {
         const res = yield service.fetch(hotelId, filter, active);
 
         const data = res.rows?.reduce((cur, next) => {
-            cur.push({ label: next.tableName || `Table-${next.tableNumber}`, value: next.id, tableNumber: next.tableNumber, status: next.status });
+            cur.push({
+                label: next.tableName || `Table-${next.tableNumber}`,
+                value: next.id,
+                tableNumber: next.tableNumber,
+                status: next.status
+            });
             return cur;
         }, []);
 

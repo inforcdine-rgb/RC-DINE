@@ -105,46 +105,36 @@ function OMTModal({
                         onSubmit={handleSubmit}
                         enableReinitialize
                     >
-                        {({
-                            isSubmitting,
-                            isValid,
-                            dirty,
-                            setFieldValue,
-                            values,
-                            setValues
-                        }) => (
+                        {({ isSubmitting, isValid, dirty, setFieldValue, values, setValues }) => (
                             <Form className="d-flex flex-column">
                                 <div className="row mb-4">
-                                    {Object.entries(description || {}).map(
-                                        ([key, property], index) => {
-                                            const disabled =
-                                                property.invalidDisable &&
-                                                (isSubmitting || !isValid || !dirty)
-                                                    ? true
-                                                    : property.disabled;
+                                    {Object.entries(description || {}).map(([key, property], index) => {
+                                        const disabled =
+                                            property.invalidDisable && (isSubmitting || !isValid || !dirty)
+                                                ? true
+                                                : property.disabled;
 
-                                            return (
-                                                <Fragment key={`${key}-${index}`}>
-                                                    <CustomFormGroup
-                                                        className={property.className}
-                                                        name={property.name}
-                                                        type={property.type}
-                                                        label={property.label}
-                                                        options={property.options}
-                                                        setFieldValue={setFieldValue}
-                                                        disabled={disabled}
-                                                        isMulti={property.isMulti}
-                                                        onClick={property.onClick}
-                                                        icon={property.icon}
-                                                        values={values}
-                                                        getValues={property.getValues}
-                                                        setFormValues={setValues}
-                                                        required={property.required}
-                                                    />
-                                                </Fragment>
-                                            );
-                                        }
-                                    )}
+                                        return (
+                                            <Fragment key={`${key}-${index}`}>
+                                                <CustomFormGroup
+                                                    className={property.className}
+                                                    name={property.name}
+                                                    type={property.type}
+                                                    label={property.label}
+                                                    options={property.options}
+                                                    setFieldValue={setFieldValue}
+                                                    disabled={disabled}
+                                                    isMulti={property.isMulti}
+                                                    onClick={property.onClick}
+                                                    icon={property.icon}
+                                                    values={values}
+                                                    getValues={property.getValues}
+                                                    setFormValues={setValues}
+                                                    required={property.required}
+                                                />
+                                            </Fragment>
+                                        );
+                                    })}
                                 </div>
 
                                 <ModalFooter

@@ -55,9 +55,7 @@ function Managers() {
     };
 
     const updateOptions = (manager) => {
-        const assignedHotels = manager?.hotel?.id
-            ? [{ label: manager.hotel.name, value: manager.hotel.id }]
-            : [];
+        const assignedHotels = manager?.hotel?.id ? [{ label: manager.hotel.name, value: manager.hotel.id }] : [];
 
         return {
             action: 'update',
@@ -132,11 +130,7 @@ function Managers() {
     }, [dispatch, hotels?.rows?.length]);
 
     useEffect(() => {
-        dispatch(
-            setHotelOption(
-                hotels?.rows?.map((hotel) => ({ label: hotel.name, value: hotel.id })) || []
-            )
-        );
+        dispatch(setHotelOption(hotels?.rows?.map((hotel) => ({ label: hotel.name, value: hotel.id })) || []));
     }, [dispatch, hotels?.rows]);
 
     useEffect(() => {
@@ -153,7 +147,10 @@ function Managers() {
         setSubmitting(true);
 
         if (formInfo?.action === 'create') {
-            const nameParts = String(values.name || '').trim().split(' ').filter(Boolean);
+            const nameParts = String(values.name || '')
+                .trim()
+                .split(' ')
+                .filter(Boolean);
             const firstName = nameParts.shift() || '';
             const lastName = nameParts.join(' ');
             dispatch(

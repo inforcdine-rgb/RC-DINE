@@ -27,10 +27,11 @@ const orderPlacementSlice = createSlice({
         setViewOrderDetails(state, action) {
             const { count, rows } = action.payload;
             const firstBillRow = rows?.find((obj) => Number(obj.finalAmount || 0) > 0) || rows?.[0] || {};
-            const subtotal = rows?.reduce((cur, next) => {
-                cur += Number(next.price || 0);
-                return cur;
-            }, 0) || 0;
+            const subtotal =
+                rows?.reduce((cur, next) => {
+                    cur += Number(next.price || 0);
+                    return cur;
+                }, 0) || 0;
             state.viewOrderDetails = {
                 count,
                 title: 'View Order',

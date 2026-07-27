@@ -13,10 +13,11 @@ jest.mock('react-router-dom', () => ({
 
 jest.mock('react-redux', () => ({
     useDispatch: () => () => undefined,
-    useSelector: (selector) => selector({
-        user: { data: {} },
-        hotel: { globalHotelId: null }
-    })
+    useSelector: (selector) =>
+        selector({
+            user: { data: {} },
+            hotel: { globalHotelId: null }
+        })
 }));
 
 jest.mock('crypto-js', () => ({
@@ -32,11 +33,12 @@ jest.mock('crypto-js', () => ({
 
 // Test suite for Sidebar component
 describe('test sidebar component', () => {
-    const renderSidebar = () => render(
-        <MemoryRouter>
-            <Sidebar />
-        </MemoryRouter>
-    );
+    const renderSidebar = () =>
+        render(
+            <MemoryRouter>
+                <Sidebar />
+            </MemoryRouter>
+        );
 
     // Test to check if the sidebar compresses correctly
     test('test check compress', async () => {

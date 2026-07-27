@@ -214,7 +214,13 @@ function Landing() {
         const loadPlans = async () => {
             try {
                 const response = await subscriptionService.getPlans();
-                setPlans(response?.plans || []);
+                const loadedPlans = Array.isArray(response)
+                    ? response
+                    : response?.plans || response?.data?.plans || response?.data || [];
+
+                if (Array.isArray(loadedPlans) && loadedPlans.length > 0) {
+                    setPlans(loadedPlans);
+                }
             } catch (error) {
                 console.error('Unable to load landing subscription plans', error);
             }
@@ -298,9 +304,7 @@ function Landing() {
         const x = (event.clientX - rect.left) / rect.width - 0.5;
         const y = (event.clientY - rect.top) / rect.height - 0.5;
 
-        card.style.transform = `perspective(800px) rotateY(${x * 8}deg) rotateX(${
-            -y * 8
-        }deg) translateY(-4px)`;
+        card.style.transform = `perspective(800px) rotateY(${x * 8}deg) rotateX(${-y * 8}deg) translateY(-4px)`;
     };
 
     const resetFeatureTilt = (event) => {
@@ -314,7 +318,11 @@ function Landing() {
             <nav className="landing-nav">
                 <div className="landing-wrap landing-nav-inner">
                     <a className="landing-brand" href="#home" aria-label="RC Dine home">
-                        {website.logoUrl ? <img className="landing-logo-image" src={website.logoUrl} alt="RC Dine" /> : <span className="landing-logo">R</span>}
+                        {website.logoUrl ? (
+                            <img className="landing-logo-image" src={website.logoUrl} alt="RC Dine" />
+                        ) : (
+                            <span className="landing-logo">R</span>
+                        )}
                         <span>RC DINE</span>
                     </a>
 
@@ -331,6 +339,16 @@ function Landing() {
                         <a href="#faq" onClick={() => setMobileMenuOpen(false)}>
                             FAQ
                         </a>
+                        <button
+                            type="button"
+                            className="landing-link-button"
+                            onClick={() => {
+                                setMobileMenuOpen(false);
+                                navigate('/contact');
+                            }}
+                        >
+                            Contact
+                        </button>
                     </div>
 
                     <div className="landing-nav-actions">
@@ -356,7 +374,14 @@ function Landing() {
                 <section className="landing-hero" id="home">
                     <div className="cinema-bg" aria-hidden="true">
                         {website.videoEnabled && website.heroVideoUrl && (
-                            <video className="cinema-video" src={website.heroVideoUrl} autoPlay muted loop playsInline />
+                            <video
+                                className="cinema-video"
+                                src={website.heroVideoUrl}
+                                autoPlay
+                                muted
+                                loop
+                                playsInline
+                            />
                         )}
                         <div className="cinema-scene" />
                         <div className="cinema-grain" />
@@ -369,18 +394,19 @@ function Landing() {
 
                     <div className="landing-wrap hero-grid">
                         <div className="hero-copy">
-                            <span className="landing-tag">
-                                ✦ Built for next-generation restaurants
-                            </span>
-                            <h1><span className="landing-gradient-text">{website.heroTitle || 'Restaurant Management Reimagined with AI'}</span></h1>
-                            <p>{website.heroDescription || 'Run orders, billing, kitchen operations, analytics and subscriptions from one intelligent platform. Faster service. Happier teams. Smarter growth.'}</p>
+                            <span className="landing-tag">✦ Built for next-generation restaurants</span>
+                            <h1>
+                                <span className="landing-gradient-text">
+                                    {website.heroTitle || 'Restaurant Management Reimagined with AI'}
+                                </span>
+                            </h1>
+                            <p>
+                                {website.heroDescription ||
+                                    'Run orders, billing, kitchen operations, analytics and subscriptions from one intelligent platform. Faster service. Happier teams. Smarter growth.'}
+                            </p>
 
                             <div className="hero-buttons">
-                                <button
-                                    type="button"
-                                    className="landing-btn primary"
-                                    onClick={goToSignup}
-                                >
+                                <button type="button" className="landing-btn primary" onClick={goToSignup}>
                                     {website.primaryButtonText || 'Start Free Trial →'}
                                 </button>
                                 <a className="landing-btn ghost" href="#demo">
@@ -394,9 +420,7 @@ function Landing() {
                                 <span>Cancel anytime</span>
                             </div>
 
-                            <div className="video-label">
-                                Cinematic live restaurant atmosphere
-                            </div>
+                            <div className="video-label">Cinematic live restaurant atmosphere</div>
                         </div>
 
                         <div className="hero-visual">
@@ -450,11 +474,7 @@ function Landing() {
                                         <strong>Sales Pulse</strong>
                                         <div className="bar-chart" aria-hidden="true">
                                             {[38, 55, 45, 78, 65, 95].map((height) => (
-                                                <i
-                                                    key={height}
-                                                    className="bar"
-                                                    style={{ height: `${height}%` }}
-                                                />
+                                                <i key={height} className="bar" style={{ height: `${height}%` }} />
                                             ))}
                                         </div>
                                     </div>
@@ -483,12 +503,8 @@ function Landing() {
                                 </div>
                             </div>
 
-                            <div className="floating-notice notice-one">
-                                🔔 New order from Table 4
-                            </div>
-                            <div className="floating-notice notice-two">
-                                ✓ Payment verified successfully
-                            </div>
+                            <div className="floating-notice notice-one">🔔 New order from Table 4</div>
+                            <div className="floating-notice notice-two">✓ Payment verified successfully</div>
                         </div>
                     </div>
                 </section>
@@ -498,10 +514,7 @@ function Landing() {
                         <div className="section-heading reveal">
                             <span className="landing-tag">LIVE PRODUCT PREVIEW</span>
                             <h2>See every order move in real time</h2>
-                            <p>
-                                From QR scan to analytics update, RC Dine keeps your entire
-                                restaurant synchronized.
-                            </p>
+                            <p>From QR scan to analytics update, RC Dine keeps your entire restaurant synchronized.</p>
                         </div>
 
                         <div className="workflow-demo reveal">
@@ -510,9 +523,7 @@ function Landing() {
                                     <button
                                         type="button"
                                         key={step.title}
-                                        className={`workflow-step ${
-                                            activeWorkflow === index ? 'active' : ''
-                                        }`}
+                                        className={`workflow-step ${activeWorkflow === index ? 'active' : ''}`}
                                         onClick={() => setActiveWorkflow(index)}
                                     >
                                         <span className="workflow-icon">{step.icon}</span>
@@ -620,11 +631,7 @@ function Landing() {
                                         </div>
                                         <div className="bar-chart analytics-chart">
                                             {[30, 50, 43, 83, 70, 100].map((height) => (
-                                                <i
-                                                    key={height}
-                                                    className="bar"
-                                                    style={{ height: `${height}%` }}
-                                                />
+                                                <i key={height} className="bar" style={{ height: `${height}%` }} />
                                             ))}
                                         </div>
                                     </div>
@@ -638,11 +645,7 @@ function Landing() {
                     <div className="landing-wrap stats-grid reveal">
                         {stats.map((stat) => (
                             <div className="stat-card" key={stat.label}>
-                                <StatCounter
-                                    value={stat.value}
-                                    suffix={stat.suffix}
-                                    decimals={stat.decimals}
-                                />
+                                <StatCounter value={stat.value} suffix={stat.suffix} decimals={stat.decimals} />
                                 <span>{stat.label}</span>
                             </div>
                         ))}
@@ -658,10 +661,7 @@ function Landing() {
                         <div className="section-heading reveal">
                             <span className="landing-tag">EVERYTHING CONNECTED</span>
                             <h2>One platform. Every operation.</h2>
-                            <p>
-                                Designed for modern cafés, cloud kitchens and multi-location
-                                restaurants.
-                            </p>
+                            <p>Designed for modern cafés, cloud kitchens and multi-location restaurants.</p>
                         </div>
 
                         <div className="features-grid">
@@ -686,9 +686,7 @@ function Landing() {
                         <div className="section-heading reveal">
                             <span className="landing-tag">INTERACTIVE DEMO</span>
                             <h2>Built for every role</h2>
-                            <p>
-                                Switch views to see how each person experiences RC Dine.
-                            </p>
+                            <p>Switch views to see how each person experiences RC Dine.</p>
                         </div>
 
                         <div className="demo-tabs reveal">
@@ -765,11 +763,7 @@ function Landing() {
                                         </div>
                                         <div className="bar-chart role-chart">
                                             {[35, 48, 63, 56, 82, 100].map((height) => (
-                                                <i
-                                                    key={height}
-                                                    className="bar"
-                                                    style={{ height: `${height}%` }}
-                                                />
+                                                <i key={height} className="bar" style={{ height: `${height}%` }} />
                                             ))}
                                         </div>
                                     </>
@@ -807,9 +801,7 @@ function Landing() {
                         <div className="pricing-grid">
                             {plans.map((plan) => (
                                 <article
-                                    className={`price-card reveal ${
-                                        plan.popular || plan.isPopular ? 'popular' : ''
-                                    }`}
+                                    className={`price-card show ${plan.popular || plan.isPopular ? 'popular' : ''}`}
                                     key={plan.code}
                                 >
                                     {(plan.popular || plan.isPopular) && (
@@ -857,12 +849,7 @@ function Landing() {
                             <div className="review-controls">
                                 <button
                                     type="button"
-                                    onClick={() =>
-                                        setReviewIndex(
-                                            (reviewIndex - 1 + reviews.length) %
-                                                reviews.length
-                                        )
-                                    }
+                                    onClick={() => setReviewIndex((reviewIndex - 1 + reviews.length) % reviews.length)}
                                     aria-label="Previous review"
                                 >
                                     ←
@@ -872,11 +859,7 @@ function Landing() {
                                 </span>
                                 <button
                                     type="button"
-                                    onClick={() =>
-                                        setReviewIndex(
-                                            (reviewIndex + 1) % reviews.length
-                                        )
-                                    }
+                                    onClick={() => setReviewIndex((reviewIndex + 1) % reviews.length)}
                                     aria-label="Next review"
                                 >
                                     →
@@ -895,18 +878,8 @@ function Landing() {
 
                         <div className="faq-list reveal">
                             {faqs.map((faq, index) => (
-                                <article
-                                    className={`faq-item ${
-                                        openFaq === index ? 'open' : ''
-                                    }`}
-                                    key={faq.question}
-                                >
-                                    <button
-                                        type="button"
-                                        onClick={() =>
-                                            setOpenFaq(openFaq === index ? null : index)
-                                        }
-                                    >
+                                <article className={`faq-item ${openFaq === index ? 'open' : ''}`} key={faq.question}>
+                                    <button type="button" onClick={() => setOpenFaq(openFaq === index ? null : index)}>
                                         <span>{faq.question}</span>
                                         <span>{openFaq === index ? '−' : '+'}</span>
                                     </button>
@@ -922,15 +895,8 @@ function Landing() {
                         <div className="final-cta reveal">
                             <span className="landing-tag">READY TO UPGRADE?</span>
                             <h2>Run your restaurant smarter.</h2>
-                            <p>
-                                Replace scattered tools with one connected restaurant
-                                operating system.
-                            </p>
-                            <button
-                                type="button"
-                                className="landing-btn primary"
-                                onClick={goToSignup}
-                            >
+                            <p>Replace scattered tools with one connected restaurant operating system.</p>
+                            <button type="button" className="landing-btn primary" onClick={goToSignup}>
                                 Start Free Trial →
                             </button>
                         </div>
@@ -941,13 +907,25 @@ function Landing() {
             <footer className="landing-footer">
                 <div className="landing-wrap footer-inner">
                     <div className="landing-brand">
-                        {website.logoUrl ? <img className="landing-logo-image" src={website.logoUrl} alt="RC Dine" /> : <span className="landing-logo">R</span>}
+                        {website.logoUrl ? (
+                            <img className="landing-logo-image" src={website.logoUrl} alt="RC Dine" />
+                        ) : (
+                            <span className="landing-logo">R</span>
+                        )}
                         <span>RC DINE</span>
                     </div>
                     <div className="footer-links">
                         <a href="#features">Features</a>
                         <a href="#pricing">Pricing</a>
-                        <a href="mailto:info@rcdine.in">Contact</a>
+                        <button type="button" className="footer-link-button" onClick={() => navigate('/contact')}>
+                            Contact
+                        </button>
+                        <button type="button" className="footer-link-button" onClick={() => navigate('/privacy')}>
+                            Privacy
+                        </button>
+                        <button type="button" className="footer-link-button" onClick={() => navigate('/terms')}>
+                            Terms
+                        </button>
                     </div>
                     <small>© 2026 RC Dine</small>
                 </div>

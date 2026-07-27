@@ -1,9 +1,10 @@
-
 /* RC-Dine Manager/Owner Mobile App Feel Patch
    Desktop same rahega. Mobile (<=768px) par sidebar bottom-app-tab banega. */
 
 @media (max-width: 768px) {
-    html, body, #root {
+    html,
+    body,
+    #root {
         width: 100%;
         min-height: 100%;
         overflow-x: hidden;
@@ -195,7 +196,8 @@
         font-size: 23px !important;
     }
 
-    h3, h4 {
+    h3,
+    h4 {
         font-size: 19px !important;
     }
 
@@ -589,73 +591,73 @@
     }
 }
 @media (max-width: 768px) {
-  /* Pending / Preparing / Ready / Completed cards */
-  .manager-dashboard-stats,
-  .dashboard-status-grid,
-  .status-card-wrapper,
-  .dashboard-cards-row {
-    display: grid !important;
-    grid-template-columns: repeat(2, 1fr) !important;
-    gap: 12px !important;
-    width: 100% !important;
-  }
+    /* Pending / Preparing / Ready / Completed cards */
+    .manager-dashboard-stats,
+    .dashboard-status-grid,
+    .status-card-wrapper,
+    .dashboard-cards-row {
+        display: grid !important;
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 12px !important;
+        width: 100% !important;
+    }
 
-  .manager-dashboard-stats .card,
-  .dashboard-status-grid .card,
-  .status-card,
-  .dashboard-card,
-  .summary-card {
-    min-height: 105px !important;
-    padding: 14px !important;
-    border-radius: 18px !important;
-    background: #ffffff !important;
-    box-shadow: 0 8px 22px rgba(15, 23, 42, 0.08) !important;
-    border: 1px solid #edf1f5 !important;
-  }
+    .manager-dashboard-stats .card,
+    .dashboard-status-grid .card,
+    .status-card,
+    .dashboard-card,
+    .summary-card {
+        min-height: 105px !important;
+        padding: 14px !important;
+        border-radius: 18px !important;
+        background: #ffffff !important;
+        box-shadow: 0 8px 22px rgba(15, 23, 42, 0.08) !important;
+        border: 1px solid #edf1f5 !important;
+    }
 
-  .status-card h4,
-  .dashboard-card h4,
-  .summary-card h4,
-  .manager-dashboard-stats h4 {
-    font-size: 13px !important;
-    font-weight: 800 !important;
-    color: #64748b !important;
-    margin-bottom: 10px !important;
-  }
+    .status-card h4,
+    .dashboard-card h4,
+    .summary-card h4,
+    .manager-dashboard-stats h4 {
+        font-size: 13px !important;
+        font-weight: 800 !important;
+        color: #64748b !important;
+        margin-bottom: 10px !important;
+    }
 
-  .status-card h2,
-  .dashboard-card h2,
-  .summary-card h2,
-  .manager-dashboard-stats h2 {
-    font-size: 28px !important;
-    font-weight: 900 !important;
-    color: #071429 !important;
-    margin: 0 !important;
-  }
+    .status-card h2,
+    .dashboard-card h2,
+    .summary-card h2,
+    .manager-dashboard-stats h2 {
+        font-size: 28px !important;
+        font-weight: 900 !important;
+        color: #071429 !important;
+        margin: 0 !important;
+    }
 
-  .status-card p,
-  .dashboard-card p,
-  .summary-card p,
-  .manager-dashboard-stats p {
-    font-size: 12px !important;
-    font-weight: 700 !important;
-    color: #7b8794 !important;
-    margin-top: 6px !important;
-  }
+    .status-card p,
+    .dashboard-card p,
+    .summary-card p,
+    .manager-dashboard-stats p {
+        font-size: 12px !important;
+        font-weight: 700 !important;
+        color: #7b8794 !important;
+        margin-top: 6px !important;
+    }
 }
 
 @media (max-width: 380px) {
-  .manager-dashboard-stats,
-  .dashboard-status-grid,
-  .status-card-wrapper,
-  .dashboard-cards-row {
-    gap: 10px !important;
-  }
+    .manager-dashboard-stats,
+    .dashboard-status-grid,
+    .status-card-wrapper,
+    .dashboard-cards-row {
+        gap: 10px !important;
+    }
 
-  .status-card,
-  .dashboard-card,
-  .summary-card {
-    min-height: 96px !important;
-    padding: 12px !important;
-  }
+    .status-card,
+    .dashboard-card,
+    .summary-card {
+        min-height: 96px !important;
+        padding: 12px !important;
+    }
 }

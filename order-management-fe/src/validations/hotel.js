@@ -13,7 +13,11 @@ export const hotelRegistrationSchema = Yup.object().shape({
         .matches(/^[0-9]{10}$/, 'Customer care number must be exactly 10 digits')
         .required('Customer Care Number is required'),
     gstNumber: Yup.string()
-        .transform((value) => String(value || '').trim().toUpperCase())
+        .transform((value) =>
+            String(value || '')
+                .trim()
+                .toUpperCase()
+        )
         .matches(/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/, 'Valid 15-character GSTIN enter karo')
         .required('GSTIN is required')
 });

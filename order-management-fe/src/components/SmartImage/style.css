@@ -17,7 +17,9 @@
     object-fit: cover;
     opacity: 0;
     transform: scale(1.015) translateZ(0);
-    transition: opacity 280ms ease, transform 420ms cubic-bezier(.22, 1, .36, 1);
+    transition:
+        opacity 280ms ease,
+        transform 420ms cubic-bezier(0.22, 1, 0.36, 1);
     will-change: opacity, transform;
 }
 
@@ -53,10 +55,16 @@
 }
 
 @keyframes smartImageShimmer {
-    to { background-position-x: -220%; }
+    to {
+        background-position-x: -220%;
+    }
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .smart-image img { transition: opacity 1ms linear; }
-    .smart-image-shimmer { animation-duration: 2.4s; }
+    .smart-image img {
+        transition: opacity 1ms linear;
+    }
+    .smart-image-shimmer {
+        animation-duration: 2.4s;
+    }
 }

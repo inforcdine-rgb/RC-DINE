@@ -230,8 +230,14 @@ function* verifyCustomerPaymentRequestSaga(action) {
             createdAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         };
 
-        sessionStorage.setItem('rcdineNotifications', JSON.stringify([orderNotification, ...oldNotifications].slice(0, 20)));
-        sessionStorage.setItem('rcdineUnreadCount', String(Number(sessionStorage.getItem('rcdineUnreadCount') || 0) + 1));
+        sessionStorage.setItem(
+            'rcdineNotifications',
+            JSON.stringify([orderNotification, ...oldNotifications].slice(0, 20))
+        );
+        sessionStorage.setItem(
+            'rcdineUnreadCount',
+            String(Number(sessionStorage.getItem('rcdineUnreadCount') || 0) + 1)
+        );
         window.dispatchEvent(new Event('rcdineNotificationsUpdated'));
 
         playOrderPlacedSound(trackingId || orderData.orderNumber || Date.now());

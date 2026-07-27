@@ -16,11 +16,8 @@ const getScrollContainer = (target) => {
     return document.scrollingElement;
 };
 
-const isAtTop = (scrollContainer) => (
-    scrollContainer === document.scrollingElement
-        ? window.scrollY <= 0
-        : scrollContainer?.scrollTop <= 0
-);
+const isAtTop = (scrollContainer) =>
+    scrollContainer === document.scrollingElement ? window.scrollY <= 0 : scrollContainer?.scrollTop <= 0;
 
 function RefreshExperience({ children }) {
     const [pull, setPull] = useState(0);
@@ -69,13 +66,13 @@ function RefreshExperience({ children }) {
         document.querySelectorAll('img').forEach(optimizeImage);
 
         const imageObserver = new MutationObserver((mutations) => {
-            mutations.forEach(({ addedNodes }) => addedNodes.forEach((node) => {
-                if (node?.nodeType !== Node.ELEMENT_NODE) return;
-                const images = node.tagName === 'IMG'
-                    ? [node]
-                    : [...node.querySelectorAll('img')];
-                images.forEach(optimizeImage);
-            }));
+            mutations.forEach(({ addedNodes }) =>
+                addedNodes.forEach((node) => {
+                    if (node?.nodeType !== Node.ELEMENT_NODE) return;
+                    const images = node.tagName === 'IMG' ? [node] : [...node.querySelectorAll('img')];
+                    images.forEach(optimizeImage);
+                })
+            );
         });
         imageObserver.observe(document.body, { childList: true, subtree: true });
 
@@ -113,7 +110,7 @@ function RefreshExperience({ children }) {
             }
 
             retryAttempt.current += 1;
-            const delay = Math.min(30000, 3000 * (2 ** retryAttempt.current));
+            const delay = Math.min(30000, 3000 * 2 ** retryAttempt.current);
             retryTimer.current = window.setTimeout(retry, delay);
         };
 
@@ -217,25 +214,30 @@ function RefreshExperience({ children }) {
         };
     }, []);
 
-    const message = status === 'refreshing'
-        ? 'Refreshing…'
-        : status === 'updated'
-            ? '✓ Updated'
-            : status === 'current'
-                ? '✓ Already up to date'
-                : status === 'offline'
-                    ? 'You\'re offline'
-                    : pull >= THRESHOLD ? 'Release to refresh' : 'Pull to refresh';
+    const message =
+        status === 'refreshing'
+            ? 'Refreshing…'
+            : status === 'updated'
+                ? '✓ Updated'
+                : status === 'current'
+                    ? '✓ Already up to date'
+                    : status === 'offline'
+                        ? 'You\'re offline'
+                        : pull >= THRESHOLD
+                            ? 'Release to refresh'
+                            : 'Pull to refresh';
 
     return (
         <div
-            className={`refresh-experience ${
-                dragging ? 'is-dragging' : ''
-            } ${
+            className={`refresh-experience ${dragging ? 'is-dragging' : ''} ${
                 pull > 0 || status === 'refreshing' ? 'is-pulling' : ''
             }`}
         >
-            {!online && <div className="offline-banner" role="status">You&apos;re offline · Retrying automatically</div>}
+            {!online && (
+                <div className="offline-banner" role="status">
+                    You&apos;re offline · Retrying automatically
+                </div>
+            )}
             <div
                 className={`pull-refresh-indicator ${pull > 0 || status !== 'idle' ? 'visible' : ''}`}
                 style={{ '--pull-distance': `${pull}px` }}

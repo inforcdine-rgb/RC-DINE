@@ -79,9 +79,7 @@ const hotelSlice = createSlice({
                 return;
             }
 
-            const index = state.data.rows.findIndex(
-                (item) => item.id === updatedHotel.id
-            );
+            const index = state.data.rows.findIndex((item) => item.id === updatedHotel.id);
 
             if (index !== -1) {
                 state.data.rows[index] = {
@@ -100,16 +98,11 @@ const hotelSlice = createSlice({
                 return;
             }
 
-            const index = state.data.rows.findIndex(
-                (item) => item.id === action.payload
-            );
+            const index = state.data.rows.findIndex((item) => item.id === action.payload);
 
             if (index !== -1) {
                 state.data.rows.splice(index, 1);
-                state.data.count = Math.max(
-                    Number(state.data.count || 0) - 1,
-                    0
-                );
+                state.data.count = Math.max(Number(state.data.count || 0) - 1, 0);
             }
         },
         setDeleteHotelConfirm(state, action) {

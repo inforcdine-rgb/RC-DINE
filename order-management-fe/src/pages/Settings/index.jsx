@@ -9,27 +9,14 @@ import '../../assets/styles/settings.css';
 import CustomButton from '../../components/CustomButton';
 import OMTModal from '../../components/Modal';
 import env from '../../config/env';
-import {
-    getPaymentSettings,
-    testPaymentSettings,
-    updatePaymentSettings
-} from '../../services/hotel.service';
+import { getPaymentSettings, testPaymentSettings, updatePaymentSettings } from '../../services/hotel.service';
 import {
     loadPrinterSettings,
     readPrinterSettings,
     savePrinterSettings as saveSecurePrinterSettings
 } from '../../services/printerSettings.service';
-import {
-    setPaymentActivate,
-    setSettingsFormData,
-    setUpdateModalOptions,
-    updateUserRequest
-} from '../../store/slice';
-import {
-    NOTIFICATION_PREFERENCE,
-    PAYMENT_PREFERENCE,
-    USER_ROLES
-} from '../../utils/constants';
+import { setPaymentActivate, setSettingsFormData, setUpdateModalOptions, updateUserRequest } from '../../store/slice';
+import { NOTIFICATION_PREFERENCE, PAYMENT_PREFERENCE, USER_ROLES } from '../../utils/constants';
 import { settingsSchema } from '../../validations/auth';
 import PaymentActivation from '../PaymentActivation';
 
@@ -89,9 +76,15 @@ const Settings = () => {
             setReceiptShowLogo(saved.showLogo !== false);
         };
         hydrate().catch(() => {
-            setSaveResult({ show: true, success: false, message: 'Server settings load nahi hui; cached settings use ho rahi hain.' });
+            setSaveResult({
+                show: true,
+                success: false,
+                message: 'Server settings load nahi hui; cached settings use ho rahi hain.'
+            });
         });
-        return () => { active = false; };
+        return () => {
+            active = false;
+        };
     }, [hotelId]);
 
     const handleSavePrinterSettings = async () => {
@@ -101,9 +94,7 @@ const Settings = () => {
         }
 
         const current = readPrinterSettings(hotelId);
-        const nextPrinterWidth = ['58', '80', 'auto'].includes(printerWidth)
-            ? printerWidth
-            : '58';
+        const nextPrinterWidth = ['58', '80', 'auto'].includes(printerWidth) ? printerWidth : '58';
 
         if (current.printerWidth === nextPrinterWidth) {
             setSaveResult({ show: true, success: false, message: 'No changes detected.' });
@@ -246,7 +237,13 @@ const Settings = () => {
         setGstModal(true);
     };
 
-    const savePaymentPayload = async (nextGstEnabled, nextGstPercent, nextDiscountEnabled = discountEnabled, nextDiscountType = discountType, nextDiscountValue = discountValue) => {
+    const savePaymentPayload = async (
+        nextGstEnabled,
+        nextGstPercent,
+        nextDiscountEnabled = discountEnabled,
+        nextDiscountType = discountType,
+        nextDiscountValue = discountValue
+    ) => {
         const payload = {
             razorpayKeyId,
             razorpayKeySecret,
@@ -277,7 +274,11 @@ const Settings = () => {
                 return;
             }
             if (draftDiscountType === 'PERCENT' && nextValue > 100) {
-                setSaveResult({ show: true, success: false, message: 'Percentage discount 100% se zyada nahi hona chahiye.' });
+                setSaveResult({
+                    show: true,
+                    success: false,
+                    message: 'Percentage discount 100% se zyada nahi hona chahiye.'
+                });
                 return;
             }
 
@@ -290,7 +291,11 @@ const Settings = () => {
             setDiscountModal(false);
             setSaveResult({ show: true, success: true, message: res?.message || 'Discount activated successfully!' });
         } catch (err) {
-            setSaveResult({ show: true, success: false, message: err?.response?.data?.message || err?.message || 'Failed to save discount settings' });
+            setSaveResult({
+                show: true,
+                success: false,
+                message: err?.response?.data?.message || err?.message || 'Failed to save discount settings'
+            });
         } finally {
             setSaving(false);
         }
@@ -307,7 +312,11 @@ const Settings = () => {
             setDraftDiscountValue(0);
             setSaveResult({ show: true, success: true, message: res?.message || 'Discount deactivated successfully!' });
         } catch (err) {
-            setSaveResult({ show: true, success: false, message: err?.response?.data?.message || err?.message || 'Failed to deactivate discount' });
+            setSaveResult({
+                show: true,
+                success: false,
+                message: err?.response?.data?.message || err?.message || 'Failed to deactivate discount'
+            });
         } finally {
             setSaving(false);
         }
@@ -494,7 +503,8 @@ const Settings = () => {
                                         {gstEnabled ? `GST ON (${gstPercent}%)` : 'GST OFF'}
                                     </div>
                                     <small className="text-muted d-block mt-2">
-                                        OFF hoga to new orders me SGST ₹0 aur CGST ₹0 dikhega. ON hoga to selected GST percent bill me apply hoga.
+                                        OFF hoga to new orders me SGST ₹0 aur CGST ₹0 dikhega. ON hoga to selected GST
+                                        percent bill me apply hoga.
                                     </small>
                                 </div>
                                 <div className="d-flex align-items-center flex-wrap gap-2">
@@ -519,7 +529,13 @@ const Settings = () => {
                                 </div>
                             </div>
                             {saveResult.show && (
-                                <small className={saveResult.success ? 'text-success fw-bold d-block mt-2' : 'text-danger fw-bold d-block mt-2'}>
+                                <small
+                                    className={
+                                        saveResult.success
+                                            ? 'text-success fw-bold d-block mt-2'
+                                            : 'text-danger fw-bold d-block mt-2'
+                                    }
+                                >
                                     {saveResult.message}
                                 </small>
                             )}
@@ -531,19 +547,33 @@ const Settings = () => {
                             <Col className="col-12 col-sm-9">
                                 <div className="gst-control-box">
                                     <div>
-                                        <div className={discountEnabled ? 'gst-status-pill' : 'gst-status-pill gst-off'}>
-                                            {discountEnabled ? `Discount ON (${discountType === 'PERCENT' ? `${discountValue}%` : `₹${discountValue}`})` : 'Discount OFF'}
+                                        <div
+                                            className={discountEnabled ? 'gst-status-pill' : 'gst-status-pill gst-off'}
+                                        >
+                                            {discountEnabled
+                                                ? `Discount ON (${discountType === 'PERCENT' ? `${discountValue}%` : `₹${discountValue}`})`
+                                                : 'Discount OFF'}
                                         </div>
                                         <small className="text-muted d-block mt-2">
                                             ON hoga to QR orders aur POS orders dono me discount automatic apply hoga.
                                         </small>
                                     </div>
                                     <div className="d-flex align-items-center flex-wrap gap-2">
-                                        <button type="button" className="btn gst-activate-btn" disabled={saving || !hotelId} onClick={handleOpenDiscountModal}>
+                                        <button
+                                            type="button"
+                                            className="btn gst-activate-btn"
+                                            disabled={saving || !hotelId}
+                                            onClick={handleOpenDiscountModal}
+                                        >
                                             {discountEnabled ? 'Change Discount' : 'Activate Discount'}
                                         </button>
                                         {discountEnabled && (
-                                            <button type="button" className="btn gst-deactivate-btn" disabled={saving || !hotelId} onClick={handleDeactivateDiscount}>
+                                            <button
+                                                type="button"
+                                                className="btn gst-deactivate-btn"
+                                                disabled={saving || !hotelId}
+                                                onClick={handleDeactivateDiscount}
+                                            >
                                                 {saving ? 'Saving...' : 'Deactivate Discount'}
                                             </button>
                                         )}
@@ -557,20 +587,23 @@ const Settings = () => {
 
             {hotelId && (
                 <>
-                    <div className="settings-section-label">
-                    Printer Settings
-                    </div>
+                    <div className="settings-section-label">Printer Settings</div>
 
                     <Card className="user-details mx-auto my-3 p-0 p-sm-4 shadow custom-shadow printer-settings-card">
                         <Card.Header className="bg-transparent border-0 pb-0">
                             <div className="printer-settings-heading">
                                 <div>
-                                    <h5 style={{ color: '#49ac60' }} className="fw-bold mb-1">Thermal Printer</h5>
+                                    <h5 style={{ color: '#49ac60' }} className="fw-bold mb-1">
+                                        Thermal Printer
+                                    </h5>
                                     <small>Only paper width setting</small>
                                 </div>
                                 <span className="printer-security-chip">Hotel Sync</span>
                             </div>
-                            <p className="text-muted small">Address, mobile number aur GSTIN Owner ke Hotel setup se receipt me automatically aayenge.</p>
+                            <p className="text-muted small">
+                                Address, mobile number aur GSTIN Owner ke Hotel setup se receipt me automatically
+                                aayenge.
+                            </p>
                         </Card.Header>
                         <Card.Body>
                             <Form.Label className="payment-label">Printer Width</Form.Label>
@@ -582,9 +615,7 @@ const Settings = () => {
                                         className={`printer-width-option ${printerWidth === width ? 'active' : ''}`}
                                         onClick={() => setPrinterWidth(width)}
                                     >
-                                        {width === 'auto'
-                                            ? 'Browser Default'
-                                            : `${width} mm`}
+                                        {width === 'auto' ? 'Browser Default' : `${width} mm`}
                                     </button>
                                 ))}
                             </div>
@@ -595,7 +626,7 @@ const Settings = () => {
                                     disabled={!hotelId}
                                     onClick={handleSavePrinterSettings}
                                 >
-                                Save Printer Settings
+                                    Save Printer Settings
                                 </button>
                                 {printerSaved ? <span className="text-success fw-bold">Saved ✓</span> : null}
                             </div>
@@ -605,19 +636,21 @@ const Settings = () => {
             )}
             {hotelId && (
                 <>
-                    <div
-                        className="settings-section-label">
-                            Payment Settings
-                    </div>
+                    <div className="settings-section-label">Payment Settings</div>
                     <Card className="user-details mx-auto my-3 p-0 p-sm-4 shadow custom-shadow payment-settings-card">
                         <Card.Header className="bg-transparent border-0 pb-0">
                             <h5 style={{ color: '#49ac60' }} className="fw-bold mb-3">
                                 Cafe Payment Settings
                             </h5>
-                            <div className="payment-method-chips"><span>Cash</span><span>UPI</span><span>Card</span><span className={paymentEnabled ? 'active' : ''}>Razorpay</span></div>
+                            <div className="payment-method-chips">
+                                <span>Cash</span>
+                                <span>UPI</span>
+                                <span>Card</span>
+                                <span className={paymentEnabled ? 'active' : ''}>Razorpay</span>
+                            </div>
                             <p className="text-muted small">
-                                Configure custom Razorpay credentials for food ordering. Customers will pay directly to this
-                                account.
+                                Configure custom Razorpay credentials for food ordering. Customers will pay directly to
+                                this account.
                             </p>
                         </Card.Header>
                         <Card.Body>
@@ -645,7 +678,9 @@ const Settings = () => {
                                         }}
                                     />
 
-                                    {paymentPinError && <small className="text-danger fw-bold d-block mb-2">{paymentPinError}</small>}
+                                    {paymentPinError && (
+                                        <small className="text-danger fw-bold d-block mb-2">{paymentPinError}</small>
+                                    )}
 
                                     <CustomButton
                                         label="Unlock Settings"
@@ -661,9 +696,7 @@ const Settings = () => {
                                     <Row className="mb-3">
                                         <Col xs={12} md={6} className="mb-3 mb-md-0">
                                             <Form.Group controlId="razorpayKeyId">
-                                                <Form.Label className="payment-label">
-                                                    Razorpay Key ID
-                                                </Form.Label>
+                                                <Form.Label className="payment-label">Razorpay Key ID</Form.Label>
                                                 <Form.Control
                                                     type="text"
                                                     placeholder="rzp_live_..."
@@ -675,9 +708,7 @@ const Settings = () => {
                                         </Col>
                                         <Col xs={12} md={6}>
                                             <Form.Group controlId="razorpayKeySecret">
-                                                <Form.Label className="payment-label">
-                                                    Razorpay Secret Key
-                                                </Form.Label>
+                                                <Form.Label className="payment-label">Razorpay Secret Key</Form.Label>
                                                 <Form.Control
                                                     type="password"
                                                     placeholder="Enter secret key"
@@ -692,9 +723,7 @@ const Settings = () => {
                                     <Row className="mb-3">
                                         <Col xs={12} md={4} className="mb-3 mb-md-0">
                                             <Form.Group controlId="razorpayMerchantName">
-                                                <Form.Label className="payment-label">
-                                                    Merchant Name
-                                                </Form.Label>
+                                                <Form.Label className="payment-label">Merchant Name</Form.Label>
                                                 <Form.Control
                                                     type="text"
                                                     placeholder="Cafe Name"
@@ -706,9 +735,7 @@ const Settings = () => {
                                         </Col>
                                         <Col xs={12} md={4} className="mb-3 mb-md-0">
                                             <Form.Group controlId="razorpayMerchantEmail">
-                                                <Form.Label className="payment-label">
-                                                    Merchant Email
-                                                </Form.Label>
+                                                <Form.Label className="payment-label">Merchant Email</Form.Label>
                                                 <Form.Control
                                                     type="email"
                                                     placeholder="contact@cafe.com"
@@ -720,9 +747,7 @@ const Settings = () => {
                                         </Col>
                                         <Col xs={12} md={4}>
                                             <Form.Group controlId="razorpayMerchantPhone">
-                                                <Form.Label className="payment-label">
-                                                    Merchant Phone
-                                                </Form.Label>
+                                                <Form.Label className="payment-label">Merchant Phone</Form.Label>
                                                 <Form.Control
                                                     type="text"
                                                     placeholder="9876543210"
@@ -736,7 +761,10 @@ const Settings = () => {
 
                                     <Row className="mb-4 align-items-center">
                                         <Col xs={12}>
-                                            <Form.Group controlId="paymentEnabled" className="d-flex align-items-center">
+                                            <Form.Group
+                                                controlId="paymentEnabled"
+                                                className="d-flex align-items-center"
+                                            >
                                                 <Form.Check
                                                     type="switch"
                                                     id="paymentEnabledSwitch"

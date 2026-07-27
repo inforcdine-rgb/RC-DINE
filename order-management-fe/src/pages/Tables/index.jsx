@@ -15,19 +15,10 @@ import features from '../../config/features';
 import * as managerRcSessionService from '../../services/managerRcSession.service';
 import * as tableService from '../../services/tables.service';
 
-import {
-    addTablesRequest,
-    getDashboardRequest,
-    getTablesRequest,
-    setTableModalData
-} from '../../store/slice';
+import { addTablesRequest, getDashboardRequest, getTablesRequest, setTableModalData } from '../../store/slice';
 
 import { buildQrFilename, downloadSvgQrAsPng } from '../../utils/qrDownload';
-import {
-    getBackgroundRequestVersion,
-    registerRefreshHandler,
-    waitForBackgroundRequests
-} from '../../utils/refreshBus';
+import { getBackgroundRequestVersion, registerRefreshHandler, waitForBackgroundRequests } from '../../utils/refreshBus';
 import { addTableValidationSchema } from '../../validations/tables';
 
 import '../../assets/styles/table.css';
@@ -58,18 +49,22 @@ function Tables() {
         }
     }, [hotelId, dispatch]);
 
-    useEffect(() => registerRefreshHandler('manager-tables', async () => {
-        if (!hotelId) return false;
-        const before = refreshSnapshotRef.current;
-        const checkpoint = getBackgroundRequestVersion();
-        dispatch(getTablesRequest({ hotelId }));
-        if (sessionTable?.value) {
-            const details = await managerRcSessionService.getManagerRcSession(sessionTable.value);
-            setSessionDetails(details);
-        }
-        await waitForBackgroundRequests({ checkpoint });
-        return before !== refreshSnapshotRef.current;
-    }), [dispatch, hotelId, sessionTable?.value]);
+    useEffect(
+        () =>
+            registerRefreshHandler('manager-tables', async () => {
+                if (!hotelId) return false;
+                const before = refreshSnapshotRef.current;
+                const checkpoint = getBackgroundRequestVersion();
+                dispatch(getTablesRequest({ hotelId }));
+                if (sessionTable?.value) {
+                    const details = await managerRcSessionService.getManagerRcSession(sessionTable.value);
+                    setSessionDetails(details);
+                }
+                await waitForBackgroundRequests({ checkpoint });
+                return before !== refreshSnapshotRef.current;
+            }),
+        [dispatch, hotelId, sessionTable?.value]
+    );
 
     const makeTableUrl = (tableId) => {
         const token = CryptoJS.AES.encrypt(JSON.stringify({ tableId }), env.cryptoSecret).toString();
@@ -79,7 +74,11 @@ function Tables() {
     const filteredTables = useMemo(() => {
         const query = searchText.trim().toLowerCase();
         if (!query) return tablesData;
-        return tablesData.filter((table) => String(table.label || '').toLowerCase().includes(query));
+        return tablesData.filter((table) =>
+            String(table.label || '')
+                .toLowerCase()
+                .includes(query)
+        );
     }, [searchText, tablesData]);
 
     const openAddModal = () => {
@@ -228,7 +227,12 @@ function Tables() {
                         onChange={(event) => setSearchText(event.target.value)}
                     />
                 </div>
-                <button className="tables-download-all" type="button" onClick={handleDownloadAllQr} disabled={!filteredTables.length}>
+                <button
+                    className="tables-download-all"
+                    type="button"
+                    onClick={handleDownloadAllQr}
+                    disabled={!filteredTables.length}
+                >
                     ↓ Download All QR
                 </button>
             </div>
@@ -244,22 +248,46 @@ function Tables() {
                                         <span className="table-icon">▣</span>
                                         <strong>{table.label}</strong>
                                     </div>
-                                    <button className="table-edit-btn" type="button" onClick={() => openEditModal(table)} title="Edit table name">
+                                    <button
+                                        className="table-edit-btn"
+                                        type="button"
+                                        onClick={() => openEditModal(table)}
+                                        title="Edit table name"
+                                    >
                                         <MdEdit />
                                     </button>
                                 </div>
 
-                                <div ref={(node) => { qrRefs.current[table.value] = node; }} className="table-qr-box">
+                                <div
+                                    ref={(node) => {
+                                        qrRefs.current[table.value] = node;
+                                    }}
+                                    className="table-qr-box"
+                                >
                                     <QRCodeSVG value={tableUrl} size={170} level="H" className="table-qr" />
                                 </div>
 
                                 {features.managerSessionControls && (
-                                    <button className="table-session-btn" type="button" onClick={() => openSessionControl(table)}>RC Session Control</button>
+                                    <button
+                                        className="table-session-btn"
+                                        type="button"
+                                        onClick={() => openSessionControl(table)}
+                                    >
+                                        RC Session Control
+                                    </button>
                                 )}
-                                <button className="table-download-btn" type="button" onClick={() => handleDownloadQr(table)}>
+                                <button
+                                    className="table-download-btn"
+                                    type="button"
+                                    onClick={() => handleDownloadQr(table)}
+                                >
                                     ↓ Download QR
                                 </button>
-                                <button className="table-delete-btn" type="button" onClick={() => setDeleteTable(table)}>
+                                <button
+                                    className="table-delete-btn"
+                                    type="button"
+                                    onClick={() => setDeleteTable(table)}
+                                >
                                     <MdDeleteForever /> Delete QR
                                 </button>
                             </div>
@@ -295,8 +323,15 @@ function Tables() {
                         <label>Table Name</label>
                         <input value={editName} onChange={(event) => setEditName(event.target.value)} autoFocus />
                         <div className="table-modal-actions">
-                            <button type="button" onClick={() => setEditTable(null)} disabled={loadingAction}>Cancel</button>
-                            <button type="button" className="save" onClick={handleSaveTableName} disabled={loadingAction}>
+                            <button type="button" onClick={() => setEditTable(null)} disabled={loadingAction}>
+                                Cancel
+                            </button>
+                            <button
+                                type="button"
+                                className="save"
+                                onClick={handleSaveTableName}
+                                disabled={loadingAction}
+                            >
                                 Save
                             </button>
                         </div>
@@ -308,59 +343,143 @@ function Tables() {
                 <div className="table-modal-backdrop">
                     <div className="table-modal rc-control-modal">
                         <div className="rc-control-head">
-                            <div><small>{sessionTable.label}</small><h3>RC Session</h3></div>
-                            <button type="button" aria-label="Close" onClick={() => setSessionTable(null)}>×</button>
+                            <div>
+                                <small>{sessionTable.label}</small>
+                                <h3>RC Session</h3>
+                            </div>
+                            <button type="button" aria-label="Close" onClick={() => setSessionTable(null)}>
+                                ×
+                            </button>
                         </div>
-                        <div className={`rc-control-hero ${String(sessionDetails?.session?.status || '').toLowerCase()}`}>
+                        <div
+                            className={`rc-control-hero ${String(sessionDetails?.session?.status || '').toLowerCase()}`}
+                        >
                             <span className="rc-control-live-dot" />
                             <div>
-                                <strong>{sessionDetails?.session?.status === 'PAYMENT_PENDING'
-                                    ? 'Payment Pending'
-                                    : sessionDetails?.session ? 'Ordering Active'
-                                        : sessionDetails?.table?.qrEnabled ? 'Waiting for Customer' : 'QR Ordering Paused'}</strong>
-                                <small>{sessionDetails?.session
-                                    ? `${sessionDetails.session.sessionMembers?.length || 0} customers in this session`
-                                    : sessionDetails?.table?.qrEnabled ? 'QR is ready to scan' : 'Customers cannot start a session'}</small>
+                                <strong>
+                                    {sessionDetails?.session?.status === 'PAYMENT_PENDING'
+                                        ? 'Payment Pending'
+                                        : sessionDetails?.session
+                                            ? 'Ordering Active'
+                                            : sessionDetails?.table?.qrEnabled
+                                                ? 'Waiting for Customer'
+                                                : 'QR Ordering Paused'}
+                                </strong>
+                                <small>
+                                    {sessionDetails?.session
+                                        ? `${sessionDetails.session.sessionMembers?.length || 0} customers in this session`
+                                        : sessionDetails?.table?.qrEnabled
+                                            ? 'QR is ready to scan'
+                                            : 'Customers cannot start a session'}
+                                </small>
                             </div>
                         </div>
 
                         {!sessionDetails?.session && !sessionDetails?.table?.qrEnabled && (
-                            <button className="rc-control-primary" type="button" disabled={loadingAction} onClick={() => runSessionAction('ACTIVATE')}>Start QR Ordering</button>
+                            <button
+                                className="rc-control-primary"
+                                type="button"
+                                disabled={loadingAction}
+                                onClick={() => runSessionAction('ACTIVATE')}
+                            >
+                                Start QR Ordering
+                            </button>
                         )}
                         {sessionDetails?.session?.status === 'ACTIVE' && (
-                            <button className="rc-control-primary" type="button" disabled={loadingAction} onClick={() => runSessionAction('PAYMENT_PENDING')}>Collect Payment</button>
+                            <button
+                                className="rc-control-primary"
+                                type="button"
+                                disabled={loadingAction}
+                                onClick={() => runSessionAction('PAYMENT_PENDING')}
+                            >
+                                Collect Payment
+                            </button>
                         )}
                         {sessionDetails?.session?.status === 'PAYMENT_PENDING' && !showPaymentConfirm && (
-                            <button className="rc-control-primary" type="button" disabled={loadingAction} onClick={() => setShowPaymentConfirm(true)}>Complete Payment</button>
+                            <button
+                                className="rc-control-primary"
+                                type="button"
+                                disabled={loadingAction}
+                                onClick={() => setShowPaymentConfirm(true)}
+                            >
+                                Complete Payment
+                            </button>
                         )}
 
                         {showPaymentConfirm && (
                             <div className="rc-payment-confirm">
                                 <strong>Complete payment and free this table?</strong>
                                 <label>
-                                    <input type="checkbox" checked={keepQrActive} onChange={(event) => setKeepQrActive(event.target.checked)} />
+                                    <input
+                                        type="checkbox"
+                                        checked={keepQrActive}
+                                        onChange={(event) => setKeepQrActive(event.target.checked)}
+                                    />
                                     <span>Keep QR ready for the next customer</span>
                                 </label>
                                 <div>
-                                    <button type="button" onClick={() => setShowPaymentConfirm(false)}>Back</button>
-                                    <button type="button" className="save" disabled={loadingAction} onClick={() => closeSession(keepQrActive)}>Complete & Free Table</button>
+                                    <button type="button" onClick={() => setShowPaymentConfirm(false)}>
+                                        Back
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className="save"
+                                        disabled={loadingAction}
+                                        onClick={() => closeSession(keepQrActive)}
+                                    >
+                                        Complete & Free Table
+                                    </button>
                                 </div>
                             </div>
                         )}
 
-                        <button className="rc-control-more" type="button" onClick={() => setShowSessionOptions((value) => !value)}>{showSessionOptions ? 'Hide Options' : 'More Options'}</button>
+                        <button
+                            className="rc-control-more"
+                            type="button"
+                            onClick={() => setShowSessionOptions((value) => !value)}
+                        >
+                            {showSessionOptions ? 'Hide Options' : 'More Options'}
+                        </button>
                         {showSessionOptions && (
                             <div className="rc-control-options">
                                 {sessionDetails?.session && (
                                     <div className="rc-control-session">
-                                        <p><b>Session code</b><span>{sessionDetails.session.sessionCode}</span></p>
-                                        <p><b>Host</b><span>{sessionDetails.session.ownerMobile || '—'}</span></p>
+                                        <p>
+                                            <b>Session code</b>
+                                            <span>{sessionDetails.session.sessionCode}</span>
+                                        </p>
+                                        <p>
+                                            <b>Host</b>
+                                            <span>{sessionDetails.session.ownerMobile || '—'}</span>
+                                        </p>
                                     </div>
                                 )}
-                                {sessionDetails?.table?.qrEnabled
-                                    ? <button type="button" disabled={loadingAction} onClick={() => runSessionAction('DISABLE')}>Pause QR Ordering</button>
-                                    : <button type="button" disabled={loadingAction} onClick={() => runSessionAction('ACTIVATE')}>Start QR Ordering</button>}
-                                {sessionDetails?.session?.status === 'PAYMENT_PENDING' && <button type="button" disabled={loadingAction} onClick={() => runSessionAction('REOPEN')}>Resume Ordering</button>}
+                                {sessionDetails?.table?.qrEnabled ? (
+                                    <button
+                                        type="button"
+                                        disabled={loadingAction}
+                                        onClick={() => runSessionAction('DISABLE')}
+                                    >
+                                        Pause QR Ordering
+                                    </button>
+                                ) : (
+                                    <button
+                                        type="button"
+                                        disabled={loadingAction}
+                                        onClick={() => runSessionAction('ACTIVATE')}
+                                    >
+                                        Start QR Ordering
+                                    </button>
+                                )}
+                                {sessionDetails?.session?.status === 'PAYMENT_PENDING' && (
+                                    <button
+                                        type="button"
+                                        disabled={loadingAction}
+                                        onClick={() => runSessionAction('REOPEN')}
+                                    >
+                                        Resume Ordering
+                                    </button>
+                                )}
                             </div>
                         )}
                     </div>
@@ -371,10 +490,19 @@ function Tables() {
                 <div className="table-modal-backdrop">
                     <div className="table-modal delete">
                         <h3>Delete Table?</h3>
-                        <p>Are you sure you want to delete <b>{deleteTable.label}</b> QR?</p>
+                        <p>
+                            Are you sure you want to delete <b>{deleteTable.label}</b> QR?
+                        </p>
                         <div className="table-modal-actions">
-                            <button type="button" onClick={() => setDeleteTable(null)} disabled={loadingAction}>Cancel</button>
-                            <button type="button" className="danger" onClick={handleDeleteTable} disabled={loadingAction}>
+                            <button type="button" onClick={() => setDeleteTable(null)} disabled={loadingAction}>
+                                Cancel
+                            </button>
+                            <button
+                                type="button"
+                                className="danger"
+                                onClick={handleDeleteTable}
+                                disabled={loadingAction}
+                            >
                                 Delete
                             </button>
                         </div>

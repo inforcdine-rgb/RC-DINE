@@ -7,7 +7,11 @@
 .rc-login-root {
     display: flex;
     min-height: 100vh;
-    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    font-family:
+        'Segoe UI',
+        system-ui,
+        -apple-system,
+        sans-serif;
 }
 
 /* ════════════════════════
@@ -30,7 +34,7 @@
     width: 600px;
     height: 600px;
     border-radius: 50%;
-    background: radial-gradient(circle, rgba(73,172,96,0.25) 0%, transparent 70%);
+    background: radial-gradient(circle, rgba(73, 172, 96, 0.25) 0%, transparent 70%);
     top: -120px;
     right: -120px;
     animation: rc-pulse 6s ease-in-out infinite;
@@ -42,15 +46,22 @@
     width: 400px;
     height: 400px;
     border-radius: 50%;
-    background: radial-gradient(circle, rgba(73,172,96,0.15) 0%, transparent 70%);
+    background: radial-gradient(circle, rgba(73, 172, 96, 0.15) 0%, transparent 70%);
     bottom: -80px;
     left: -80px;
     animation: rc-pulse 8s ease-in-out infinite reverse;
 }
 
 @keyframes rc-pulse {
-    0%, 100% { transform: scale(1);   opacity: 1; }
-    50%       { transform: scale(1.1); opacity: 0.7; }
+    0%,
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+    50% {
+        transform: scale(1.1);
+        opacity: 0.7;
+    }
 }
 
 .rc-login-left-inner {
@@ -95,7 +106,7 @@
 }
 
 .rc-hero-text p {
-    color: rgba(255,255,255,0.5);
+    color: rgba(255, 255, 255, 0.5);
     font-size: 0.9rem;
     margin: 0 0 2.5rem;
     letter-spacing: 0.04em;
@@ -112,7 +123,7 @@
 }
 
 .rc-feature-list li {
-    color: rgba(255,255,255,0.7);
+    color: rgba(255, 255, 255, 0.7);
     font-size: 0.88rem;
     display: flex;
     align-items: center;
@@ -146,8 +157,13 @@
 }
 
 @keyframes rc-float {
-    0%, 100% { transform: translateY(0px) rotate(0deg); }
-    50%       { transform: translateY(-18px) rotate(8deg); }
+    0%,
+    100% {
+        transform: translateY(0px) rotate(0deg);
+    }
+    50% {
+        transform: translateY(-18px) rotate(8deg);
+    }
 }
 
 /* ════════════════════════
@@ -197,7 +213,10 @@
     padding: 0.85rem 0.75rem;
     cursor: pointer;
     text-align: left;
-    transition: border-color 0.18s, box-shadow 0.18s, transform 0.15s;
+    transition:
+        border-color 0.18s,
+        box-shadow 0.18s,
+        transform 0.15s;
     display: flex;
     flex-direction: column;
     gap: 0.2rem;
@@ -206,13 +225,13 @@
 .rc-role-card:hover {
     border-color: #49ac60;
     transform: translateY(-2px);
-    box-shadow: 0 6px 18px rgba(73,172,96,0.15);
+    box-shadow: 0 6px 18px rgba(73, 172, 96, 0.15);
 }
 
 .rc-role-card.active {
     border-color: #49ac60;
-    background: rgba(73,172,96,0.06);
-    box-shadow: 0 0 0 3px rgba(73,172,96,0.15);
+    background: rgba(73, 172, 96, 0.06);
+    box-shadow: 0 0 0 3px rgba(73, 172, 96, 0.15);
 }
 
 .rc-role-label {
@@ -256,14 +275,16 @@
     font-size: 0.92rem;
     color: #08182d;
     background: #ffffff;
-    transition: border-color 0.18s, box-shadow 0.18s;
+    transition:
+        border-color 0.18s,
+        box-shadow 0.18s;
     outline: none;
     box-sizing: border-box;
 }
 
 .rc-input:focus {
     border-color: #49ac60;
-    box-shadow: 0 0 0 3px rgba(73,172,96,0.15);
+    box-shadow: 0 0 0 3px rgba(73, 172, 96, 0.15);
 }
 
 .rc-input::placeholder {
@@ -294,7 +315,9 @@
     transition: opacity 0.15s;
 }
 
-.rc-eye:hover { opacity: 1; }
+.rc-eye:hover {
+    opacity: 1;
+}
 
 /* forgot */
 .rc-forgot-wrap {
@@ -314,7 +337,9 @@
     transition: opacity 0.15s;
 }
 
-.rc-text-btn:hover { opacity: 0.75; }
+.rc-text-btn:hover {
+    opacity: 0.75;
+}
 
 .rc-text-btn--bold {
     font-weight: 700;
@@ -334,7 +359,10 @@
     font-weight: 700;
     cursor: pointer;
     letter-spacing: 0.02em;
-    transition: background 0.18s, transform 0.15s, box-shadow 0.18s;
+    transition:
+        background 0.18s,
+        transform 0.15s,
+        box-shadow 0.18s;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -344,7 +372,7 @@
 .rc-submit:hover:not(:disabled) {
     background: #3a9450;
     transform: translateY(-1px);
-    box-shadow: 0 8px 20px rgba(73,172,96,0.35);
+    box-shadow: 0 8px 20px rgba(73, 172, 96, 0.35);
 }
 
 .rc-submit:disabled {
@@ -358,14 +386,16 @@
 .rc-spinner {
     width: 20px;
     height: 20px;
-    border: 3px solid rgba(255,255,255,0.35);
+    border: 3px solid rgba(255, 255, 255, 0.35);
     border-top-color: #ffffff;
     border-radius: 50%;
     animation: rc-spin 0.7s linear infinite;
 }
 
 @keyframes rc-spin {
-    to { transform: rotate(360deg); }
+    to {
+        transform: rotate(360deg);
+    }
 }
 
 /* error message */

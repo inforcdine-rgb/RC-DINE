@@ -32,13 +32,7 @@ const getTodayRange = () => {
 };
 
 const getOrdersFromResponse = (response) => {
-    const possibleData = [
-        response?.data?.data,
-        response?.data?.rows,
-        response?.data,
-        response?.rows,
-        response
-    ];
+    const possibleData = [response?.data?.data, response?.data?.rows, response?.data, response?.rows, response];
 
     return possibleData.find((value) => Array.isArray(value)) || [];
 };
@@ -119,10 +113,7 @@ function Sidebar() {
         }
     }, [globalHotelId, updatePendingCount]);
 
-    const refreshPendingCountInBackground = useCallback(
-        () => runBackgroundTask(loadPendingCount),
-        [loadPendingCount]
-    );
+    const refreshPendingCountInBackground = useCallback(() => runBackgroundTask(loadPendingCount), [loadPendingCount]);
 
     useEffect(() => {
         setCompress(window.innerWidth < 768);
@@ -177,9 +168,7 @@ function Sidebar() {
         if (!globalHotelId) return undefined;
 
         const socket = connectSocket();
-        const isCurrentHotel = (payload) => (
-            !payload?.hotelId || String(payload.hotelId) === String(globalHotelId)
-        );
+        const isCurrentHotel = (payload) => !payload?.hotelId || String(payload.hotelId) === String(globalHotelId);
         const mergePendingOrder = (payload, pending) => {
             if (!isCurrentHotel(payload)) return;
             const orderId = payload?.orderId || payload?.order?.orderId;
@@ -193,10 +182,8 @@ function Sidebar() {
             updatePendingCount(pendingOrderIds.current.size);
         };
         const handleNewOrder = (payload) => mergePendingOrder(payload, true);
-        const handleStatusUpdated = (payload) => mergePendingOrder(
-            payload,
-            String(payload?.status || '').toUpperCase() === 'PENDING'
-        );
+        const handleStatusUpdated = (payload) =>
+            mergePendingOrder(payload, String(payload?.status || '').toUpperCase() === 'PENDING');
         const handleOrderCancelled = (payload) => mergePendingOrder(payload, false);
 
         const joinHotelRoom = () => {
@@ -295,9 +282,7 @@ function Sidebar() {
                                 {!compress && (
                                     <div className="sidebar-hotel-copy">
                                         <small>Restaurant</small>
-                                        <strong title={hotelBrand.name || 'Hotel'}>
-                                            {hotelBrand.name || 'Hotel'}
-                                        </strong>
+                                        <strong title={hotelBrand.name || 'Hotel'}>{hotelBrand.name || 'Hotel'}</strong>
                                     </div>
                                 )}
                             </>
@@ -359,7 +344,8 @@ function Sidebar() {
                                             {isOrdersTab && pendingCount > 0 && (
                                                 <span
                                                     key={pendingCount}
-                                                    className={`pending-order-count ${animatePendingCount ? 'pending-order-count-animate' : ''
+                                                    className={`pending-order-count ${
+                                                        animatePendingCount ? 'pending-order-count-animate' : ''
                                                     }`}
                                                     aria-label={`${pendingCount} pending orders`}
                                                 >
@@ -372,7 +358,8 @@ function Sidebar() {
                                     {compress && isOrdersTab && pendingCount > 0 && (
                                         <span
                                             key={`compressed-${pendingCount}`}
-                                            className={`pending-order-count pending-order-count-compressed ${animatePendingCount ? 'pending-order-count-animate' : ''
+                                            className={`pending-order-count pending-order-count-compressed ${
+                                                animatePendingCount ? 'pending-order-count-animate' : ''
                                             }`}
                                             aria-label={`${pendingCount} pending orders`}
                                         >

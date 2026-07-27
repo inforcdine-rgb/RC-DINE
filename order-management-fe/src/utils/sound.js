@@ -21,11 +21,7 @@ const canPlay = (key, cooldownMs) => {
 
 export const playSound = async (soundName, options = {}) => {
     if (localStorage.getItem('rcdineNotificationSound') === 'off') return false;
-    const {
-        dedupeKey = soundName,
-        cooldownMs = 1500,
-        volume = 1
-    } = options;
+    const { dedupeKey = soundName, cooldownMs = 1500, volume = 1 } = options;
 
     const src = SOUND_PATHS[soundName];
 

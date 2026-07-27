@@ -28,14 +28,18 @@ function OrderTracking() {
     const statusIntervalRef = useRef(null);
     const countdownIntervalRef = useRef(null);
 
-    useEffect(() => registerRefreshHandler('order-tracking', async () => {
-        if (!orderId) return false;
-        const result = await getOrderStatus(orderId);
-        const nextStatus = result?.status || result?.orderStatus;
-        if (!nextStatus || nextStatus === liveStatus) return false;
-        setLiveStatus(nextStatus);
-        return true;
-    }), [liveStatus, orderId]);
+    useEffect(
+        () =>
+            registerRefreshHandler('order-tracking', async () => {
+                if (!orderId) return false;
+                const result = await getOrderStatus(orderId);
+                const nextStatus = result?.status || result?.orderStatus;
+                if (!nextStatus || nextStatus === liveStatus) return false;
+                setLiveStatus(nextStatus);
+                return true;
+            }),
+        [liveStatus, orderId]
+    );
 
     useEffect(() => {
         if (!orderId) return;
@@ -188,7 +192,12 @@ function OrderTracking() {
 
         try {
             setDownloadingInvoice(true);
-            await downloadInvoice(order.hotelId, order.orderId, order.hotelName || 'hotel', order.orderNumber || 'order');
+            await downloadInvoice(
+                order.hotelId,
+                order.orderId,
+                order.hotelName || 'hotel',
+                order.orderNumber || 'order'
+            );
             toast.success('Invoice downloaded successfully');
         } catch (error) {
             console.error('Failed to download invoice', error);
@@ -290,7 +299,9 @@ function OrderTracking() {
                             <small>Live Status</small>
                             <strong>{isReady ? 'Ready to Serve' : isCancelled ? 'Cancelled' : 'Preparing'}</strong>
                         </div>
-                        <span className={`rc-track-badge ${isReady ? 'ready' : isCancelled ? 'cancelled' : 'preparing'}`}>
+                        <span
+                            className={`rc-track-badge ${isReady ? 'ready' : isCancelled ? 'cancelled' : 'preparing'}`}
+                        >
                             {isReady ? '🟢 Ready' : isCancelled ? '🔴 Cancelled' : '🟡 Preparing'}
                         </span>
                     </div>
@@ -351,7 +362,9 @@ function OrderTracking() {
 
                     {!isReady && !isCancelled && cancellationTimeLeft > 0 && (
                         <button className="rc-track-warning" onClick={handleCancelOrder} disabled={cancellingOrder}>
-                            {cancellingOrder ? 'Cancelling...' : `Cancel Order (${Math.ceil(cancellationTimeLeft / 60)}m)`}
+                            {cancellingOrder
+                                ? 'Cancelling...'
+                                : `Cancel Order (${Math.ceil(cancellationTimeLeft / 60)}m)`}
                         </button>
                     )}
 

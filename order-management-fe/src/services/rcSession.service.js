@@ -18,8 +18,7 @@ const unwrap = (request) =>
             throw nextError;
         });
 
-export const getRcSessionAvailability = (tableId) =>
-    unwrap(client.get(`/rc-session/table/${tableId}/availability`));
+export const getRcSessionAvailability = (tableId) => unwrap(client.get(`/rc-session/table/${tableId}/availability`));
 
 export const sendRcSessionOtp = (mobileNumber) =>
     unwrap(client.post('/customer-auth/send-otp', { phoneNumber: mobileNumber }));
@@ -33,13 +32,7 @@ export const startRcSession = ({ tableId, token }) =>
     unwrap(client.post(`/rc-session/table/${tableId}/start`, {}, { headers: customerHeaders(token) }));
 
 export const joinRcSession = ({ tableId, sessionCode, token }) =>
-    unwrap(
-        client.post(
-            `/rc-session/table/${tableId}/join`,
-            { sessionCode },
-            { headers: customerHeaders(token) }
-        )
-    );
+    unwrap(client.post(`/rc-session/table/${tableId}/join`, { sessionCode }, { headers: customerHeaders(token) }));
 
 export const getRcSessionPendingRequests = ({ tableId, token }) =>
     unwrap(

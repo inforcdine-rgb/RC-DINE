@@ -82,8 +82,7 @@ function Hotels() {
     }, [dispatch]);
 
     const handleCheckIn = (hotel) => {
-        const hasActiveSubscription =
-            hotel.subscriptions && moment().diff(hotel.subscriptions.endDate) <= 0;
+        const hasActiveSubscription = hotel.subscriptions && moment().diff(hotel.subscriptions.endDate) <= 0;
 
         if (hasActiveSubscription) {
             const details = CryptoJS.AES.encrypt(
@@ -141,11 +140,7 @@ function Hotels() {
                 }
 
                 const created = await hotelService.create(payload);
-                hotelId =
-                    created?.id ||
-                    created?.data?.id ||
-                    created?.hotel?.id ||
-                    created?.data?.hotel?.id;
+                hotelId = created?.id || created?.data?.id || created?.hotel?.id || created?.data?.hotel?.id;
 
                 if (!hotelId) {
                     throw new Error('Hotel created, but hotel ID was not returned');
@@ -190,11 +185,7 @@ function Hotels() {
             toast.success(actionMessage);
         } catch (error) {
             console.error('Hotel save/logo upload failed:', error);
-            toast.error(
-                error?.response?.data?.message ||
-                    error?.message ||
-                    'Hotel or logo save failed'
-            );
+            toast.error(error?.response?.data?.message || error?.message || 'Hotel or logo save failed');
         } finally {
             setSubmitting(false);
         }
@@ -226,8 +217,7 @@ function Hotels() {
 
             <div className="owner-card-grid">
                 {rows.map((hotel) => {
-                    const subscriptionActive =
-                        hotel.subscriptions && moment().diff(hotel.subscriptions.endDate) <= 0;
+                    const subscriptionActive = hotel.subscriptions && moment().diff(hotel.subscriptions.endDate) <= 0;
 
                     return (
                         <article className="owner-entity-card" key={hotel.id}>
@@ -282,10 +272,18 @@ function Hotels() {
                             </div>
 
                             <div className="owner-card-actions">
-                                <button type="button" className="owner-action primary" onClick={() => handleCheckIn(hotel)}>
+                                <button
+                                    type="button"
+                                    className="owner-action primary"
+                                    onClick={() => handleCheckIn(hotel)}
+                                >
                                     <FaHandPointRight /> Check-In
                                 </button>
-                                <button type="button" className="owner-action" onClick={() => handleSubscription(hotel)}>
+                                <button
+                                    type="button"
+                                    className="owner-action"
+                                    onClick={() => handleSubscription(hotel)}
+                                >
                                     <TbCoinRupeeFilled /> Subscription
                                 </button>
                                 <button
@@ -332,8 +330,8 @@ function Hotels() {
                 description={
                     <>
                         <div>
-                            Are you sure you want to remove{' '}
-                            <span className="fw-bold">{deleteHotelConfirm?.name}</span> from our app?
+                            Are you sure you want to remove <span className="fw-bold">{deleteHotelConfirm?.name}</span>{' '}
+                            from our app?
                         </div>
                         <br />
                         <div className="fw-bold">

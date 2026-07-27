@@ -1,5 +1,6 @@
 import { FaRupeeSign, FaUserTie, FaUsers } from 'react-icons/fa';
-import { IoMdSettings } from 'react-icons/io';
+import { IoMdSettings, IoMdMail } from 'react-icons/io';
+import { IoDocumentTextOutline } from 'react-icons/io5';
 import { LuReceipt } from 'react-icons/lu';
 import { MdOutlineDashboardCustomize, MdOutlineRestaurantMenu, MdOutlineAttachMoney } from 'react-icons/md';
 import { PiArmchairFill } from 'react-icons/pi';
@@ -74,6 +75,20 @@ export const ADMIN_TABS = [
         Icon: MdOutlineRestaurantMenu,
         title: 'Landing Page',
         path: '/admin/landing-settings'
+    },
+    {
+        order: 6,
+        id: 'admin-contact-enquiries',
+        Icon: IoMdMail,
+        title: 'Contact Enquiries',
+        path: '/admin/contact-enquiries'
+    },
+    {
+        order: 7,
+        id: 'admin-legal-pages',
+        Icon: IoDocumentTextOutline,
+        title: 'Privacy & Terms',
+        path: '/admin/legal-pages'
     }
 ];
 

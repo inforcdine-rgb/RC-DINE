@@ -65,19 +65,22 @@ const getCategoryIcon = (category, type) => {
 
 const getLocalCustomerNotifications = () => {
     try {
-        return JSON.parse(sessionStorage.getItem('rcdineNotifications') || '[]')
-            .map((item) => normalizeNotification({ ...item, localOnly: true }));
+        return JSON.parse(sessionStorage.getItem('rcdineNotifications') || '[]').map((item) =>
+            normalizeNotification({ ...item, localOnly: true })
+        );
     } catch (_error) {
         return [];
     }
 };
 
 const persistLocalCustomerNotifications = (notifications) => {
-    const localItems = notifications.filter((item) => item.localOnly).map((item) => ({
-        ...item,
-        read: item.isRead,
-        text: item.message
-    }));
+    const localItems = notifications
+        .filter((item) => item.localOnly)
+        .map((item) => ({
+            ...item,
+            read: item.isRead,
+            text: item.message
+        }));
     sessionStorage.setItem('rcdineNotifications', JSON.stringify(localItems));
     sessionStorage.setItem('rcdineUnreadCount', String(localItems.filter((item) => !item.isRead).length));
 };
@@ -85,7 +88,8 @@ const persistLocalCustomerNotifications = (notifications) => {
 function NotificationCenter({ open, onClose, audience = 'manager', token, onUnreadChange }) {
     const navigate = useNavigate();
     const [notifications, setNotifications] = useState(() =>
-        audience === 'customer' ? getLocalCustomerNotifications() : []);
+        audience === 'customer' ? getLocalCustomerNotifications() : []
+    );
     const [search, setSearch] = useState('');
     const [category, setCategory] = useState('ALL');
     const [unreadOnly, setUnreadOnly] = useState(false);
@@ -109,9 +113,8 @@ function NotificationCenter({ open, onClose, audience = 'manager', token, onUnre
         setLoading(true);
         setError('');
         try {
-            const response = audience === 'customer'
-                ? await fetchCustomerNotifications('', resolvedToken)
-                : await fetch();
+            const response =
+                audience === 'customer' ? await fetchCustomerNotifications('', resolvedToken) : await fetch();
             setNotifications((current) => mergeNotifications(current, response.rows || []));
             onUnreadChange?.(response.unreadCount ?? 0);
         } catch (requestError) {
@@ -140,8 +143,8 @@ function NotificationCenter({ open, onClose, audience = 'manager', token, onUnre
             loadNotifications();
         };
         window.addEventListener('rcdine:notification', handleNotification);
-        const handleLocalNotification = () => setNotifications((current) =>
-            mergeNotifications(current, getLocalCustomerNotifications()));
+        const handleLocalNotification = () =>
+            setNotifications((current) => mergeNotifications(current, getLocalCustomerNotifications()));
         window.addEventListener('rcdineNotificationsUpdated', handleLocalNotification);
         return () => {
             window.removeEventListener('rcdine:notification', handleNotification);
@@ -149,19 +152,28 @@ function NotificationCenter({ open, onClose, audience = 'manager', token, onUnre
         };
     }, [audience, loadNotifications, soundEnabled]);
 
-    const filtered = useMemo(() => notifications.filter((item) => {
-        const matchesSearch = !search || `${item.title} ${item.message}`.toLowerCase().includes(search.toLowerCase());
-        const matchesCategory = category === 'ALL' || item.category === category;
-        return matchesSearch && matchesCategory && (!unreadOnly || !item.isRead);
-    }), [category, notifications, search, unreadOnly]);
+    const filtered = useMemo(
+        () =>
+            notifications.filter((item) => {
+                const matchesSearch =
+                    !search || `${item.title} ${item.message}`.toLowerCase().includes(search.toLowerCase());
+                const matchesCategory = category === 'ALL' || item.category === category;
+                return matchesSearch && matchesCategory && (!unreadOnly || !item.isRead);
+            }),
+        [category, notifications, search, unreadOnly]
+    );
 
     const visible = useMemo(() => filtered.slice(0, visibleCount), [filtered, visibleCount]);
-    const grouped = useMemo(() => visible.reduce((result, item) => {
-        const group = getDateGroup(item.createdAt);
-        if (!result[group]) result[group] = [];
-        result[group].push(item);
-        return result;
-    }, {}), [visible]);
+    const grouped = useMemo(
+        () =>
+            visible.reduce((result, item) => {
+                const group = getDateGroup(item.createdAt);
+                if (!result[group]) result[group] = [];
+                result[group].push(item);
+                return result;
+            }, {}),
+        [visible]
+    );
     const unreadCount = useMemo(() => notifications.filter((item) => !item.isRead).length, [notifications]);
 
     useEffect(() => {
@@ -170,9 +182,12 @@ function NotificationCenter({ open, onClose, audience = 'manager', token, onUnre
 
     useEffect(() => {
         if (!observerTarget.current || visibleCount >= filtered.length) return undefined;
-        const observer = new IntersectionObserver(([entry]) => {
-            if (entry.isIntersecting) setVisibleCount((count) => count + PAGE_SIZE);
-        }, { rootMargin: '160px' });
+        const observer = new IntersectionObserver(
+            ([entry]) => {
+                if (entry.isIntersecting) setVisibleCount((count) => count + PAGE_SIZE);
+            },
+            { rootMargin: '160px' }
+        );
         observer.observe(observerTarget.current);
         return () => observer.disconnect();
     }, [filtered.length, visibleCount]);
@@ -198,7 +213,8 @@ function NotificationCenter({ open, onClose, audience = 'manager', token, onUnre
             } else await update(item.id);
             setNotifications((current) => {
                 const next = current.map((entry) =>
-                    entry.id === item.id ? { ...entry, isRead: true, status: 'INACTIVE' } : entry);
+                    entry.id === item.id ? { ...entry, isRead: true, status: 'INACTIVE' } : entry
+                );
                 if (audience === 'customer') persistLocalCustomerNotifications(next);
                 return next;
             });
@@ -287,21 +303,35 @@ function NotificationCenter({ open, onClose, audience = 'manager', token, onUnre
 
     return createPortal(
         <div className="notification-center-layer" role="presentation">
-            <button className="notification-center-backdrop" type="button" aria-label="Close notifications" onClick={onClose} />
+            <button
+                className="notification-center-backdrop"
+                type="button"
+                aria-label="Close notifications"
+                onClick={onClose}
+            />
             <section className="notification-center" role="dialog" aria-modal="true" aria-label="Notifications">
                 <header className="notification-center-header">
                     <div>
                         <span className="notification-center-eyebrow">R&C Dine</span>
                         <h2>Notifications {unreadCount > 0 && <b>{unreadCount}</b>}</h2>
                     </div>
-                    <button className="notification-icon-button" type="button" aria-label="Close" onClick={onClose}>×</button>
+                    <button className="notification-icon-button" type="button" aria-label="Close" onClick={onClose}>
+                        ×
+                    </button>
                 </header>
 
                 {capability.supported && (
-                    <button className="notification-enable" type="button" disabled={permissionBusy} onClick={enableNotifications}>
+                    <button
+                        className="notification-enable"
+                        type="button"
+                        disabled={permissionBusy}
+                        onClick={enableNotifications}
+                    >
                         <span>{capability.permission === 'granted' ? '✓' : '🔔'}</span>
                         <span>
-                            <b>{capability.permission === 'granted' ? 'Notifications enabled' : 'Enable notifications'}</b>
+                            <b>
+                                {capability.permission === 'granted' ? 'Notifications enabled' : 'Enable notifications'}
+                            </b>
                             <small>
                                 {capability.permission === 'granted'
                                     ? 'Tap Sync to repair or refresh background notifications'
@@ -317,59 +347,122 @@ function NotificationCenter({ open, onClose, audience = 'manager', token, onUnre
                 <div className="notification-toolbar">
                     <label className="notification-search">
                         <span>⌕</span>
-                        <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search notifications" />
+                        <input
+                            value={search}
+                            onChange={(event) => setSearch(event.target.value)}
+                            placeholder="Search notifications"
+                        />
                     </label>
-                    <button type="button" aria-label={soundEnabled ? 'Mute sounds' : 'Enable sounds'} onClick={toggleSound}>
+                    <button
+                        type="button"
+                        aria-label={soundEnabled ? 'Mute sounds' : 'Enable sounds'}
+                        onClick={toggleSound}
+                    >
                         {soundEnabled ? '🔊' : '🔇'}
                     </button>
                 </div>
 
                 <div className="notification-filters" aria-label="Notification filters">
                     {FILTERS.map((filter) => (
-                        <button key={filter} type="button" className={category === filter ? 'active' : ''} onClick={() => setCategory(filter)}>
+                        <button
+                            key={filter}
+                            type="button"
+                            className={category === filter ? 'active' : ''}
+                            onClick={() => setCategory(filter)}
+                        >
                             {filter === 'ALL' ? 'All' : filter.replace('_', ' ')}
                         </button>
                     ))}
                 </div>
 
                 <div className="notification-actions">
-                    <label><input type="checkbox" checked={unreadOnly} onChange={(event) => setUnreadOnly(event.target.checked)} /> Unread only</label>
+                    <label>
+                        <input
+                            type="checkbox"
+                            checked={unreadOnly}
+                            onChange={(event) => setUnreadOnly(event.target.checked)}
+                        />{' '}
+                        Unread only
+                    </label>
                     <span>
-                        <button type="button" disabled={!unreadCount} onClick={markAllRead}>Mark all read</button>
-                        <button type="button" disabled={!notifications.length} onClick={clearAll}>Clear all</button>
+                        <button type="button" disabled={!unreadCount} onClick={markAllRead}>
+                            Mark all read
+                        </button>
+                        <button type="button" disabled={!notifications.length} onClick={clearAll}>
+                            Clear all
+                        </button>
                     </span>
                 </div>
 
                 <div className="notification-feed" data-preserve-scroll>
-                    {error && <div className="notification-error" role="status">{error}</div>}
+                    {error && (
+                        <div className="notification-error" role="status">
+                            {error}
+                        </div>
+                    )}
                     {loading && !notifications.length && <NotificationSkeleton />}
                     {!loading && !filtered.length && (
-                        <div className="notification-empty"><span>✓</span><h3>You&apos;re all caught up</h3><p>New updates will appear here.</p></div>
+                        <div className="notification-empty">
+                            <span>✓</span>
+                            <h3>You&apos;re all caught up</h3>
+                            <p>New updates will appear here.</p>
+                        </div>
                     )}
-                    {['Today', 'Yesterday', 'Earlier'].map((group) => grouped[group]?.length ? (
-                        <section key={group} className="notification-group">
-                            <h3>{group}</h3>
-                            {grouped[group].map((item) => (
-                                <article
-                                    key={item.id}
-                                    className={`notification-card ${item.isRead ? 'is-read' : 'is-unread'} category-${item.category.toLowerCase()}`}
-                                    onPointerDown={(event) => handlePointerDown(event, item)}
-                                    onPointerUp={(event) => handlePointerUp(event, item)}
-                                >
-                                    <button className="notification-card-main" type="button" onClick={() => openNotification(item)}>
-                                        <span className="notification-card-icon">{getCategoryIcon(item.category, item.type)}</span>
-                                        <span className="notification-card-copy"><b>{item.title}</b><p>{item.message}</p><small>{new Date(item.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</small></span>
-                                        {!item.isRead && <i aria-label="Unread" />}
-                                    </button>
-                                    <button className="notification-delete" type="button" aria-label={`Delete ${item.title}`} onClick={() => deleteNotification(item)}>Delete</button>
-                                </article>
-                            ))}
-                        </section>
-                    ) : null)}
+                    {['Today', 'Yesterday', 'Earlier'].map((group) =>
+                        grouped[group]?.length ? (
+                            <section key={group} className="notification-group">
+                                <h3>{group}</h3>
+                                {grouped[group].map((item) => (
+                                    <article
+                                        key={item.id}
+                                        className={`notification-card ${item.isRead ? 'is-read' : 'is-unread'} category-${item.category.toLowerCase()}`}
+                                        onPointerDown={(event) => handlePointerDown(event, item)}
+                                        onPointerUp={(event) => handlePointerUp(event, item)}
+                                    >
+                                        <button
+                                            className="notification-card-main"
+                                            type="button"
+                                            onClick={() => openNotification(item)}
+                                        >
+                                            <span className="notification-card-icon">
+                                                {getCategoryIcon(item.category, item.type)}
+                                            </span>
+                                            <span className="notification-card-copy">
+                                                <b>{item.title}</b>
+                                                <p>{item.message}</p>
+                                                <small>
+                                                    {new Date(item.createdAt).toLocaleTimeString([], {
+                                                        hour: '2-digit',
+                                                        minute: '2-digit'
+                                                    })}
+                                                </small>
+                                            </span>
+                                            {!item.isRead && <i aria-label="Unread" />}
+                                        </button>
+                                        <button
+                                            className="notification-delete"
+                                            type="button"
+                                            aria-label={`Delete ${item.title}`}
+                                            onClick={() => deleteNotification(item)}
+                                        >
+                                            Delete
+                                        </button>
+                                    </article>
+                                ))}
+                            </section>
+                        ) : null
+                    )}
                     <div ref={observerTarget} className="notification-observer" />
                 </div>
 
-                {undoItem && <div className="notification-undo" role="status"><span>Notification deleted</span><button type="button" onClick={undoDelete}>Undo</button></div>}
+                {undoItem && (
+                    <div className="notification-undo" role="status">
+                        <span>Notification deleted</span>
+                        <button type="button" onClick={undoDelete}>
+                            Undo
+                        </button>
+                    </div>
+                )}
             </section>
         </div>,
         document.body
@@ -377,9 +470,17 @@ function NotificationCenter({ open, onClose, audience = 'manager', token, onUnre
 }
 
 function NotificationSkeleton() {
-    return <div className="notification-skeleton" aria-label="Loading notifications">
-        {[0, 1, 2, 3].map((item) => <div key={item}><span /><p /><small /></div>)}
-    </div>;
+    return (
+        <div className="notification-skeleton" aria-label="Loading notifications">
+            {[0, 1, 2, 3].map((item) => (
+                <div key={item}>
+                    <span />
+                    <p />
+                    <small />
+                </div>
+            ))}
+        </div>
+    );
 }
 
 export default memo(NotificationCenter);

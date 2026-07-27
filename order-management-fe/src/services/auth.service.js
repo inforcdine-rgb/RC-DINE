@@ -37,16 +37,10 @@ export const forgotPasswordUser = async (payload) => {
         console.error('Error in forgot password:', error);
 
         if (error.code === 'ECONNABORTED') {
-            throw new Error(
-                'Email server response timeout. Check backend email configuration.'
-            );
+            throw new Error('Email server response timeout. Check backend email configuration.');
         }
 
-        throw new Error(
-            error?.response?.data?.message ||
-            error.message ||
-            'Unable to send password reset email.'
-        );
+        throw new Error(error?.response?.data?.message || error.message || 'Unable to send password reset email.');
     }
 };
 

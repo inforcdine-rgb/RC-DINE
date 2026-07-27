@@ -9,11 +9,9 @@ import {
 const ALLOWED_PRINTER_WIDTHS = ['58', '80', 'auto'];
 const DEFAULT_FOOTER = 'Thank you! Visit again.';
 
-const getSecurePrinterStorageKey = (hotelId) =>
-    `rcdine-printer-secure-${hotelId}`;
+const getSecurePrinterStorageKey = (hotelId) => `rcdine-printer-secure-${hotelId}`;
 
-const getLegacyPrinterStorageKey = (hotelId) =>
-    `rcdine-printer-${hotelId}`;
+const getLegacyPrinterStorageKey = (hotelId) => `rcdine-printer-${hotelId}`;
 
 const getDefaultSettings = (hotelId = '') => ({
     version: 2,
@@ -31,10 +29,10 @@ const getDefaultSettings = (hotelId = '') => ({
 export const sanitizePrinterSettings = (settings = {}, hotelId = '') => ({
     version: 2,
     hotelId: String(hotelId || settings.hotelId || ''),
-    printerWidth: ALLOWED_PRINTER_WIDTHS.includes(String(settings.printerWidth))
-        ? String(settings.printerWidth)
-        : '58',
-    address: String(settings.address || '').trim().slice(0, 250),
+    printerWidth: ALLOWED_PRINTER_WIDTHS.includes(String(settings.printerWidth)) ? String(settings.printerWidth) : '58',
+    address: String(settings.address || '')
+        .trim()
+        .slice(0, 250),
     phone: String(settings.phone || settings.careNumber || '')
         .replace(/[^0-9+\- ]/g, '')
         .trim()
@@ -45,9 +43,10 @@ export const sanitizePrinterSettings = (settings = {}, hotelId = '') => ({
         .slice(0, 15),
     showLogo: settings.showLogo !== false,
     logo: String(settings.logo || ''),
-    footerMessage: String(settings.footerMessage || DEFAULT_FOOTER)
-        .trim()
-        .slice(0, 120) || DEFAULT_FOOTER,
+    footerMessage:
+        String(settings.footerMessage || DEFAULT_FOOTER)
+            .trim()
+            .slice(0, 120) || DEFAULT_FOOTER,
     savedAt: String(settings.savedAt || '')
 });
 
@@ -65,11 +64,14 @@ const decryptSettings = (value) => {
 
 export const savePrinterSettingsLocally = (hotelId, settings) => {
     if (!hotelId) throw new Error('Hotel ID is required');
-    const clean = sanitizePrinterSettings({
-        ...settings,
-        hotelId,
-        savedAt: new Date().toISOString()
-    }, hotelId);
+    const clean = sanitizePrinterSettings(
+        {
+            ...settings,
+            hotelId,
+            savedAt: new Date().toISOString()
+        },
+        hotelId
+    );
     localStorage.setItem(getSecurePrinterStorageKey(hotelId), encryptSettings(clean));
     localStorage.removeItem(getLegacyPrinterStorageKey(hotelId));
     return clean;

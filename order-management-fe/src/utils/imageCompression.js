@@ -24,13 +24,7 @@ const canvasToBlob = (canvas, quality) =>
 
 export const compressImageToWebp = async (
     file,
-    {
-        width = 800,
-        height = 600,
-        minKb = 100,
-        maxKb = 150,
-        square = false
-    } = {}
+    { width = 800, height = 600, minKb = 100, maxKb = 150, square = false } = {}
 ) => {
     if (!file) throw new Error('Image file is required');
     if (!['image/jpeg', 'image/jpg', 'image/png', 'image/webp'].includes(file.type)) {

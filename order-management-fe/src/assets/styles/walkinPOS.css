@@ -212,10 +212,22 @@
     font-weight: 900;
 }
 
-.status-pill.pending { color: #f05a00; background: #fff0e6; }
-.status-pill.preparing { color: #006edb; background: #e8f3ff; }
-.status-pill.ready { color: #039855; background: #e7f8ef; }
-.status-pill.completed { color: #03854f; background: #e7f8ef; }
+.status-pill.pending {
+    color: #f05a00;
+    background: #fff0e6;
+}
+.status-pill.preparing {
+    color: #006edb;
+    background: #e8f3ff;
+}
+.status-pill.ready {
+    color: #039855;
+    background: #e7f8ef;
+}
+.status-pill.completed {
+    color: #03854f;
+    background: #e7f8ef;
+}
 
 .pos-modal {
     position: fixed;
@@ -409,7 +421,9 @@
     border: 1px solid #e5ebf3;
     border-radius: 16px;
     background: #fff;
-    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    transition:
+        transform 0.15s ease,
+        box-shadow 0.15s ease;
 }
 
 .food-pro-card:hover {
@@ -709,7 +723,6 @@
     margin-top: 10px;
 }
 
-
 .view-all-link {
     border: 0;
     background: transparent;
@@ -760,62 +773,62 @@
 }
 /* MOBILE DASHBOARD STATUS CARDS FIX */
 @media (max-width: 768px) {
-  .pos-dashboard-grid {
-    display: grid !important;
-    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-    gap: 12px !important;
-    margin: 14px 0 18px !important;
-    width: 100% !important;
-  }
+    .pos-dashboard-grid {
+        display: grid !important;
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        gap: 12px !important;
+        margin: 14px 0 18px !important;
+        width: 100% !important;
+    }
 
-  .pos-stat-card {
-    position: relative !important;
-    min-height: 112px !important;
-    padding: 14px !important;
-    border-radius: 22px !important;
-    border: 1px solid #e8eef6 !important;
-    background: linear-gradient(145deg, #ffffff, #f8fbff) !important;
-    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08) !important;
-    overflow: hidden !important;
-  }
+    .pos-stat-card {
+        position: relative !important;
+        min-height: 112px !important;
+        padding: 14px !important;
+        border-radius: 22px !important;
+        border: 1px solid #e8eef6 !important;
+        background: linear-gradient(145deg, #ffffff, #f8fbff) !important;
+        box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08) !important;
+        overflow: hidden !important;
+    }
 
-  .pos-stat-card::after {
-    content: '' !important;
-    position: absolute !important;
-    right: -18px !important;
-    top: -18px !important;
-    width: 58px !important;
-    height: 58px !important;
-    border-radius: 50% !important;
-    background: rgba(34, 197, 94, 0.12) !important;
-  }
+    .pos-stat-card::after {
+        content: '' !important;
+        position: absolute !important;
+        right: -18px !important;
+        top: -18px !important;
+        width: 58px !important;
+        height: 58px !important;
+        border-radius: 50% !important;
+        background: rgba(34, 197, 94, 0.12) !important;
+    }
 
-  .pos-stat-card span {
-    font-size: 13px !important;
-    font-weight: 900 !important;
-    color: #64748b !important;
-    margin-bottom: 8px !important;
-  }
+    .pos-stat-card span {
+        font-size: 13px !important;
+        font-weight: 900 !important;
+        color: #64748b !important;
+        margin-bottom: 8px !important;
+    }
 
-  .pos-stat-card strong {
-    font-size: 32px !important;
-    line-height: 1 !important;
-    font-weight: 950 !important;
-    color: #071426 !important;
-    margin: 10px 0 8px !important;
-  }
+    .pos-stat-card strong {
+        font-size: 32px !important;
+        line-height: 1 !important;
+        font-weight: 950 !important;
+        color: #071426 !important;
+        margin: 10px 0 8px !important;
+    }
 
-  .pos-stat-card small {
-    display: inline-flex !important;
-    align-items: center !important;
-    width: fit-content !important;
-    padding: 5px 9px !important;
-    border-radius: 999px !important;
-    background: #eefdf3 !important;
-    color: #159447 !important;
-    font-size: 11px !important;
-    font-weight: 900 !important;
-  }
+    .pos-stat-card small {
+        display: inline-flex !important;
+        align-items: center !important;
+        width: fit-content !important;
+        padding: 5px 9px !important;
+        border-radius: 999px !important;
+        background: #eefdf3 !important;
+        color: #159447 !important;
+        font-size: 11px !important;
+        font-weight: 900 !important;
+    }
 }
 
 /* ===== Resumable Manager POS open orders ===== */
@@ -874,7 +887,9 @@
     background: linear-gradient(155deg, #fff, #fbfcfe);
     box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
     contain: layout paint;
-    transition: transform 180ms ease, box-shadow 180ms ease;
+    transition:
+        transform 180ms ease,
+        box-shadow 180ms ease;
 }
 
 .open-order-card:hover {
@@ -1222,24 +1237,36 @@
 }
 
 @media (max-width: 360px) {
-  .pos-dashboard-grid {
-    gap: 10px !important;
-  }
+    .pos-dashboard-grid {
+        gap: 10px !important;
+    }
 
-  .pos-stat-card {
-    min-height: 100px !important;
-    padding: 12px !important;
-  }
+    .pos-stat-card {
+        min-height: 100px !important;
+        padding: 12px !important;
+    }
 
-  .pos-stat-card strong {
-    font-size: 28px !important;
-  }
+    .pos-stat-card strong {
+        font-size: 28px !important;
+    }
 }
 
-.billing-actions { display: grid !important; grid-template-columns: auto 1fr 1fr; gap: 10px; }
-.billing-actions button { min-height: 46px; }
-@media (max-width: 768px) { .billing-actions { grid-template-columns: 1fr !important; } .billing-actions button { width: 100%; } }
-
+.billing-actions {
+    display: grid !important;
+    grid-template-columns: auto 1fr 1fr;
+    gap: 10px;
+}
+.billing-actions button {
+    min-height: 46px;
+}
+@media (max-width: 768px) {
+    .billing-actions {
+        grid-template-columns: 1fr !important;
+    }
+    .billing-actions button {
+        width: 100%;
+    }
+}
 
 /* ===== Professional responsive Walk-in POS enhancements ===== */
 
@@ -1824,7 +1851,6 @@
     }
 }
 
-
 /* ===== POS finishing: filters, table status and success actions ===== */
 
 .table-list-pro button {
@@ -2021,9 +2047,13 @@
     background: linear-gradient(145deg, #fff, #faf8ff);
 }
 
-.pos-stat-card.rc_session strong { color: #6941c6; }
+.pos-stat-card.rc_session strong {
+    color: #6941c6;
+}
 
-.rc-session-dashboard-dialog { width: min(1040px, 96vw); }
+.rc-session-dashboard-dialog {
+    width: min(1040px, 96vw);
+}
 
 .rc-session-dashboard-summary {
     display: flex;
@@ -2043,9 +2073,18 @@
 }
 
 .rc-session-dashboard-summary span,
-.rc-session-dashboard-summary strong { display: block; }
-.rc-session-dashboard-summary span { color: #667085; font-size: 12px; font-weight: 800; }
-.rc-session-dashboard-summary strong { margin-top: 3px; font-size: 22px; }
+.rc-session-dashboard-summary strong {
+    display: block;
+}
+.rc-session-dashboard-summary span {
+    color: #667085;
+    font-size: 12px;
+    font-weight: 800;
+}
+.rc-session-dashboard-summary strong {
+    margin-top: 3px;
+    font-size: 22px;
+}
 .rc-session-dashboard-summary button {
     margin-left: auto;
     min-height: 40px;
@@ -2072,21 +2111,59 @@
     border-bottom: 1px solid #edf1f6;
 }
 
-.rc-session-state-dot { width: 11px; height: 11px; border-radius: 50%; background: #98a2b3; }
-.rc-session-state-dot.active { background: #12b76a; box-shadow: 0 0 0 5px #e7f8ef; }
-.rc-session-state-dot.payment { background: #f79009; box-shadow: 0 0 0 5px #fff4e5; }
-.rc-session-state-dot.ready { background: #2e90fa; box-shadow: 0 0 0 5px #eaf4ff; }
-.rc-session-state-dot.disabled { background: #98a2b3; box-shadow: 0 0 0 5px #f2f4f7; }
-.rc-session-state-dot.error { background: #f04438; box-shadow: 0 0 0 5px #feeceb; }
+.rc-session-state-dot {
+    width: 11px;
+    height: 11px;
+    border-radius: 50%;
+    background: #98a2b3;
+}
+.rc-session-state-dot.active {
+    background: #12b76a;
+    box-shadow: 0 0 0 5px #e7f8ef;
+}
+.rc-session-state-dot.payment {
+    background: #f79009;
+    box-shadow: 0 0 0 5px #fff4e5;
+}
+.rc-session-state-dot.ready {
+    background: #2e90fa;
+    box-shadow: 0 0 0 5px #eaf4ff;
+}
+.rc-session-state-dot.disabled {
+    background: #98a2b3;
+    box-shadow: 0 0 0 5px #f2f4f7;
+}
+.rc-session-state-dot.error {
+    background: #f04438;
+    box-shadow: 0 0 0 5px #feeceb;
+}
 
 .rc-session-table-info strong,
 .rc-session-table-info span,
-.rc-session-table-info small { display: block; }
-.rc-session-table-info strong { font-size: 16px; }
-.rc-session-table-info span { margin-top: 3px; color: #475467; font-size: 13px; font-weight: 800; }
-.rc-session-table-info small { margin-top: 3px; color: #98a2b3; }
+.rc-session-table-info small {
+    display: block;
+}
+.rc-session-table-info strong {
+    font-size: 16px;
+}
+.rc-session-table-info span {
+    margin-top: 3px;
+    color: #475467;
+    font-size: 13px;
+    font-weight: 800;
+}
+.rc-session-table-info small {
+    margin-top: 3px;
+    color: #98a2b3;
+}
 
-.rc-session-row-actions { display: flex; align-items: center; justify-content: flex-end; gap: 8px; flex-wrap: wrap; }
+.rc-session-row-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    flex-wrap: wrap;
+}
 .rc-session-row-actions button {
     min-height: 38px;
     padding: 0 13px;
@@ -2097,31 +2174,86 @@
     font-weight: 900;
     cursor: pointer;
 }
-.rc-session-row-actions button.muted { color: #344054; border: 1px solid #d0d5dd; background: #fff; }
-.rc-session-row-actions button.success { background: #079455; }
-.rc-session-row-actions button:disabled { opacity: .55; cursor: wait; }
-.rc-session-saving { color: #667085; font-size: 12px; font-weight: 800; }
-
-.rc-session-confirm-layer { z-index: 1200; }
-.rc-session-confirm-dialog { width: min(560px, 94vw); }
-.rc-session-confirm-body { padding: 22px; }
-.rc-session-confirm-body p { margin: 0 0 10px; }
-.rc-session-confirm-body > span { color: #667085; }
-.rc-session-confirm-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 22px; flex-wrap: wrap; }
-.rc-session-confirm-actions .danger { color: #b42318; border-color: #fecdca; background: #fff5f4; }
-
-@media (max-width: 760px) {
-    .rc-session-dashboard-summary { flex-wrap: wrap; padding: 12px 14px; }
-    .rc-session-dashboard-summary div { flex: 1; min-width: 120px; }
-    .rc-session-dashboard-summary button { width: 100%; margin-left: 0; }
-    .rc-session-table-list { padding: 8px 14px 18px; }
-    .rc-session-table-row { grid-template-columns: 12px 1fr; }
-    .rc-session-row-actions { grid-column: 1 / -1; justify-content: stretch; padding-left: 26px; }
-    .rc-session-row-actions button { flex: 1; }
-    .rc-session-confirm-actions { flex-direction: column-reverse; }
-    .rc-session-confirm-actions button { width: 100%; }
+.rc-session-row-actions button.muted {
+    color: #344054;
+    border: 1px solid #d0d5dd;
+    background: #fff;
+}
+.rc-session-row-actions button.success {
+    background: #079455;
+}
+.rc-session-row-actions button:disabled {
+    opacity: 0.55;
+    cursor: wait;
+}
+.rc-session-saving {
+    color: #667085;
+    font-size: 12px;
+    font-weight: 800;
 }
 
+.rc-session-confirm-layer {
+    z-index: 1200;
+}
+.rc-session-confirm-dialog {
+    width: min(560px, 94vw);
+}
+.rc-session-confirm-body {
+    padding: 22px;
+}
+.rc-session-confirm-body p {
+    margin: 0 0 10px;
+}
+.rc-session-confirm-body > span {
+    color: #667085;
+}
+.rc-session-confirm-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 22px;
+    flex-wrap: wrap;
+}
+.rc-session-confirm-actions .danger {
+    color: #b42318;
+    border-color: #fecdca;
+    background: #fff5f4;
+}
+
+@media (max-width: 760px) {
+    .rc-session-dashboard-summary {
+        flex-wrap: wrap;
+        padding: 12px 14px;
+    }
+    .rc-session-dashboard-summary div {
+        flex: 1;
+        min-width: 120px;
+    }
+    .rc-session-dashboard-summary button {
+        width: 100%;
+        margin-left: 0;
+    }
+    .rc-session-table-list {
+        padding: 8px 14px 18px;
+    }
+    .rc-session-table-row {
+        grid-template-columns: 12px 1fr;
+    }
+    .rc-session-row-actions {
+        grid-column: 1 / -1;
+        justify-content: stretch;
+        padding-left: 26px;
+    }
+    .rc-session-row-actions button {
+        flex: 1;
+    }
+    .rc-session-confirm-actions {
+        flex-direction: column-reverse;
+    }
+    .rc-session-confirm-actions button {
+        width: 100%;
+    }
+}
 
 /* ===== Mobile compact table picker + 3-column menu cards ===== */
 .table-mobile-label {

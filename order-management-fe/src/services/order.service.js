@@ -92,7 +92,9 @@ export const downloadInvoice = async (hotelId, orderId, hotelName = 'hotel', ord
         const url = window.URL.createObjectURL(blob);
         const link = document.createElement('a');
 
-        const cleanedHotelName = String(hotelName || 'hotel').toLowerCase().replace(/\s+/g, '-');
+        const cleanedHotelName = String(hotelName || 'hotel')
+            .toLowerCase()
+            .replace(/\s+/g, '-');
         const cleanedOrderNumber = String(orderNumber || 'order').toLowerCase();
 
         link.href = url;

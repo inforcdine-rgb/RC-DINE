@@ -25,11 +25,7 @@ import {
 } from '../../store/slice/menu.slice';
 import { FIELD_CLASS, MENU_STATUS } from '../../utils/constants.js';
 import { compressComboImage, compressFoodImage } from '../../utils/imageCompression';
-import {
-    getBackgroundRequestVersion,
-    registerRefreshHandler,
-    waitForBackgroundRequests
-} from '../../utils/refreshBus';
+import { getBackgroundRequestVersion, registerRefreshHandler, waitForBackgroundRequests } from '../../utils/refreshBus';
 import {
     defaultValidation,
     validateCreateCategory,
@@ -48,7 +44,10 @@ function ImageUploadModal({ item, hotelId, onClose, onSuccess }) {
     const handleFileChange = async (e) => {
         const original = e.target.files[0];
         if (!original) return;
-        if (original.size > 3 * 1024 * 1024) { setError('File size must be under 3MB'); return; }
+        if (original.size > 3 * 1024 * 1024) {
+            setError('File size must be under 3MB');
+            return;
+        }
         try {
             const f = await compressFoodImage(original);
             setError('');
@@ -83,7 +82,9 @@ function ImageUploadModal({ item, hotelId, onClose, onSuccess }) {
             <div className="img-modal-box" onClick={(e) => e.stopPropagation()}>
                 <div className="img-modal-header">
                     <span>📷 Upload Dish Photo</span>
-                    <button className="img-modal-close" onClick={onClose}>✕</button>
+                    <button className="img-modal-close" onClick={onClose}>
+                        ✕
+                    </button>
                 </div>
                 <div className="img-modal-body">
                     <div
@@ -115,7 +116,9 @@ function ImageUploadModal({ item, hotelId, onClose, onSuccess }) {
                     {error && <div className="img-error">{error}</div>}
                 </div>
                 <div className="img-modal-footer">
-                    <button className="img-btn-cancel" onClick={onClose}>Cancel</button>
+                    <button className="img-btn-cancel" onClick={onClose}>
+                        Cancel
+                    </button>
                     <button className="img-btn-upload" onClick={handleUpload} disabled={!file || loading}>
                         {loading ? 'Uploading...' : 'Upload'}
                     </button>
@@ -127,13 +130,36 @@ function ImageUploadModal({ item, hotelId, onClose, onSuccess }) {
 
 // ── Create Menu Items with optional image ─────────────────────────────────────
 function CreateMenuWithImageModal({ categoryId, hotelId, onClose, onSuccess }) {
-    const [rows, setRows] = useState([{ id: Date.now(), name: '', description: '', price: '', foodType: 'VEG', isCartSuggestion: false, file: null, preview: null }]);
+    const [rows, setRows] = useState([
+        {
+            id: Date.now(),
+            name: '',
+            description: '',
+            price: '',
+            foodType: 'VEG',
+            isCartSuggestion: false,
+            file: null,
+            preview: null
+        }
+    ]);
     const [loading, setLoading] = useState(false);
     const [errors, setErrors] = useState({});
     const fileRefs = useRef({});
 
     const addRow = () => {
-        setRows((prev) => [...prev, { id: Date.now(), name: '', description: '', price: '', foodType: 'VEG', isCartSuggestion: false, file: null, preview: null }]);
+        setRows((prev) => [
+            ...prev,
+            {
+                id: Date.now(),
+                name: '',
+                description: '',
+                price: '',
+                foodType: 'VEG',
+                isCartSuggestion: false,
+                file: null,
+                preview: null
+            }
+        ]);
     };
 
     const removeRow = (id) => {
@@ -153,10 +179,12 @@ function CreateMenuWithImageModal({ categoryId, hotelId, onClose, onSuccess }) {
         }
         try {
             const f = await compressFoodImage(original);
-            setErrors((prev) => { const next = { ...prev }; delete next[id]; return next; });
-            setRows((prev) =>
-                prev.map((r) => (r.id === id ? { ...r, file: f, preview: URL.createObjectURL(f) } : r))
-            );
+            setErrors((prev) => {
+                const next = { ...prev };
+                delete next[id];
+                return next;
+            });
+            setRows((prev) => prev.map((r) => (r.id === id ? { ...r, file: f, preview: URL.createObjectURL(f) } : r)));
         } catch (compressionError) {
             setErrors((prev) => ({ ...prev, [id]: compressionError.message || 'Compression failed' }));
         }
@@ -166,7 +194,7 @@ function CreateMenuWithImageModal({ categoryId, hotelId, onClose, onSuccess }) {
         const errs = {};
         rows.forEach((r) => {
             if (!r.name.trim()) errs[`${r.id}-name`] = 'Name required';
-            if (!r.price || isNaN(Number(r.price)) || Number(r.price) <= 0) errs[`${r.id}-price`] = 'Valid price required';
+            if (!r.price || isNaN(Number(r.price)) || Number(r.price) <= 0) { errs[`${r.id}-price`] = 'Valid price required'; }
             if (!['VEG', 'NON_VEG'].includes(r.foodType)) errs[`${r.id}-foodType`] = 'Select Veg or Non-Veg';
         });
         setErrors(errs);
@@ -215,7 +243,9 @@ function CreateMenuWithImageModal({ categoryId, hotelId, onClose, onSuccess }) {
             <div className="img-modal-box create-menu-modal" onClick={(e) => e.stopPropagation()}>
                 <div className="img-modal-header">
                     <span>🍽️ Create Menu Items</span>
-                    <button className="img-modal-close" onClick={onClose}>✕</button>
+                    <button className="img-modal-close" onClick={onClose}>
+                        ✕
+                    </button>
                 </div>
                 <div className="img-modal-body create-menu-body">
                     {rows.map((row) => (
@@ -225,12 +255,16 @@ function CreateMenuWithImageModal({ categoryId, hotelId, onClose, onSuccess }) {
                                 title="Click to add photo"
                                 onClick={() => fileRefs.current[row.id]?.click()}
                             >
-                                {row.preview
-                                    ? <img src={row.preview} alt="preview" className="create-menu-img-preview" />
-                                    : <span className="create-menu-img-placeholder">📷</span>}
+                                {row.preview ? (
+                                    <img src={row.preview} alt="preview" className="create-menu-img-preview" />
+                                ) : (
+                                    <span className="create-menu-img-placeholder">📷</span>
+                                )}
                             </div>
                             <input
-                                ref={(el) => { fileRefs.current[row.id] = el; }}
+                                ref={(el) => {
+                                    fileRefs.current[row.id] = el;
+                                }}
                                 type="file"
                                 accept="image/jpeg,image/jpg,image/png,image/webp"
                                 style={{ display: 'none' }}
@@ -276,7 +310,9 @@ function CreateMenuWithImageModal({ categoryId, hotelId, onClose, onSuccess }) {
                                         />
                                         Veg
                                     </label>
-                                    <label className={`food-type-option non-veg ${row.foodType === 'NON_VEG' ? 'active' : ''}`}>
+                                    <label
+                                        className={`food-type-option non-veg ${row.foodType === 'NON_VEG' ? 'active' : ''}`}
+                                    >
                                         <input
                                             type="radio"
                                             name={`foodType-${row.id}`}
@@ -298,20 +334,24 @@ function CreateMenuWithImageModal({ categoryId, hotelId, onClose, onSuccess }) {
                                     />
                                     <span>Show in customer cart suggestion popup</span>
                                 </label>
-                                {errors[row.id] && (
-                                    <span className="create-menu-field-error">{errors[row.id]}</span>
-                                )}
+                                {errors[row.id] && <span className="create-menu-field-error">{errors[row.id]}</span>}
                             </div>
                             {rows.length > 1 && (
-                                <button className="create-menu-remove-btn" onClick={() => removeRow(row.id)}>✕</button>
+                                <button className="create-menu-remove-btn" onClick={() => removeRow(row.id)}>
+                                    ✕
+                                </button>
                             )}
                         </div>
                     ))}
                     {errors._global && <div className="img-error">{errors._global}</div>}
-                    <button className="create-menu-add-row-btn" onClick={addRow}>+ Add Another Item</button>
+                    <button className="create-menu-add-row-btn" onClick={addRow}>
+                        + Add Another Item
+                    </button>
                 </div>
                 <div className="img-modal-footer">
-                    <button className="img-btn-cancel" onClick={onClose}>Cancel</button>
+                    <button className="img-btn-cancel" onClick={onClose}>
+                        Cancel
+                    </button>
                     <button className="img-btn-upload" onClick={handleSubmit} disabled={loading}>
                         {loading ? 'Creating...' : 'Create Items'}
                     </button>
@@ -370,7 +410,10 @@ function UpdateMenuWithImageModal({ item, categoryId, hotelId, onClose, onSucces
         const errs = {};
         if (!name.trim()) errs.name = 'Name is required';
         if (!price || isNaN(Number(price)) || Number(price) <= 0) errs.price = 'Valid price required';
-        if (Object.keys(errs).length) { setErrors(errs); return; }
+        if (Object.keys(errs).length) {
+            setErrors(errs);
+            return;
+        }
 
         setLoading(true);
         try {
@@ -408,7 +451,9 @@ function UpdateMenuWithImageModal({ item, categoryId, hotelId, onClose, onSucces
             <div className="img-modal-box update-menu-modal" onClick={(e) => e.stopPropagation()}>
                 <div className="img-modal-header">
                     <span>✏️ Update Menu Item</span>
-                    <button className="img-modal-close" onClick={onClose}>✕</button>
+                    <button className="img-modal-close" onClick={onClose}>
+                        ✕
+                    </button>
                 </div>
                 <div className="img-modal-body">
                     <div className="update-menu-img-row">
@@ -525,7 +570,9 @@ function UpdateMenuWithImageModal({ item, categoryId, hotelId, onClose, onSucces
                     {errors._global && <div className="img-error">{errors._global}</div>}
                 </div>
                 <div className="img-modal-footer">
-                    <button className="img-btn-cancel" onClick={onClose}>Cancel</button>
+                    <button className="img-btn-cancel" onClick={onClose}>
+                        Cancel
+                    </button>
                     <button className="img-btn-upload" onClick={handleSubmit} disabled={loading}>
                         {loading ? 'Saving...' : 'Save Changes'}
                     </button>
@@ -555,9 +602,7 @@ function ComboModal({ combo, allFoodItems, hotelId, onClose, onSuccess }) {
     const [comboPreview, setComboPreview] = useState(combo?.image || '');
 
     const selectedFoodItems = useMemo(
-        () => selectedIds
-            .map((id) => allFoodItems.find((item) => String(item.id) === String(id)))
-            .filter(Boolean),
+        () => selectedIds.map((id) => allFoodItems.find((item) => String(item.id) === String(id))).filter(Boolean),
         [allFoodItems, selectedIds]
     );
 
@@ -575,10 +620,22 @@ function ComboModal({ combo, allFoodItems, hotelId, onClose, onSuccess }) {
     };
 
     const handleSubmit = async () => {
-        if (!name.trim()) { setError('Combo name required'); return; }
-        if (!price || Number(price) <= 0) { setError('Valid combo price required'); return; }
-        if (selectedIds.length < 2) { setError('Combo me minimum 2 food items add karo'); return; }
-        if (selectedIds.length > 5) { setError('Combo me maximum 5 food items allowed hain'); return; }
+        if (!name.trim()) {
+            setError('Combo name required');
+            return;
+        }
+        if (!price || Number(price) <= 0) {
+            setError('Valid combo price required');
+            return;
+        }
+        if (selectedIds.length < 2) {
+            setError('Combo me minimum 2 food items add karo');
+            return;
+        }
+        if (selectedIds.length > 5) {
+            setError('Combo me maximum 5 food items allowed hain');
+            return;
+        }
         setSaving(true);
         setError('');
         try {
@@ -603,7 +660,9 @@ function ComboModal({ combo, allFoodItems, hotelId, onClose, onSuccess }) {
                 const fd = new FormData();
                 fd.append('image', comboImage);
                 fd.append('hotelId', hotelId);
-                await instance.post(`/menu/${comboId}/image`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+                await instance.post(`/menu/${comboId}/image`, fd, {
+                    headers: { 'Content-Type': 'multipart/form-data' }
+                });
             }
             onSuccess();
         } catch (err) {
@@ -618,17 +677,31 @@ function ComboModal({ combo, allFoodItems, hotelId, onClose, onSuccess }) {
             <div className="img-modal-box combo-modal" onClick={(e) => e.stopPropagation()}>
                 <div className="img-modal-header">
                     <span>{combo?.id ? '✏️ Update Combo' : '🍱 Add Combo'}</span>
-                    <button className="img-modal-close" onClick={onClose}>✕</button>
+                    <button className="img-modal-close" onClick={onClose}>
+                        ✕
+                    </button>
                 </div>
                 <div className="img-modal-body combo-modal-body">
                     <div className="combo-form-grid">
                         <div className="update-menu-field">
                             <label className="update-menu-label">Combo Name</label>
-                            <input className="create-menu-input" value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex: Pizza + Coke Combo" />
+                            <input
+                                className="create-menu-input"
+                                value={name}
+                                onChange={(e) => setName(e.target.value)}
+                                placeholder="Ex: Pizza + Coke Combo"
+                            />
                         </div>
                         <div className="update-menu-field">
                             <label className="update-menu-label">Combo Price (₹)</label>
-                            <input className="create-menu-input" type="number" min="0" value={price} onChange={(e) => setPrice(e.target.value)} placeholder="199" />
+                            <input
+                                className="create-menu-input"
+                                type="number"
+                                min="0"
+                                value={price}
+                                onChange={(e) => setPrice(e.target.value)}
+                                placeholder="199"
+                            />
                         </div>
                     </div>
                     <div className="update-menu-field">
@@ -655,11 +728,22 @@ function ComboModal({ combo, allFoodItems, hotelId, onClose, onSuccess }) {
 
                     <div className="update-menu-field">
                         <label className="update-menu-label">Description</label>
-                        <textarea className="create-menu-input create-menu-textarea" rows={2} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Combo details" />
+                        <textarea
+                            className="create-menu-input create-menu-textarea"
+                            rows={2}
+                            value={description}
+                            onChange={(e) => setDescription(e.target.value)}
+                            placeholder="Combo details"
+                        />
                     </div>
                     <div className="update-menu-field update-menu-status-row">
                         <label className="update-menu-label">Available</label>
-                        <input type="checkbox" checked={status} onChange={(e) => setStatus(e.target.checked)} className="update-menu-checkbox" />
+                        <input
+                            type="checkbox"
+                            checked={status}
+                            onChange={(e) => setStatus(e.target.checked)}
+                            className="update-menu-checkbox"
+                        />
                     </div>
 
                     <div className="combo-select-head">
@@ -687,11 +771,21 @@ function ComboModal({ combo, allFoodItems, hotelId, onClose, onSuccess }) {
                         {allFoodItems.map((item) => {
                             const active = selectedIds.includes(String(item.id));
                             return (
-                                <button key={item.id} type="button" className={`combo-food-option ${active ? 'active' : ''}`} onClick={() => toggleFood(item.id)}>
+                                <button
+                                    key={item.id}
+                                    type="button"
+                                    className={`combo-food-option ${active ? 'active' : ''}`}
+                                    onClick={() => toggleFood(item.id)}
+                                >
                                     <span className="combo-food-photo">
                                         {item.image ? <SmartImage src={item.image} alt={item.name} /> : '🍽️'}
                                     </span>
-                                    <span className="combo-food-info"><b>{item.name}</b><small>₹{item.price} · {item.categoryName}</small></span>
+                                    <span className="combo-food-info">
+                                        <b>{item.name}</b>
+                                        <small>
+                                            ₹{item.price} · {item.categoryName}
+                                        </small>
+                                    </span>
                                     <span className="combo-check">{active ? '✓' : '+'}</span>
                                 </button>
                             );
@@ -700,8 +794,14 @@ function ComboModal({ combo, allFoodItems, hotelId, onClose, onSuccess }) {
                     {error && <div className="img-error">{error}</div>}
                 </div>
                 <div className="img-modal-footer">
-                    <button className="img-btn-cancel" onClick={onClose}>Cancel</button>
-                    <button className="img-btn-upload" onClick={handleSubmit} disabled={saving || selectedIds.length < 2 || selectedIds.length > 5}>
+                    <button className="img-btn-cancel" onClick={onClose}>
+                        Cancel
+                    </button>
+                    <button
+                        className="img-btn-upload"
+                        onClick={handleSubmit}
+                        disabled={saving || selectedIds.length < 2 || selectedIds.length > 5}
+                    >
                         {saving ? 'Saving...' : combo?.id ? 'Update Combo' : 'Create Combo'}
                     </button>
                 </div>
@@ -731,15 +831,17 @@ function Menu() {
     refreshSnapshotRef.current = JSON.stringify({ categories, menuItems, comboItems });
 
     const refreshMenu = () => {
-        dispatch(getMenuItemsRequest({
-            categoryId: selectedCategory.value,
-            skip: pagination?.pageIndex ? pagination.pageIndex * pagination.pageSize : 0,
-            limit: pagination?.pageSize || 10,
-            sortKey: sorting[0]?.id,
-            sortOrder: sorting[0] ? (sorting[0].desc ? 'desc' : 'asc') : undefined,
-            filterKey: filtering?.field,
-            filterValue: filtering?.value
-        }));
+        dispatch(
+            getMenuItemsRequest({
+                categoryId: selectedCategory.value,
+                skip: pagination?.pageIndex ? pagination.pageIndex * pagination.pageSize : 0,
+                limit: pagination?.pageSize || 10,
+                sortKey: sorting[0]?.id,
+                sortOrder: sorting[0] ? (sorting[0].desc ? 'desc' : 'asc') : undefined,
+                filterKey: filtering?.field,
+                filterValue: filtering?.value
+            })
+        );
     };
 
     const fetchCombos = async () => {
@@ -757,7 +859,10 @@ function Menu() {
     };
 
     const fetchAllFoodItems = async () => {
-        if (!categories?.rows?.length) { setAllFoodItems([]); return; }
+        if (!categories?.rows?.length) {
+            setAllFoodItems([]);
+            return;
+        }
         try {
             const responses = await Promise.all(
                 categories.rows.map(async (category) => {
@@ -796,30 +901,42 @@ function Menu() {
             filterValue: filtering?.value
         };
         dispatch(getMenuItemsRequest(params));
-    // eslint-disable-next-line
-    }, [hotelId, selectedCategory?.value, pagination, sorting[0]?.desc, sorting[0]?.id, filtering.field, filtering.value]);
+        // eslint-disable-next-line
+    }, [
+        hotelId,
+        selectedCategory?.value,
+        pagination,
+        sorting[0]?.desc,
+        sorting[0]?.id,
+        filtering.field,
+        filtering.value
+    ]);
 
     useEffect(() => {
         if (hotelId) dispatch(getCategoryRequest(hotelId));
     }, [hotelId]);
 
-    useEffect(() => registerRefreshHandler('manager-menu', async () => {
-        if (!hotelId) return false;
-        const before = refreshSnapshotRef.current;
-        const checkpoint = getBackgroundRequestVersion();
-        dispatch(getCategoryRequest(hotelId));
-        refreshMenu();
-        if (managerSection === 'combos') await fetchCombos();
-        await waitForBackgroundRequests({ checkpoint });
-        return before !== refreshSnapshotRef.current;
-    }), [hotelId, managerSection, selectedCategory?.value, pagination?.pageIndex, pagination?.pageSize]);
+    useEffect(
+        () =>
+            registerRefreshHandler('manager-menu', async () => {
+                if (!hotelId) return false;
+                const before = refreshSnapshotRef.current;
+                const checkpoint = getBackgroundRequestVersion();
+                dispatch(getCategoryRequest(hotelId));
+                refreshMenu();
+                if (managerSection === 'combos') await fetchCombos();
+                await waitForBackgroundRequests({ checkpoint });
+                return before !== refreshSnapshotRef.current;
+            }),
+        [hotelId, managerSection, selectedCategory?.value, pagination?.pageIndex, pagination?.pageSize]
+    );
 
     useEffect(() => {
         if (hotelId && managerSection === 'combos') {
             fetchCombos();
             fetchAllFoodItems();
         }
-    // eslint-disable-next-line
+        // eslint-disable-next-line
     }, [hotelId, managerSection, categories?.rows?.length]);
 
     const handleAddButtonClick = (currentModalData, values, type) => {
@@ -891,7 +1008,9 @@ function Menu() {
                     type: 'icon',
                     icon: IoCloseSharp,
                     className: 'col my-2 p-0 align-self-end w-100 pointer',
-                    onClick: (id) => { addOptions = handleRemoveClick(id, addOptions, type); }
+                    onClick: (id) => {
+                        addOptions = handleRemoveClick(id, addOptions, type);
+                    }
                 },
                 'add-button': {
                     name: 'add-button',
@@ -900,7 +1019,9 @@ function Menu() {
                     className: 'col my-2 ms-auto w-100',
                     getValues: true,
                     invalidDisable: true,
-                    onClick: (values) => { addOptions = handleAddButtonClick(addOptions, values, type); }
+                    onClick: (values) => {
+                        addOptions = handleAddButtonClick(addOptions, values, type);
+                    }
                 }
             },
             submitText: 'Submit',
@@ -914,46 +1035,56 @@ function Menu() {
         const { options, initialValues } = rows.reduce(
             (cur, next) => {
                 const key = `category-${next.id}`;
-                cur.options[key] = { name: key, type: 'checkbox', label: `${next.name}`, className: 'd-flex justify-content-between my-2' };
+                cur.options[key] = {
+                    name: key,
+                    type: 'checkbox',
+                    label: `${next.name}`,
+                    className: 'd-flex justify-content-between my-2'
+                };
                 cur.initialValues[key] = false;
                 return cur;
             },
             { initialValues: {}, options: {} }
         );
 
-        dispatch(setMenuModalData({
-            title: type === 'category' ? 'Remove Categories' : 'Remove Menu Items',
-            type: type === 'category' ? 'remove' : 'removemenu',
-            initialValues,
-            options: {
-                warning: {
-                    name: 'warning',
-                    type: 'strong',
-                    label: type === 'category'
-                        ? '⚠️ Warning: Deleting categories will remove all menu items linked with them!'
-                        : '⚠️ Warning: The action cannot be undone!',
-                    className: 'text-center my-2 text-danger'
+        dispatch(
+            setMenuModalData({
+                title: type === 'category' ? 'Remove Categories' : 'Remove Menu Items',
+                type: type === 'category' ? 'remove' : 'removemenu',
+                initialValues,
+                options: {
+                    warning: {
+                        name: 'warning',
+                        type: 'strong',
+                        label:
+                            type === 'category'
+                                ? '⚠️ Warning: Deleting categories will remove all menu items linked with them!'
+                                : '⚠️ Warning: The action cannot be undone!',
+                        className: 'text-center my-2 text-danger'
+                    },
+                    ...options
                 },
-                ...options
-            },
-            submitText: 'Remove',
-            closeText: 'Close'
-        }));
+                submitText: 'Remove',
+                closeText: 'Close'
+            })
+        );
     };
 
     const handleUpdateCategoryClick = () => {
         const category = categories.rows.find((obj) => obj.id === selectedCategory.value);
-        dispatch(setMenuModalData({
-            title: 'Update Category',
-            type: 'update',
-            initialValues: { name: category.name, order: category.order },
-            options: {
-                name: { name: 'name', type: 'text', label: 'Name', className: FIELD_CLASS },
-                order: { name: 'order', type: 'number', label: 'Order', className: FIELD_CLASS }
-            },
-            submitText: 'Update',
-            closeText: 'Close'
-        }));
+        dispatch(
+            setMenuModalData({
+                title: 'Update Category',
+                type: 'update',
+                initialValues: { name: category.name, order: category.order },
+                options: {
+                    name: { name: 'name', type: 'text', label: 'Name', className: FIELD_CLASS },
+                    order: { name: 'order', type: 'number', label: 'Order', className: FIELD_CLASS }
+                },
+                submitText: 'Update',
+                closeText: 'Close'
+            })
+        );
     };
 
     const handleSubmit = (values, { setSubmitting }) => {
@@ -996,10 +1127,14 @@ function Menu() {
 
     const getValidationSchema = () => {
         switch (modalData.type) {
-            case 'create': return validateCreateCategory(modalData?.initialValues, categories?.rows);
-            case 'update': return validateUpdateCategory(modalData?.initialValues, categories?.rows);
-            case 'createmenu': return validateCreateMenuItem(modalData?.initialValues, menuItems?.rows);
-            default: return defaultValidation;
+            case 'create':
+                return validateCreateCategory(modalData?.initialValues, categories?.rows);
+            case 'update':
+                return validateUpdateCategory(modalData?.initialValues, categories?.rows);
+            case 'createmenu':
+                return validateCreateMenuItem(modalData?.initialValues, menuItems?.rows);
+            default:
+                return defaultValidation;
         }
     };
 
@@ -1007,8 +1142,20 @@ function Menu() {
         <>
             <div className="width-container mx-auto my-4">
                 <div className="menu-section-tabs">
-                    <button type="button" className={managerSection === 'categories' ? 'active' : ''} onClick={() => setManagerSection('categories')}>Categories</button>
-                    <button type="button" className={managerSection === 'combos' ? 'active' : ''} onClick={() => setManagerSection('combos')}>🍱 Combos</button>
+                    <button
+                        type="button"
+                        className={managerSection === 'categories' ? 'active' : ''}
+                        onClick={() => setManagerSection('categories')}
+                    >
+                        Categories
+                    </button>
+                    <button
+                        type="button"
+                        className={managerSection === 'combos' ? 'active' : ''}
+                        onClick={() => setManagerSection('combos')}
+                    >
+                        🍱 Combos
+                    </button>
                 </div>
                 {managerSection === 'categories' ? (
                     <div className="d-flex">
@@ -1019,20 +1166,31 @@ function Menu() {
                             onChange={(item) => {
                                 dispatch(setSelectedCategory(item));
                                 if (hotelId && item?.value) {
-                                    dispatch(getMenuItemsRequest({
-                                        categoryId: item.value,
-                                        skip: 0,
-                                        limit: pagination?.pageSize || 10
-                                    }));
+                                    dispatch(
+                                        getMenuItemsRequest({
+                                            categoryId: item.value,
+                                            skip: 0,
+                                            limit: pagination?.pageSize || 10
+                                        })
+                                    );
                                 }
-                            }
-                            }
+                            }}
                         />
                         <ActionDropdown
                             options={[
                                 { label: 'Add', icon: TiPlus, onClick: () => handleAddItemClick('category') },
-                                { label: 'Update', icon: MdModeEditOutline, disabled: !Object.keys(selectedCategory).length, onClick: handleUpdateCategoryClick },
-                                { label: 'Delete', disabled: !Object.keys(selectedCategory).length, icon: MdDeleteForever, onClick: () => handleDeleteItemClick('category') }
+                                {
+                                    label: 'Update',
+                                    icon: MdModeEditOutline,
+                                    disabled: !Object.keys(selectedCategory).length,
+                                    onClick: handleUpdateCategoryClick
+                                },
+                                {
+                                    label: 'Delete',
+                                    disabled: !Object.keys(selectedCategory).length,
+                                    icon: MdDeleteForever,
+                                    onClick: () => handleDeleteItemClick('category')
+                                }
                             ]}
                         />
                     </div>
@@ -1042,7 +1200,9 @@ function Menu() {
                             <h6 className="mb-1">Combos Menu</h6>
                             <small>1 combo me minimum 2 aur maximum 5 food items add honge.</small>
                         </div>
-                        <button className="combo-add-main-btn" type="button" onClick={() => setComboModal({})}>+ Add Combo</button>
+                        <button className="combo-add-main-btn" type="button" onClick={() => setComboModal({})}>
+                            + Add Combo
+                        </button>
                     </div>
                 )}
             </div>
@@ -1056,19 +1216,38 @@ function Menu() {
                         <div className="combo-grid">
                             {comboItems.rows.map((combo) => {
                                 const ids = Array.isArray(combo.comboItems) ? combo.comboItems : [];
-                                const names = ids.map((id) => allFoodItems.find((item) => String(item.id) === String(id))?.name).filter(Boolean);
+                                const names = ids
+                                    .map((id) => allFoodItems.find((item) => String(item.id) === String(id))?.name)
+                                    .filter(Boolean);
                                 return (
                                     <div key={combo.id} className="combo-card">
-                                        <div className="combo-card-top"><span>🍱</span><b>{combo.name}</b></div>
+                                        <div className="combo-card-top">
+                                            <span>🍱</span>
+                                            <b>{combo.name}</b>
+                                        </div>
                                         <p>{combo.description || 'Combo menu'}</p>
-                                        <div className="combo-items-text">{names.length ? names.join(' + ') : `${ids.length} food items selected`}</div>
+                                        <div className="combo-items-text">
+                                            {names.length ? names.join(' + ') : `${ids.length} food items selected`}
+                                        </div>
                                         <div className="combo-card-bottom">
                                             <strong>₹{combo.price}</strong>
-                                            <span className={combo.status === MENU_STATUS[0] ? 'combo-live' : 'combo-off'}>{combo.status}</span>
+                                            <span
+                                                className={combo.status === MENU_STATUS[0] ? 'combo-live' : 'combo-off'}
+                                            >
+                                                {combo.status}
+                                            </span>
                                         </div>
                                         <div className="combo-card-actions">
-                                            <button type="button" onClick={() => setComboModal(combo)}>Edit</button>
-                                            <button type="button" className="danger" onClick={() => handleDeleteCombo(combo.id)}>Delete</button>
+                                            <button type="button" onClick={() => setComboModal(combo)}>
+                                                Edit
+                                            </button>
+                                            <button
+                                                type="button"
+                                                className="danger"
+                                                onClick={() => handleDeleteCombo(combo.id)}
+                                            >
+                                                Delete
+                                            </button>
                                         </div>
                                     </div>
                                 );
@@ -1088,7 +1267,12 @@ function Menu() {
                             iconColor="#49AC60"
                             options={[
                                 { label: 'Add', icon: TiPlus, onClick: () => handleAddItemClick('menu') },
-                                { label: 'Delete', disabled: !menuItems.count, icon: MdDeleteForever, onClick: () => handleDeleteItemClick('menu') }
+                                {
+                                    label: 'Delete',
+                                    disabled: !menuItems.count,
+                                    icon: MdDeleteForever,
+                                    onClick: () => handleDeleteItemClick('menu')
+                                }
                             ]}
                         />
                     </div>
@@ -1114,7 +1298,12 @@ function Menu() {
                             ))}
                         </div>
                         <div className="manager-menu-count">
-                            {(menuItems.rows || []).filter((item) => managerFoodFilter === 'ALL' || item.foodType === managerFoodFilter).length} visible
+                            {
+                                (menuItems.rows || []).filter(
+                                    (item) => managerFoodFilter === 'ALL' || item.foodType === managerFoodFilter
+                                ).length
+                            }{' '}
+                            visible
                         </div>
                     </div>
 
@@ -1125,7 +1314,10 @@ function Menu() {
                                 .map((item) => {
                                     const available = item.status === MENU_STATUS[0];
                                     return (
-                                        <article key={item.id} className={`manager-menu-card ${available ? '' : 'unavailable'}`}>
+                                        <article
+                                            key={item.id}
+                                            className={`manager-menu-card ${available ? '' : 'unavailable'}`}
+                                        >
                                             <button
                                                 type="button"
                                                 className="manager-menu-image"
@@ -1151,20 +1343,39 @@ function Menu() {
                                                 </p>
 
                                                 <div className="manager-menu-badges">
-                                                    <span className={`manager-food-type-badge ${item.foodType === 'NON_VEG' ? 'non-veg' : 'veg'}`}>
+                                                    <span
+                                                        className={`manager-food-type-badge ${item.foodType === 'NON_VEG' ? 'non-veg' : 'veg'}`}
+                                                    >
                                                         <span className="food-type-dot" />
                                                         {item.foodType === 'NON_VEG' ? 'Non-Veg' : 'Veg'}
                                                     </span>
-                                                    <span className={available ? 'manager-menu-status available' : 'manager-menu-status unavailable'}>
+                                                    <span
+                                                        className={
+                                                            available
+                                                                ? 'manager-menu-status available'
+                                                                : 'manager-menu-status unavailable'
+                                                        }
+                                                    >
                                                         {available ? 'Available' : 'Unavailable'}
                                                     </span>
-                                                    <span className={item.isCartSuggestion ? 'cart-suggestion-badge on' : 'cart-suggestion-badge'}>
+                                                    <span
+                                                        className={
+                                                            item.isCartSuggestion
+                                                                ? 'cart-suggestion-badge on'
+                                                                : 'cart-suggestion-badge'
+                                                        }
+                                                    >
                                                         Cart Popup {item.isCartSuggestion ? 'ON' : 'OFF'}
                                                     </span>
                                                 </div>
 
                                                 <div className="manager-menu-card-footer">
-                                                    <small>Added {item.createdAt ? moment(item.createdAt).format('DD MMM YYYY') : '-'}</small>
+                                                    <small>
+                                                        Added{' '}
+                                                        {item.createdAt
+                                                            ? moment(item.createdAt).format('DD MMM YYYY')
+                                                            : '-'}
+                                                    </small>
                                                     <button
                                                         type="button"
                                                         className="manager-menu-edit-btn"
@@ -1180,9 +1391,7 @@ function Menu() {
                                 })}
                         </div>
                     ) : (
-                        <div className="manager-menu-empty mx-md-5 mx-2">
-                            No menu items found in this category.
-                        </div>
+                        <div className="manager-menu-empty mx-md-5 mx-2">No menu items found in this category.</div>
                     )}
 
                     {Number(menuItems.count || 0) > Number(pagination?.pageSize || 10) && (
@@ -1190,21 +1399,32 @@ function Menu() {
                             <button
                                 type="button"
                                 disabled={!pagination?.pageIndex}
-                                onClick={() => dispatch(setPagination({
-                                    ...pagination,
-                                    pageIndex: Math.max(0, Number(pagination?.pageIndex || 0) - 1)
-                                }))}
+                                onClick={() =>
+                                    dispatch(
+                                        setPagination({
+                                            ...pagination,
+                                            pageIndex: Math.max(0, Number(pagination?.pageIndex || 0) - 1)
+                                        })
+                                    )
+                                }
                             >
                                 Previous
                             </button>
                             <span>Page {Number(pagination?.pageIndex || 0) + 1}</span>
                             <button
                                 type="button"
-                                disabled={(Number(pagination?.pageIndex || 0) + 1) * Number(pagination?.pageSize || 10) >= Number(menuItems.count || 0)}
-                                onClick={() => dispatch(setPagination({
-                                    ...pagination,
-                                    pageIndex: Number(pagination?.pageIndex || 0) + 1
-                                }))}
+                                disabled={
+                                    (Number(pagination?.pageIndex || 0) + 1) * Number(pagination?.pageSize || 10) >=
+                                    Number(menuItems.count || 0)
+                                }
+                                onClick={() =>
+                                    dispatch(
+                                        setPagination({
+                                            ...pagination,
+                                            pageIndex: Number(pagination?.pageIndex || 0) + 1
+                                        })
+                                    )
+                                }
                             >
                                 Next
                             </button>
@@ -1212,7 +1432,9 @@ function Menu() {
                     )}
                 </div>
             ) : (
-                <div className="d-flex"><NoData className="menu-no-data" /></div>
+                <div className="d-flex">
+                    <NoData className="menu-no-data" />
+                </div>
             )}
 
             {/* Category modals — same OMTModal system */}
@@ -1237,7 +1459,10 @@ function Menu() {
                     item={imageModal.item}
                     hotelId={hotelId}
                     onClose={() => setImageModal(null)}
-                    onSuccess={() => { refreshMenu(); setImageModal(null); }}
+                    onSuccess={() => {
+                        refreshMenu();
+                        setImageModal(null);
+                    }}
                 />
             )}
 
@@ -1261,7 +1486,10 @@ function Menu() {
                     categoryId={selectedCategory.value}
                     hotelId={hotelId}
                     onClose={() => setUpdateModal(null)}
-                    onSuccess={() => { setUpdateModal(null); refreshMenu(); }}
+                    onSuccess={() => {
+                        setUpdateModal(null);
+                        refreshMenu();
+                    }}
                 />
             )}
 

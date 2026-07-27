@@ -57,11 +57,15 @@ function AuthContainer({ children, title = '' }) {
                         <h1>
                             {isSignup ? (
                                 <>
-                                    Start your<br /> restaurant<br /> <em>journey.</em>
+                                    Start your
+                                    <br /> restaurant
+                                    <br /> <em>journey.</em>
                                 </>
                             ) : (
                                 <>
-                                    Restaurant<br /> Management,<br /> <em>Simplified.</em>
+                                    Restaurant
+                                    <br /> Management,
+                                    <br /> <em>Simplified.</em>
                                 </>
                             )}
                         </h1>
@@ -73,10 +77,22 @@ function AuthContainer({ children, title = '' }) {
                     </div>
 
                     <ul className="rc-features">
-                        <li><span className="dot" />Real-time order tracking</li>
-                        <li><span className="dot" />Multi-hotel management</li>
-                        <li><span className="dot" />GST-ready invoices</li>
-                        <li><span className="dot" />Push notifications</li>
+                        <li>
+                            <span className="dot" />
+                            Real-time order tracking
+                        </li>
+                        <li>
+                            <span className="dot" />
+                            Multi-hotel management
+                        </li>
+                        <li>
+                            <span className="dot" />
+                            GST-ready invoices
+                        </li>
+                        <li>
+                            <span className="dot" />
+                            Push notifications
+                        </li>
                     </ul>
                 </div>
             </section>

@@ -78,7 +78,9 @@ function AdminOwners() {
                 </div>
             </div>
             {error ? (
-                <div className="alert alert-danger" role="alert">{error}</div>
+                <div className="alert alert-danger" role="alert">
+                    {error}
+                </div>
             ) : (
                 <div className="table-responsive">
                     <table className="table table-bordered table-striped bg-white text-dark">
@@ -113,13 +115,27 @@ function AdminOwners() {
                                         <td>{owner.phoneNumber}</td>
                                         <td>{owner.hotelCount}</td>
                                         <td>
-                                            <span className={`badge bg-${owner.subscriptionStatus === 'ACTIVE' ? 'success' : owner.subscriptionStatus === 'EXPIRED' ? 'danger' : 'secondary'}`}>
+                                            <span
+                                                className={`badge bg-${owner.subscriptionStatus === 'ACTIVE' ? 'success' : owner.subscriptionStatus === 'EXPIRED' ? 'danger' : 'secondary'}`}
+                                            >
                                                 {owner.subscriptionStatus || 'TRIAL'}
                                             </span>
                                         </td>
-                                        <td>{owner.subscriptionStartAt ? new Date(owner.subscriptionStartAt).toLocaleDateString('en-IN') : 'N/A'}</td>
-                                        <td>{owner.subscriptionEndAt ? new Date(owner.subscriptionEndAt).toLocaleDateString('en-IN') : 'N/A'}</td>
-                                        <td>{owner.createdAt ? new Date(owner.createdAt).toLocaleDateString('en-IN') : 'N/A'}</td>
+                                        <td>
+                                            {owner.subscriptionStartAt
+                                                ? new Date(owner.subscriptionStartAt).toLocaleDateString('en-IN')
+                                                : 'N/A'}
+                                        </td>
+                                        <td>
+                                            {owner.subscriptionEndAt
+                                                ? new Date(owner.subscriptionEndAt).toLocaleDateString('en-IN')
+                                                : 'N/A'}
+                                        </td>
+                                        <td>
+                                            {owner.createdAt
+                                                ? new Date(owner.createdAt).toLocaleDateString('en-IN')
+                                                : 'N/A'}
+                                        </td>
                                         <td>
                                             <div className="d-flex flex-wrap gap-1">
                                                 <CustomButton
@@ -132,7 +148,11 @@ function AdminOwners() {
                                                     onClick={() => handleBlock(owner.id)}
                                                     disabled={actionLoading[owner.id] === 'block'}
                                                 >
-                                                    {actionLoading[owner.id] === 'block' ? '...' : owner.isBlocked ? 'Unblock' : 'Block'}
+                                                    {actionLoading[owner.id] === 'block'
+                                                        ? '...'
+                                                        : owner.isBlocked
+                                                            ? 'Unblock'
+                                                            : 'Block'}
                                                 </button>
                                                 <div className="d-flex gap-1">
                                                     <input
@@ -142,7 +162,12 @@ function AdminOwners() {
                                                         style={{ width: '65px' }}
                                                         min="1"
                                                         value={extendDays[owner.id] || ''}
-                                                        onChange={(e) => setExtendDays((prev) => ({ ...prev, [owner.id]: e.target.value }))}
+                                                        onChange={(e) =>
+                                                            setExtendDays((prev) => ({
+                                                                ...prev,
+                                                                [owner.id]: e.target.value
+                                                            }))
+                                                        }
                                                     />
                                                     <button
                                                         className="btn btn-sm btn-success"
@@ -158,7 +183,9 @@ function AdminOwners() {
                                 ))
                             ) : (
                                 <tr>
-                                    <td colSpan={10} className="text-center py-4">No owners found.</td>
+                                    <td colSpan={10} className="text-center py-4">
+                                        No owners found.
+                                    </td>
                                 </tr>
                             )}
                         </tbody>

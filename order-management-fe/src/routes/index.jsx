@@ -3,17 +3,21 @@ import { Routes as Switch, Route, BrowserRouter, Navigate } from 'react-router-d
 
 import RCSessionGuard from '../components/RCSessionGuard';
 import features from '../config/features';
+import AdminContactEnquiries from '../pages/AdminContactEnquiries';
 import AdminDashboard from '../pages/AdminDashboard';
 import AdminLandingSettings from '../pages/AdminLandingSettings';
+import AdminLegalPages from '../pages/AdminLegalPages';
 import AdminLogin from '../pages/AdminLogin';
 import AdminOwnerDetail from '../pages/AdminOwnerDetail';
 import AdminOwners from '../pages/AdminOwners';
 import AdminRevenue from '../pages/AdminRevenue';
 import AdminSettings from '../pages/AdminSettings';
+import Contact from '../pages/Contact';
 import Dashboard from '../pages/Dashboard';
 import ForgotPassword from '../pages/ForgetPassword';
 import Hotels from '../pages/Hotels';
 import Landing from '../pages/Landing';
+import LegalPage from '../pages/LegalPage';
 import Login from '../pages/Login';
 import ManagerPOS from '../pages/ManagerPOS';
 import Managers from '../pages/Managers';
@@ -57,6 +61,9 @@ export default function Routes() {
                     />
                     <Route path="cart/:orderId" element={<OrderTracking />} />
                     <Route path="admin/login" element={<AdminLogin />} />
+                    <Route path="contact" element={<Contact />} />
+                    <Route path="privacy" element={<LegalPage />} />
+                    <Route path="terms" element={<LegalPage />} />
                 </Route>
 
                 <Route path="/" element={<AuthRoutes />}>
@@ -76,6 +83,8 @@ export default function Routes() {
                     <Route path="admin/revenue" element={<AdminRevenue />} />
                     <Route path="admin/settings" element={<AdminSettings />} />
                     <Route path="admin/landing-settings" element={<AdminLandingSettings />} />
+                    <Route path="admin/contact-enquiries" element={<AdminContactEnquiries />} />
+                    <Route path="admin/legal-pages" element={<AdminLegalPages />} />
                 </Route>
 
                 <Route path="/404" element={<NotFound />} />

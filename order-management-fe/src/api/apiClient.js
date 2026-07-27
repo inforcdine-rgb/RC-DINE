@@ -125,15 +125,16 @@ instance.interceptors.request.use(
         const knownOffline = !navigator.onLine || window.__rcdineNetworkOffline;
         const cached = knownOffline ? availableCache : null;
         if (cached) {
-            config.adapter = () => Promise.resolve({
-                data: cached.data,
-                status: 200,
-                statusText: 'Offline cache',
-                headers: {},
-                config,
-                request: null,
-                fromCache: true
-            });
+            config.adapter = () =>
+                Promise.resolve({
+                    data: cached.data,
+                    status: 200,
+                    statusText: 'Offline cache',
+                    headers: {},
+                    config,
+                    request: null,
+                    fromCache: true
+                });
         }
 
         if (availableCache && !cached) config.timeout = Math.min(config.timeout || 30000, 8000);

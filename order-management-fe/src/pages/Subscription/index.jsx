@@ -35,9 +35,7 @@ function Subscription() {
 
     const planTrackRef = useRef(null);
 
-    const { subscriptionOrder } = useSelector(
-        (state) => state.checkout
-    );
+    const { subscriptionOrder } = useSelector((state) => state.checkout);
 
     const user = useSelector((state) => state.user.data);
 
@@ -55,10 +53,7 @@ function Subscription() {
                 setStatusData(statusResponse);
                 setPlanOptions(plansResponse?.plans || []);
             } catch (err) {
-                setError(
-                    err?.message ||
-                    'Unable to load subscription status'
-                );
+                setError(err?.message || 'Unable to load subscription status');
             } finally {
                 setLoading(false);
             }
@@ -78,18 +73,12 @@ function Subscription() {
             return;
         }
 
-        const firstCard = track.querySelector(
-            '.subscription-plan-item'
-        );
+        const firstCard = track.querySelector('.subscription-plan-item');
 
-        const cardWidth =
-            firstCard?.getBoundingClientRect().width || 320;
+        const cardWidth = firstCard?.getBoundingClientRect().width || 320;
 
         track.scrollBy({
-            left:
-                direction === 'next'
-                    ? cardWidth + 16
-                    : -(cardWidth + 16),
+            left: direction === 'next' ? cardWidth + 16 : -(cardWidth + 16),
             behavior: 'smooth'
         });
     };
@@ -115,11 +104,7 @@ function Subscription() {
         setShowModal(false);
     };
 
-    const handleSuccess = ({
-        orderId,
-        paymentId,
-        razorpaySignature
-    }) => {
+    const handleSuccess = ({ orderId, paymentId, razorpaySignature }) => {
         dispatch(
             verifySubscriptionPaymentRequest({
                 razorpayOrderId: orderId,
@@ -138,64 +123,39 @@ function Subscription() {
 
         if (statusData.status === 'ACTIVE') {
             const remainingDays =
-                statusData.subscriptionRemaining > 0
-                    ? Math.ceil(
-                        statusData.subscriptionRemaining /
-                        86400
-                    )
-                    : 0;
+                statusData.subscriptionRemaining > 0 ? Math.ceil(statusData.subscriptionRemaining / 86400) : 0;
 
             return (
                 <div className="alert alert-success text-center subscription-status-alert">
                     <strong>Subscription Active</strong>
 
-                    {remainingDays > 0 && (
-                        <span>
-                            {' '}
-                            · {remainingDays} days remaining
-                        </span>
-                    )}
+                    {remainingDays > 0 && <span> · {remainingDays} days remaining</span>}
                 </div>
             );
         }
 
         if (statusData.status === 'TRIAL') {
-            const remainingMinutes =
-                statusData.trialRemaining > 0
-                    ? Math.ceil(
-                        statusData.trialRemaining / 60
-                    )
-                    : 0;
+            const remainingMinutes = statusData.trialRemaining > 0 ? Math.ceil(statusData.trialRemaining / 60) : 0;
 
             return (
                 <div className="alert alert-info text-center subscription-status-alert">
                     <strong>Free Trial Active</strong>
 
-                    {remainingMinutes > 0 && (
-                        <span>
-                            {' '}
-                            · Expires in {remainingMinutes}{' '}
-                            minutes
-                        </span>
-                    )}
+                    {remainingMinutes > 0 && <span> · Expires in {remainingMinutes} minutes</span>}
                 </div>
             );
         }
 
         return (
             <div className="alert alert-warning text-center subscription-status-alert">
-                Your trial or subscription has expired.
-                Select a plan to continue.
+                Your trial or subscription has expired. Select a plan to continue.
             </div>
         );
     };
 
     if (loading) {
         return (
-            <div
-                className="d-flex justify-content-center align-items-center"
-                style={{ minHeight: '30rem' }}
-            >
+            <div className="d-flex justify-content-center align-items-center" style={{ minHeight: '30rem' }}>
                 <Spinner animation="border" />
             </div>
         );
@@ -204,31 +164,21 @@ function Subscription() {
     return (
         <>
             <div className="heading-container">
-                <h4 className="text-center text-white pt-5">
-                    Subscription
-                </h4>
+                <h4 className="text-center text-white pt-5">Subscription</h4>
             </div>
 
             <div className="subscription-status-wrap">
                 {renderStatusMessage()}
 
-                {error && (
-                    <p className="text-danger text-center mb-0">
-                        {error}
-                    </p>
-                )}
+                {error && <p className="text-danger text-center mb-0">{error}</p>}
             </div>
 
             <section className="subscription-section">
                 <div className="subscription-heading-row">
                     <div>
-                        <p className="subscription-eyebrow">
-                            Choose your plan
-                        </p>
+                        <p className="subscription-eyebrow">Choose your plan</p>
 
-                        <h2 className="subscription-main-title">
-                            Simple pricing for your restaurant
-                        </h2>
+                        <h2 className="subscription-main-title">Simple pricing for your restaurant</h2>
                     </div>
 
                     <div className="subscription-desktop-controls">
@@ -236,9 +186,7 @@ function Subscription() {
                             type="button"
                             className="subscription-arrow-button"
                             aria-label="Previous subscription plan"
-                            onClick={() =>
-                                scrollPlans('previous')
-                            }
+                            onClick={() => scrollPlans('previous')}
                         >
                             <MdChevronLeft size={28} />
                         </button>
@@ -247,9 +195,7 @@ function Subscription() {
                             type="button"
                             className="subscription-arrow-button"
                             aria-label="Next subscription plan"
-                            onClick={() =>
-                                scrollPlans('next')
-                            }
+                            onClick={() => scrollPlans('next')}
                         >
                             <MdChevronRight size={28} />
                         </button>
@@ -261,33 +207,22 @@ function Subscription() {
                         type="button"
                         className="subscription-scroll-arrow subscription-scroll-arrow-left"
                         aria-label="Previous plan"
-                        onClick={() =>
-                            scrollPlans('previous')
-                        }
+                        onClick={() => scrollPlans('previous')}
                     >
                         <MdChevronLeft size={28} />
                     </button>
 
-                    <div
-                        ref={planTrackRef}
-                        className="subscription-plan-track"
-                    >
+                    <div ref={planTrackRef} className="subscription-plan-track">
                         {planOptions.map((plan) => (
-                            <div
-                                key={plan.code || plan.key}
-                                className="subscription-plan-item"
-                            >
+                            <div key={plan.code || plan.key} className="subscription-plan-item">
                                 <Card
-                                    className={`text-center subscription-card ${plan.popular
-                                        ? 'subscription-card-popular'
-                                        : ''
+                                    className={`text-center subscription-card ${
+                                        plan.popular ? 'subscription-card-popular' : ''
                                     }`}
                                 >
                                     <Card.Body className="d-flex flex-column">
                                         {plan.popular && (
-                                            <span className="subscription-popular-badge">
-                                                Most Popular
-                                            </span>
+                                            <span className="subscription-popular-badge">Most Popular</span>
                                         )}
 
                                         <div className="subscription-plan-title text-primary-color">
@@ -296,68 +231,45 @@ function Subscription() {
                                             </div>
 
                                             <div>
-                                                <h3 className="m-0 fw-bold">
-                                                    {plan.title || plan.name}
-                                                </h3>
+                                                <h3 className="m-0 fw-bold">{plan.title || plan.name}</h3>
 
-                                                <small>
-                                                    {plan.subtitle}
-                                                </small>
+                                                <small>{plan.subtitle}</small>
                                             </div>
                                         </div>
 
                                         <div className="subscription-price-wrap">
-                                            <span className="subscription-currency">
-                                                ₹
-                                            </span>
+                                            <span className="subscription-currency">₹</span>
 
                                             <span className="subscription-price">
-                                                {Number(plan.amount).toLocaleString(
-                                                    'en-IN'
-                                                )}
+                                                {Number(plan.amount).toLocaleString('en-IN')}
                                             </span>
                                         </div>
 
-                                        <p className="text-muted">
-                                            Valid for {plan.days} days
-                                        </p>
+                                        <p className="text-muted">Valid for {plan.days} days</p>
 
                                         <div className="subscription-feature-list">
-                                            {(plan.features?.length
-                                                ? plan.features
-                                                : fallbackFeatures
-                                            ).map((feature, index) => (
-                                                <Row
-                                                    key={`${plan.code || plan.key}-${index}`}
-                                                    className="subscription-feature-row"
-                                                >
-                                                    <Col xs="auto">
-                                                        <FaCircleCheck
-                                                            size={
-                                                                18
-                                                            }
-                                                            color="#49ac60"
-                                                        />
-                                                    </Col>
+                                            {(plan.features?.length ? plan.features : fallbackFeatures).map(
+                                                (feature, index) => (
+                                                    <Row
+                                                        key={`${plan.code || plan.key}-${index}`}
+                                                        className="subscription-feature-row"
+                                                    >
+                                                        <Col xs="auto">
+                                                            <FaCircleCheck size={18} color="#49ac60" />
+                                                        </Col>
 
-                                                    <Col>
-                                                        <p className="m-0">
-                                                            {
-                                                                feature
-                                                            }
-                                                        </p>
-                                                    </Col>
-                                                </Row>
-                                            )
+                                                        <Col>
+                                                            <p className="m-0">{feature}</p>
+                                                        </Col>
+                                                    </Row>
+                                                )
                                             )}
                                         </div>
 
                                         <CustomButton
                                             label={plan.buttonText || `Choose ${plan.title || plan.name}`}
                                             className="mt-auto mx-auto mb-2 col-11 fw-bold"
-                                            onClick={() =>
-                                                handleBuy(plan.code || plan.key)
-                                            }
+                                            onClick={() => handleBuy(plan.code || plan.key)}
                                             disabled={loading}
                                         />
                                     </Card.Body>
@@ -376,16 +288,13 @@ function Subscription() {
                     </button>
                 </div>
 
-                <p className="subscription-swipe-hint">
-                    Swipe to compare plans
-                </p>
+                <p className="subscription-swipe-hint">Swipe to compare plans</p>
             </section>
 
             {subscriptionOrder && (
                 <Razorpay
                     action={ACTIONS.ORDERS}
-                    name={`${user?.firstName || ''} ${user?.lastName || ''
-                    }`.trim()}
+                    name={`${user?.firstName || ''} ${user?.lastName || ''}`.trim()}
                     email={user?.email || ''}
                     phoneNumber={user?.phoneNumber || ''}
                     amount={subscriptionOrder.amount}
@@ -401,14 +310,9 @@ function Subscription() {
                 size="md"
                 description={
                     <div className="text-center">
-                        <h5 className="my-2">
-                            Confirm selected plan
-                        </h5>
+                        <h5 className="my-2">Confirm selected plan</h5>
 
-                        <p className="my-4">
-                            Proceed with the selected plan to
-                            activate your account.
-                        </p>
+                        <p className="my-4">Proceed with the selected plan to activate your account.</p>
                     </div>
                 }
                 handleSubmit={confirmPurchase}

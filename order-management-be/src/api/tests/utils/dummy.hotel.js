@@ -21,7 +21,8 @@ export const create = {
             body: {
                 name: 'test-hotel',
                 address: 'test hotel address',
-                careNumber: '1234567890'
+                careNumber: '1234567890',
+                gstNumber: '27ABCDE1234F1Z5'
             }
         },
         db: {
@@ -40,7 +41,8 @@ export const create = {
             body: {
                 name: 'test-hotel',
                 address: 'test hotel address',
-                careNumber: '1234567890'
+                careNumber: '1234567890',
+                gstNumber: '27ABCDE1234F1Z5'
             }
         },
         db: {
@@ -59,6 +61,7 @@ export const create = {
                 name: 'test-hotel',
                 address: 'test hotel address',
                 careNumber: '1234567890',
+                gstNumber: '27ABCDE1234F1Z5',
                 manager: ['test-manager-id']
             }
         },
@@ -76,7 +79,8 @@ export const create = {
             body: {
                 name: 'test-hotel',
                 address: 'test hotel address',
-                careNumber: '1234567890'
+                careNumber: '1234567890',
+                gstNumber: '27ABCDE1234F1Z5'
             }
         },
         error: new Error('Internal Server Error'),

@@ -7,8 +7,7 @@ import { CUSTOMER_ORDER_ROUTE_PREFIX, VERIFICATION_ROUTE } from '../../utils/con
 function PublicRoutes() {
     const token = localStorage.getItem('token');
     const { pathname } = useLocation();
-    const isCustomerOrderRoute =
-        pathname.startsWith(CUSTOMER_ORDER_ROUTE_PREFIX) || pathname.startsWith('/cart/');
+    const isCustomerOrderRoute = pathname.startsWith(CUSTOMER_ORDER_ROUTE_PREFIX) || pathname.startsWith('/cart/');
     const validRedirection = window.location.href.includes(`${pathname}?token=`);
     const allowPublicAccess =
         !token || isCustomerOrderRoute || (VERIFICATION_ROUTE.includes(pathname) && validRedirection);

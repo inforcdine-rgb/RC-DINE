@@ -63,21 +63,22 @@ function RCSessionGuard({ children }) {
     const [errorMessage, setErrorMessage] = useState('');
     const [pushCapability, setPushCapability] = useState(getPushCapability);
 
-    const chooseAuthenticatedScreen = useCallback((result) => {
-        const storedSession = readStoredSession();
-        const sameActiveSession =
-            storedSession &&
-            String(storedSession.tableId) === String(tableId) &&
-            result?.hasActiveSession;
+    const chooseAuthenticatedScreen = useCallback(
+        (result) => {
+            const storedSession = readStoredSession();
+            const sameActiveSession =
+                storedSession && String(storedSession.tableId) === String(tableId) && result?.hasActiveSession;
 
-        if (sameActiveSession) {
-            setActiveSession(storedSession);
-            setScreen('READY');
-            return;
-        }
+            if (sameActiveSession) {
+                setActiveSession(storedSession);
+                setScreen('READY');
+                return;
+            }
 
-        setScreen(result?.hasActiveSession ? 'JOIN_CODE' : 'START_SESSION');
-    }, [tableId]);
+            setScreen(result?.hasActiveSession ? 'JOIN_CODE' : 'START_SESSION');
+        },
+        [tableId]
+    );
 
     const loadAvailability = useCallback(async () => {
         setErrorMessage('');
@@ -306,7 +307,9 @@ function RCSessionGuard({ children }) {
             setPushCapability(getPushCapability());
             if (result.status === 'enabled') toast.success('Notifications enabled');
             else if (result.status === 'ios-install-required') {
-                setErrorMessage('iPhone par pehle Share → Add to Home Screen karein, phir notifications enable karein.');
+                setErrorMessage(
+                    'iPhone par pehle Share → Add to Home Screen karein, phir notifications enable karein.'
+                );
             } else if (result.status === 'denied') {
                 setErrorMessage('Notifications browser settings mein blocked hain.');
             }
@@ -460,7 +463,9 @@ function RCSessionGuard({ children }) {
                         <h2>RC Session started</h2>
                         <p>Ye code friends ke saath share karo.</p>
                         <div className="rc-session-code-box">{activeSession?.sessionCode}</div>
-                        <Button className="w-100" onClick={handleShareCode}>Share Code</Button>
+                        <Button className="w-100" onClick={handleShareCode}>
+                            Share Code
+                        </Button>
                         <Button variant="outline-primary" className="w-100 mt-2" onClick={() => setScreen('READY')}>
                             Continue to Menu
                         </Button>
@@ -472,7 +477,9 @@ function RCSessionGuard({ children }) {
                         <div className="rc-session-state-icon">🎉</div>
                         <h2>RC Session joined successfully</h2>
                         <p>Ab aap same table session me order kar sakte ho.</p>
-                        <Button className="w-100" onClick={() => setScreen('READY')}>Continue to Menu</Button>
+                        <Button className="w-100" onClick={() => setScreen('READY')}>
+                            Continue to Menu
+                        </Button>
                     </div>
                 ) : null}
 
@@ -481,7 +488,9 @@ function RCSessionGuard({ children }) {
                         <div className="rc-session-state-icon">🔒</div>
                         <h2>Table unavailable</h2>
                         <p>Is table ka QR abhi manager ne activate nahi kiya hai. Staff se contact karo.</p>
-                        <Button variant="outline-primary" onClick={loadAvailability}>Check Again</Button>
+                        <Button variant="outline-primary" onClick={loadAvailability}>
+                            Check Again
+                        </Button>
                     </div>
                 ) : null}
 
@@ -489,7 +498,9 @@ function RCSessionGuard({ children }) {
                     <div className="rc-session-state">
                         <h2>Connection problem</h2>
                         <p>Table details load nahi ho paayi.</p>
-                        <Button variant="outline-primary" onClick={loadAvailability}>Retry</Button>
+                        <Button variant="outline-primary" onClick={loadAvailability}>
+                            Retry
+                        </Button>
                     </div>
                 ) : null}
 
