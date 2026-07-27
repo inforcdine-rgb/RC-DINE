@@ -230,7 +230,6 @@ function ManagerPOS() {
 
         const joinHotelRoom = () => {
             socket.emit('join-hotel', hotelId);
-            console.log(`Manager POS joined live hotel room: ${hotelId}`);
         };
 
         const handleNewOrder = (payload) => {

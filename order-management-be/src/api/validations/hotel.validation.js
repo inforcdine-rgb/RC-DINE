@@ -11,7 +11,11 @@ export const registerationValidation = (payload) => {
                 .min(10 ** 9)
                 .max(10 ** 10 - 1)
                 .required(),
-            gstNumber: Joi.string().trim().uppercase().pattern(/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/).required(),
+            gstNumber: Joi.string()
+                .trim()
+                .uppercase()
+                .pattern(/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/)
+                .required(),
             openTime: Joi.string().optional(),
             closeTime: Joi.string().optional(),
             manager: Joi.array().items(Joi.string()).optional()
@@ -33,7 +37,10 @@ export const updateValidation = (payload) => {
                 .min(10 ** 9)
                 .max(10 ** 10 - 1),
             address: Joi.string().min(10),
-            gstNumber: Joi.string().trim().uppercase().pattern(/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/),
+            gstNumber: Joi.string()
+                .trim()
+                .uppercase()
+                .pattern(/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/),
             manager: Joi.object({
                 added: Joi.array().items(Joi.string()).optional(),
                 removed: Joi.array().items(Joi.string()).optional()
@@ -74,7 +81,12 @@ export const printerSettingsValidation = (payload) => {
             printerWidth: Joi.string().valid('58', '80', 'auto').required(),
             address: Joi.string().trim().max(250).allow('').required(),
             phone: Joi.string().trim().max(20).allow('').required(),
-            gstNumber: Joi.string().trim().uppercase().pattern(/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/).allow('').required(),
+            gstNumber: Joi.string()
+                .trim()
+                .uppercase()
+                .pattern(/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/)
+                .allow('')
+                .required(),
             showLogo: Joi.boolean().optional(),
             footerMessage: Joi.string().trim().max(120).allow('').required()
         });

@@ -5,9 +5,8 @@ import { managerPosAuthentication } from '../middlewares/roleAuth.js';
 import checkSubscriptionAccess from '../middlewares/subscription.js';
 
 const router = Router();
-const checkPosSubscription = (req, res, next) => (
-    req.user?.role === 'ADMIN' ? next() : checkSubscriptionAccess(req, res, next)
-);
+const checkPosSubscription = (req, res, next) =>
+    req.user?.role === 'ADMIN' ? next() : checkSubscriptionAccess(req, res, next);
 
 router.use(authenticate, managerPosAuthentication, checkPosSubscription);
 router.post('/open', openOrderController.create);

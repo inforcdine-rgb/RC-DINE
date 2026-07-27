@@ -1,9 +1,11 @@
-import { db } from '../../config/database.js';
+/* eslint-disable camelcase */
 import cloudinary from '../../config/cloudinary.js';
+import { db } from '../../config/database.js';
 
 const defaults = {
     heroTitle: 'Restaurant Management Reimagined with AI',
-    heroDescription: 'Run orders, billing, kitchen operations, analytics and subscriptions from one intelligent platform.',
+    heroDescription:
+        'Run orders, billing, kitchen operations, analytics and subscriptions from one intelligent platform.',
     primaryButtonText: 'Start Free Trial →',
     secondaryButtonText: '▶ Watch Demo',
     videoEnabled: true,
@@ -23,7 +25,14 @@ const publicSettings = async () => {
 
 const update = async (payload = {}) => {
     const settings = await getOrCreate();
-    const allowed = ['heroTitle', 'heroDescription', 'primaryButtonText', 'secondaryButtonText', 'videoEnabled', 'isPublished'];
+    const allowed = [
+        'heroTitle',
+        'heroDescription',
+        'primaryButtonText',
+        'secondaryButtonText',
+        'videoEnabled',
+        'isPublished'
+    ];
     const changes = {};
     allowed.forEach((key) => {
         if (payload[key] !== undefined) changes[key] = payload[key];

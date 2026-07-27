@@ -4,8 +4,8 @@ import { v4 as uuidv4 } from 'uuid';
 
 import defineAssociations from '../api/models/associations.js';
 import categoryModel from '../api/models/category.model.js';
-import customerModel from '../api/models/customer.modal.js';
 import contactEnquiryModel from '../api/models/contactEnquiry.model.js';
+import customerModel from '../api/models/customer.modal.js';
 import customerOtpModel from '../api/models/customerOtp.model.js';
 import diningSessionModel from '../api/models/diningSession.model.js';
 import hotelModel from '../api/models/hotel.model.js';
@@ -22,12 +22,12 @@ import preferencesModel from '../api/models/preferences.model.js';
 import pushSubscriptionsModel from '../api/models/pushSubscriptions.model.js';
 import sessionJoinRequestModel from '../api/models/sessionJoinRequest.model.js';
 import sessionMemberModel from '../api/models/sessionMember.model.js';
-import subscriptionModel from '../api/models/subscriptions.js';
 import subscriptionPlanModel from '../api/models/subscriptionPlan.model.js';
-import subscriptionPlanRepo from '../api/repositories/subscriptionPlan.repository.js';
+import subscriptionModel from '../api/models/subscriptions.js';
 import tableModel from '../api/models/table.model.js';
 import userModel from '../api/models/user.model.js';
 import websiteSettingsModel from '../api/models/websiteSettings.model.js';
+import subscriptionPlanRepo from '../api/repositories/subscriptionPlan.repository.js';
 import { CustomError } from '../api/utils/common.js';
 import { hashPassword } from '../api/utils/password.js';
 import env from './env.js';
@@ -63,16 +63,11 @@ const createDatabase = async () => {
 
         await createDbInstance.authenticate();
 
-        logger(
-            'info',
-            '✅ Database connection authenticated successfully.'
-        );
+        logger('info', '✅ Database connection authenticated successfully.');
 
         logger('info', '🏗️ Creating database if not exists...');
 
-        await createDbInstance.query(
-            `CREATE DATABASE IF NOT EXISTS \`${env.db.name}\`;`
-        );
+        await createDbInstance.query(`CREATE DATABASE IF NOT EXISTS \`${env.db.name}\`;`);
 
         logger('info', '🏢 Database created successfully.');
 
@@ -88,10 +83,7 @@ const createDatabase = async () => {
     } catch (error) {
         logger('error', `❌ Error creating database: ${error.message}`);
 
-        throw CustomError(
-            error.code || 500,
-            error.message || 'Database connection failed'
-        );
+        throw CustomError(error.code || 500, error.message || 'Database connection failed');
     }
 };
 
@@ -105,10 +97,7 @@ const getSequelizeInstance = async () => {
 
 const ensureAdminUser = async () => {
     if (!env.seedAdmin?.enabled) {
-        logger(
-            'info',
-            'ℹ️ Admin seeding skipped. Set SEED_ADMIN=true only for first-time setup.'
-        );
+        logger('info', 'ℹ️ Admin seeding skipped. Set SEED_ADMIN=true only for first-time setup.');
 
         return;
     }
@@ -118,10 +107,7 @@ const ensureAdminUser = async () => {
     const adminPhone = env.seedAdmin.phone;
 
     if (!adminEmail || !adminPassword || adminPassword.length < 10) {
-        logger(
-            'warn',
-            'Admin seeding skipped. ADMIN_EMAIL and a strong ADMIN_PASSWORD are required.'
-        );
+        logger('warn', 'Admin seeding skipped. ADMIN_EMAIL and a strong ADMIN_PASSWORD are required.');
 
         return;
     }
@@ -133,10 +119,7 @@ const ensureAdminUser = async () => {
     });
 
     if (existingAdmin) {
-        logger(
-            'info',
-            'ℹ️ Seed admin already exists. Password was not reset automatically.'
-        );
+        logger('info', 'ℹ️ Seed admin already exists. Password was not reset automatically.');
 
         return;
     }
@@ -171,10 +154,7 @@ const ensureAdminUser = async () => {
 
         logger('info', `✅ Seed admin user created: ${adminEmail}`);
     } catch (error) {
-        logger(
-            'error',
-            `❌ Failed to create seed admin user: ${error.message}`
-        );
+        logger('error', `❌ Failed to create seed admin user: ${error.message}`);
     }
 };
 
@@ -206,22 +186,14 @@ const defineModels = (sequelize) => {
     db.websiteSettings = websiteSettingsModel(sequelize);
 };
 
-const addOrModifyColumn = async ({
-    sequelize,
-    tableName,
-    columnName,
-    columnType
-}) => {
+const addOrModifyColumn = async ({ sequelize, tableName, columnName, columnType }) => {
     try {
         await sequelize.query(
             `ALTER TABLE \`${tableName}\`
              ADD COLUMN \`${columnName}\` ${columnType};`
         );
 
-        logger(
-            'info',
-            `✅ Column ${columnName} added to ${tableName} table`
-        );
+        logger('info', `✅ Column ${columnName} added to ${tableName} table`);
     } catch (addError) {
         try {
             await sequelize.query(
@@ -229,15 +201,9 @@ const addOrModifyColumn = async ({
                  MODIFY COLUMN \`${columnName}\` ${columnType};`
             );
 
-            logger(
-                'info',
-                `✅ Column ${columnName} modified/exists in ${tableName} table`
-            );
+            logger('info', `✅ Column ${columnName} modified/exists in ${tableName} table`);
         } catch (modifyError) {
-            logger(
-                'error',
-                `❌ Error preparing ${tableName}.${columnName}: ${modifyError.message}`
-            );
+            logger('error', `❌ Error preparing ${tableName}.${columnName}: ${modifyError.message}`);
         }
     }
 };
@@ -281,7 +247,7 @@ const initDb = async () => {
             },
             {
                 name: 'subscriptionStatus',
-                type: 'VARCHAR(20) NOT NULL DEFAULT \'TRIAL\''
+                type: "VARCHAR(20) NOT NULL DEFAULT 'TRIAL'"
             },
             {
                 name: 'subscriptionPlan',
@@ -385,7 +351,7 @@ const initDb = async () => {
             },
             {
                 name: 'paymentMethod',
-                type: 'ENUM(\'CASH\',\'UPI\',\'CARD\') NULL'
+                type: "ENUM('CASH','UPI','CARD') NULL"
             },
             {
                 name: 'cashReceived',
@@ -397,7 +363,7 @@ const initDb = async () => {
             },
             {
                 name: 'paymentStatus',
-                type: 'ENUM(\'PAID\',\'UNPAID\') NOT NULL DEFAULT \'UNPAID\''
+                type: "ENUM('PAID','UNPAID') NOT NULL DEFAULT 'UNPAID'"
             }
         ];
 
@@ -453,15 +419,9 @@ const initDb = async () => {
                      ${column.definition};`
                 );
 
-                logger(
-                    'info',
-                    `✅ Column orders.${column.name} converted to ${column.definition}`
-                );
+                logger('info', `✅ Column orders.${column.name} converted to ${column.definition}`);
             } catch (error) {
-                logger(
-                    'error',
-                    `❌ Error converting orders.${column.name}: ${error.message}`
-                );
+                logger('error', `❌ Error converting orders.${column.name}: ${error.message}`);
             }
         }
 
@@ -479,15 +439,9 @@ const initDb = async () => {
                  ENUM('OWNER','MANAGER','ADMIN') NOT NULL;`
             );
 
-            logger(
-                'info',
-                '✅ User role ENUM updated to include ADMIN'
-            );
+            logger('info', '✅ User role ENUM updated to include ADMIN');
         } catch (error) {
-            logger(
-                'error',
-                `❌ Error updating user role enum: ${error.message}`
-            );
+            logger('error', `❌ Error updating user role enum: ${error.message}`);
         }
 
         try {
@@ -496,15 +450,9 @@ const initDb = async () => {
                  DROP INDEX \`orderNumber\`;`
             );
 
-            logger(
-                'info',
-                '✅ Removed unique index from orders.orderNumber'
-            );
+            logger('info', '✅ Removed unique index from orders.orderNumber');
         } catch (error) {
-            logger(
-                'info',
-                'ℹ️ orders.orderNumber unique index does not exist or was already removed'
-            );
+            logger('info', 'ℹ️ orders.orderNumber unique index does not exist or was already removed');
         }
 
         await addOrModifyColumn({
@@ -596,8 +544,8 @@ const initDb = async () => {
         const notificationColumns = [
             { name: 'customerId', type: 'VARCHAR(255) NULL' },
             { name: 'phoneNumber', type: 'VARCHAR(20) NULL' },
-            { name: 'type', type: 'VARCHAR(50) NOT NULL DEFAULT \'UPDATE\'' },
-            { name: 'category', type: 'VARCHAR(50) NOT NULL DEFAULT \'GENERAL\'' },
+            { name: 'type', type: "VARCHAR(50) NOT NULL DEFAULT 'UPDATE'" },
+            { name: 'category', type: "VARCHAR(50) NOT NULL DEFAULT 'GENERAL'" },
             { name: 'entityId', type: 'VARCHAR(255) NULL' },
             { name: 'dedupeKey', type: 'VARCHAR(255) NULL' },
             { name: 'payload', type: 'JSON NULL' },
@@ -673,15 +621,9 @@ const initDb = async () => {
                     OR \`finalAmount\` IS NULL;
             `);
 
-            logger(
-                'info',
-                '✅ Existing orders populated with subtotal and GST amounts'
-            );
+            logger('info', '✅ Existing orders populated with subtotal and GST amounts');
         } catch (error) {
-            logger(
-                'error',
-                `❌ Error populating existing orders with GST: ${error.message}`
-            );
+            logger('error', `❌ Error populating existing orders with GST: ${error.message}`);
         }
 
         try {
@@ -697,31 +639,16 @@ const initDb = async () => {
                     \`changeAmount\` = COALESCE(\`changeAmount\`, 0);
             `);
 
-            logger(
-                'info',
-                '✅ Existing order payment values normalized'
-            );
+            logger('info', '✅ Existing order payment values normalized');
         } catch (error) {
-            logger(
-                'error',
-                `❌ Error normalizing payment values: ${error.message}`
-            );
+            logger('error', `❌ Error normalizing payment values: ${error.message}`);
         }
 
-        logger(
-            'info',
-            '🎉 Database initialization completed successfully.'
-        );
+        logger('info', '🎉 Database initialization completed successfully.');
     } catch (error) {
-        logger(
-            'error',
-            `❌ Error initializing database: ${error.message}`
-        );
+        logger('error', `❌ Error initializing database: ${error.message}`);
 
-        throw CustomError(
-            error.code || 500,
-            error.message || 'Database initialization failed'
-        );
+        throw CustomError(error.code || 500, error.message || 'Database initialization failed');
     }
 };
 

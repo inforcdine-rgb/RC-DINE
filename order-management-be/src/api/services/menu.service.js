@@ -44,10 +44,7 @@ const update = async (id, hotelId, payload) => {
         const [updatedCount] = await menuRepo.update(options, updateData);
 
         if (!updatedCount) {
-            throw CustomError(
-                STATUS_CODE.NOT_FOUND,
-                'Menu item not found or access denied'
-            );
+            throw CustomError(STATUS_CODE.NOT_FOUND, 'Menu item not found or access denied');
         }
 
         return { message: 'Menu Item updated successfully' };
@@ -60,10 +57,7 @@ const update = async (id, hotelId, payload) => {
 const remove = async (menuIds, hotelId) => {
     try {
         if (!Array.isArray(menuIds) || !menuIds.length) {
-            throw CustomError(
-                STATUS_CODE.BAD_REQUEST,
-                'Menu ids are required'
-            );
+            throw CustomError(STATUS_CODE.BAD_REQUEST, 'Menu ids are required');
         }
 
         const options = {
@@ -79,10 +73,7 @@ const remove = async (menuIds, hotelId) => {
         const existing = await menuRepo.find(options);
 
         if (existing.count !== menuIds.length) {
-            throw CustomError(
-                STATUS_CODE.NOT_FOUND,
-                'Some menu items were not found or access was denied'
-            );
+            throw CustomError(STATUS_CODE.NOT_FOUND, 'Some menu items were not found or access was denied');
         }
 
         await menuRepo.remove(options);
@@ -207,10 +198,7 @@ const updateCategory = async (id, payload) => {
 const removeCategory = async (categoryIds, hotelId) => {
     try {
         if (!Array.isArray(categoryIds) || !categoryIds.length) {
-            throw CustomError(
-                STATUS_CODE.BAD_REQUEST,
-                'Category ids are required'
-            );
+            throw CustomError(STATUS_CODE.BAD_REQUEST, 'Category ids are required');
         }
 
         const categoryOptions = {
@@ -225,10 +213,7 @@ const removeCategory = async (categoryIds, hotelId) => {
         const existingCategories = await categoryRepo.find(categoryOptions);
 
         if (existingCategories.count !== categoryIds.length) {
-            throw CustomError(
-                STATUS_CODE.NOT_FOUND,
-                'Some categories were not found or access was denied'
-            );
+            throw CustomError(STATUS_CODE.NOT_FOUND, 'Some categories were not found or access was denied');
         }
 
         const menuOptions = {
@@ -278,17 +263,19 @@ const createCombo = async (payload) => {
             throw CustomError(STATUS_CODE.BAD_REQUEST, 'Some selected food items are invalid');
         }
 
-        const options = [{
-            id: uuidv4(),
-            categoryId: null,
-            hotelId,
-            name,
-            description,
-            price,
-            status: status === false ? 'UNAVAILABLE' : 'AVAILABLE',
-            isCombo: true,
-            comboItems
-        }];
+        const options = [
+            {
+                id: uuidv4(),
+                categoryId: null,
+                hotelId,
+                name,
+                description,
+                price,
+                status: status === false ? 'UNAVAILABLE' : 'AVAILABLE',
+                isCombo: true,
+                comboItems
+            }
+        ];
         const result = await menuRepo.save(options);
         return result[0];
     } catch (error) {
@@ -299,13 +286,7 @@ const createCombo = async (payload) => {
 
 const fetchCombos = async (payload) => {
     try {
-        const {
-            hotelId,
-            limit = 100,
-            skip = 0,
-            sortKey = 'updatedAt',
-            sortOrder = 'DESC'
-        } = payload;
+        const { hotelId, limit = 100, skip = 0, sortKey = 'updatedAt', sortOrder = 'DESC' } = payload;
         return await menuRepo.find({
             where: { hotelId, isCombo: true },
             limit: Number(limit),
@@ -349,10 +330,7 @@ const updateCombo = async (id, hotelId, payload) => {
 const removeCombos = async (comboIds, hotelId) => {
     try {
         if (!Array.isArray(comboIds) || !comboIds.length) {
-            throw CustomError(
-                STATUS_CODE.BAD_REQUEST,
-                'Combo ids are required'
-            );
+            throw CustomError(STATUS_CODE.BAD_REQUEST, 'Combo ids are required');
         }
 
         const options = {
@@ -368,10 +346,7 @@ const removeCombos = async (comboIds, hotelId) => {
         const existing = await menuRepo.find(options);
 
         if (existing.count !== comboIds.length) {
-            throw CustomError(
-                STATUS_CODE.NOT_FOUND,
-                'Some combos were not found or access was denied'
-            );
+            throw CustomError(STATUS_CODE.NOT_FOUND, 'Some combos were not found or access was denied');
         }
 
         await menuRepo.remove(options);

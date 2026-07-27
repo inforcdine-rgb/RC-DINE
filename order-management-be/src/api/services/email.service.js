@@ -95,25 +95,12 @@ export const sendEmail = async (payload, to, action, attachments = []) => {
     } catch (error) {
         logger('error', `Email sending failed: ${error.message}`);
 
-        if (
-            error.code === 'EAUTH' ||
-            error.responseCode === 535
-        ) {
-            throw CustomError(
-                500,
-                'Gmail authentication failed. Check EMAIL_USER and Google App Password.'
-            );
+        if (error.code === 'EAUTH' || error.responseCode === 535) {
+            throw CustomError(500, 'Gmail authentication failed. Check EMAIL_USER and Google App Password.');
         }
 
-        if (
-            error.code === 'ETIMEDOUT' ||
-            error.code === 'ESOCKET' ||
-            error.code === 'ECONNECTION'
-        ) {
-            throw CustomError(
-                503,
-                'Email server is not responding. Please try again.'
-            );
+        if (error.code === 'ETIMEDOUT' || error.code === 'ESOCKET' || error.code === 'ECONNECTION') {
+            throw CustomError(503, 'Email server is not responding. Please try again.');
         }
 
         throw CustomError(

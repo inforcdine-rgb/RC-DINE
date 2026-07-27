@@ -3,12 +3,7 @@ import { v4 as uuidv4 } from 'uuid';
 
 import { TABLES } from '../utils/common.js';
 
-export const DINING_SESSION_STATUS = [
-    'ACTIVE',
-    'PAYMENT_PENDING',
-    'CLOSED',
-    'CANCELLED'
-];
+export const DINING_SESSION_STATUS = ['ACTIVE', 'PAYMENT_PENDING', 'CLOSED', 'CANCELLED'];
 
 const diningSessionModel = (sequelize) =>
     sequelize.define(

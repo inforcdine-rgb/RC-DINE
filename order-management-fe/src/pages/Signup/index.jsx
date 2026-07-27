@@ -11,7 +11,7 @@ import CustomFormGroup from '../../components/CustomFormGroup';
 import CustomLink from '../../components/CustomLink';
 import env from '../../config/env';
 import { registerRequest } from '../../store/slice';
-import { saveSelectedPlan, setPageSeo } from '../../utils/seo';
+import { getSelectedPlan, saveSelectedPlan, setPageSeo } from '../../utils/seo';
 import { userRegistrationSchema } from '../../validations/auth';
 
 function Signup() {
@@ -60,9 +60,9 @@ function Signup() {
                     setInvite({ status: true, email: data.email, id: data.inviteId });
                 }
 
-                const selectedPlan = localStorage.getItem('rcdine:selected-plan');
+                const selectedPlan = getSelectedPlan();
                 localStorage.clear();
-                if (selectedPlan) localStorage.setItem('rcdine:selected-plan', selectedPlan);
+                if (selectedPlan) saveSelectedPlan(selectedPlan);
             } catch (err) {
                 toast.error(`Failed to validate invite: ${err.message}`);
             }

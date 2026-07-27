@@ -67,14 +67,7 @@ const fetch = async (payload) => {
                 hotelId
             },
             order: [['tableNumber', 'ASC']],
-            attributes: [
-                'id',
-                'tableNumber',
-                'tableName',
-                'status',
-                'qrEnabled',
-                'activeSessionId'
-            ],
+            attributes: ['id', 'tableNumber', 'tableName', 'status', 'qrEnabled', 'activeSessionId'],
             limit
         };
 
@@ -84,10 +77,7 @@ const fetch = async (payload) => {
 
         if (filter) {
             const condition = {
-                [Op.or]: [
-                    { tableNumber: { [Op.like]: `%${filter}%` } },
-                    { tableName: { [Op.like]: `%${filter}%` } }
-                ]
+                [Op.or]: [{ tableNumber: { [Op.like]: `%${filter}%` } }, { tableName: { [Op.like]: `%${filter}%` } }]
             };
             options.where = { ...options.where, ...condition };
         }

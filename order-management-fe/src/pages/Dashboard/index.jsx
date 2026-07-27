@@ -14,11 +14,6 @@ import { getBackgroundRequestVersion, registerRefreshHandler, waitForBackgroundR
 function Dashboard() {
     const dispatch = useDispatch();
     const hotelId = useSelector((state) => state.hotel.globalHotelId);
-    const user = useSelector((state) => state.user?.data);
-
-    console.log('CURRENT PATH', window.location.pathname);
-    console.log('SUB STATUS', user?.subscriptionStatus);
-    console.log('SUB END', user?.subscriptionEndAt);
     const {
         cardsData,
         dailyRevenue,

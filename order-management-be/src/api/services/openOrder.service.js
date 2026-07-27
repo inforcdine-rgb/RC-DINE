@@ -3,13 +3,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { db } from '../../config/database.js';
 import { emitToHotel } from '../../config/socket.js';
 import { USER_ROLES } from '../models/user.model.js';
-import {
-    calculateBill,
-    calculateDiscount,
-    CustomError,
-    mapSequelizeError,
-    STATUS_CODE
-} from '../utils/common.js';
+import { calculateBill, calculateDiscount, CustomError, mapSequelizeError, STATUS_CODE } from '../utils/common.js';
 import { resolveHotelAccess } from '../utils/hotelAccess.js';
 
 const OPEN_SECTION_STATUSES = ['OPEN', 'BILLED'];
@@ -125,11 +119,13 @@ const getDetailedOrder = async (orderId, transaction) => {
             {
                 model: db.openOrderItems,
                 as: 'items',
-                include: [{
-                    model: db.users,
-                    as: 'addedBy',
-                    attributes: ['id', 'firstName', 'lastName']
-                }]
+                include: [
+                    {
+                        model: db.users,
+                        as: 'addedBy',
+                        attributes: ['id', 'firstName', 'lastName']
+                    }
+                ]
             }
         ],
         order: [[{ model: db.openOrderItems, as: 'items' }, 'addedAt', 'ASC']],
@@ -172,19 +168,22 @@ const create = async (user, payload) => {
                 // and multiple customers may have separate open orders on the same table.
             }
 
-            const order = await db.openOrders.create({
-                id: uuidv4(),
-                hotelId,
-                tableId: table?.id || null,
-                orderNumber: makeOrderNumber(),
-                orderType: payload.orderType,
-                customerName: payload.customerName || null,
-                customerPhone: payload.customerPhone || null,
-                notes: payload.notes || null,
-                status: 'OPEN',
-                createdByUserId: user.id,
-                createIdempotencyKey: payload.idempotencyKey
-            }, { transaction });
+            const order = await db.openOrders.create(
+                {
+                    id: uuidv4(),
+                    hotelId,
+                    tableId: table?.id || null,
+                    orderNumber: makeOrderNumber(),
+                    orderType: payload.orderType,
+                    customerName: payload.customerName || null,
+                    customerPhone: payload.customerPhone || null,
+                    notes: payload.notes || null,
+                    status: 'OPEN',
+                    createdByUserId: user.id,
+                    createIdempotencyKey: payload.idempotencyKey
+                },
+                { transaction }
+            );
 
             return order;
         });
@@ -236,11 +235,16 @@ const list = async (user, requestedHotelId) => {
         raw: true
     });
     const aggregates = new Map(aggregateRows.map((row) => [row.openOrderId, row]));
-    return orders.map((order) => serializeOrder(order, aggregates.get(order.id) || {
-        itemCount: 0,
-        runningTotal: 0,
-        lastItemAt: null
-    }));
+    return orders.map((order) =>
+        serializeOrder(
+            order,
+            aggregates.get(order.id) || {
+                itemCount: 0,
+                runningTotal: 0,
+                lastItemAt: null
+            }
+        )
+    );
 };
 
 const listCompleted = async (user, requestedHotelId, filters = {}) => {
@@ -269,11 +273,13 @@ const listCompleted = async (user, requestedHotelId, filters = {}) => {
             {
                 model: db.openOrderItems,
                 as: 'items',
-                include: [{
-                    model: db.users,
-                    as: 'addedBy',
-                    attributes: ['id', 'firstName', 'lastName']
-                }]
+                include: [
+                    {
+                        model: db.users,
+                        as: 'addedBy',
+                        attributes: ['id', 'firstName', 'lastName']
+                    }
+                ]
             }
         ],
         order: [
@@ -308,14 +314,8 @@ const addItems = async (user, orderId, payload) => {
                 throw CustomError(STATUS_CODE.CONFLICT, 'Billed or completed orders cannot be edited');
             }
 
-            if (
-                payload.expectedRevision !== undefined &&
-                Number(payload.expectedRevision) !== Number(order.revision)
-            ) {
-                throw CustomError(
-                    STATUS_CODE.CONFLICT,
-                    'Order changed on another device. Refresh and try again.'
-                );
+            if (payload.expectedRevision !== undefined && Number(payload.expectedRevision) !== Number(order.revision)) {
+                throw CustomError(STATUS_CODE.CONFLICT, 'Order changed on another device. Refresh and try again.');
             }
 
             const normalized = new Map();
@@ -359,11 +359,14 @@ const addItems = async (user, orderId, payload) => {
             await db.openOrderItems.bulkCreate(additions, { transaction });
 
             const addedTotal = additions.reduce((sum, item) => sum + item.lineTotal, 0);
-            await order.update({
-                subtotalAmount: money(Number(order.subtotalAmount) + addedTotal),
-                finalAmount: money(Number(order.subtotalAmount) + addedTotal),
-                revision: Number(order.revision) + 1
-            }, { transaction });
+            await order.update(
+                {
+                    subtotalAmount: money(Number(order.subtotalAmount) + addedTotal),
+                    finalAmount: money(Number(order.subtotalAmount) + addedTotal),
+                    revision: Number(order.revision) + 1
+                },
+                { transaction }
+            );
 
             return { order, duplicate: false };
         });
@@ -394,49 +397,44 @@ const generateBill = async (user, orderId, payload) => {
                 throw CustomError(STATUS_CODE.CONFLICT, 'Only open orders can be billed');
             }
 
-            const subtotal = money(await db.openOrderItems.sum('lineTotal', {
-                where: { openOrderId: order.id },
-                transaction
-            }));
+            const subtotal = money(
+                await db.openOrderItems.sum('lineTotal', {
+                    where: { openOrderId: order.id },
+                    transaction
+                })
+            );
             if (subtotal <= 0) {
                 throw CustomError(STATUS_CODE.BAD_REQUEST, 'Add at least one item before billing');
             }
 
             const hotel = await db.hotel.findByPk(order.hotelId, { transaction });
             const hasDiscountOverride = Object.prototype.hasOwnProperty.call(payload, 'discountType');
-            const discountType = hasDiscountOverride ? payload.discountType : (hotel.discountType || null);
+            const discountType = hasDiscountOverride ? payload.discountType : hotel.discountType || null;
             const discountValue = hasDiscountOverride
                 ? Number(payload.discountValue || 0)
                 : Number(hotel.discountValue || 0);
             const discountEnabled = Boolean(discountType) && (hasDiscountOverride || hotel.discountEnabled);
-            const discountAmount = money(calculateDiscount(
-                subtotal,
-                discountEnabled,
-                discountType,
-                discountValue
-            ));
+            const discountAmount = money(calculateDiscount(subtotal, discountEnabled, discountType, discountValue));
             const taxableAmount = money(Math.max(0, subtotal - discountAmount));
-            const bill = calculateBill(
-                taxableAmount,
-                payload.tipAmount || 0,
-                hotel.gstPercent,
-                hotel.gstEnabled
-            );
+            const bill = calculateBill(taxableAmount, payload.tipAmount || 0, hotel.gstPercent, hotel.gstEnabled);
 
-            await order.update({
-                status: 'BILLED',
-                subtotalAmount: subtotal,
-                discountType: discountEnabled ? discountType : null,
-                discountValue: discountEnabled ? discountValue : 0,
-                discountAmount,
-                gstPercent: bill.gstPercent,
-                cgstAmount: money(bill.cgst),
-                sgstAmount: money(bill.sgst),
-                tipAmount: money(bill.tipAmount),
-                finalAmount: money(bill.totalPrice),
-                billGeneratedAt: new Date(),
-                revision: Number(order.revision) + 1
-            }, { transaction });
+            await order.update(
+                {
+                    status: 'BILLED',
+                    subtotalAmount: subtotal,
+                    discountType: discountEnabled ? discountType : null,
+                    discountValue: discountEnabled ? discountValue : 0,
+                    discountAmount,
+                    gstPercent: bill.gstPercent,
+                    cgstAmount: money(bill.cgst),
+                    sgstAmount: money(bill.sgst),
+                    tipAmount: money(bill.tipAmount),
+                    finalAmount: money(bill.totalPrice),
+                    billGeneratedAt: new Date(),
+                    revision: Number(order.revision) + 1
+                },
+                { transaction }
+            );
 
             return order;
         });
@@ -467,24 +465,25 @@ const pay = async (user, orderId, payload) => {
             }
 
             const total = money(order.finalAmount);
-            const cashReceived = payload.paymentMethod === 'CASH'
-                ? money(payload.cashReceived)
-                : total;
+            const cashReceived = payload.paymentMethod === 'CASH' ? money(payload.cashReceived) : total;
             if (payload.paymentMethod === 'CASH' && cashReceived < total) {
                 throw CustomError(STATUS_CODE.BAD_REQUEST, 'Cash received is less than bill total');
             }
 
-            await order.update({
-                status: 'COMPLETED',
-                paymentStatus: 'PAID',
-                paymentMethod: payload.paymentMethod,
-                cashReceived,
-                changeAmount: money(Math.max(0, cashReceived - total)),
-                paymentIdempotencyKey: payload.idempotencyKey,
-                paidAt: new Date(),
-                completedByUserId: user.id,
-                revision: Number(order.revision) + 1
-            }, { transaction });
+            await order.update(
+                {
+                    status: 'COMPLETED',
+                    paymentStatus: 'PAID',
+                    paymentMethod: payload.paymentMethod,
+                    cashReceived,
+                    changeAmount: money(Math.max(0, cashReceived - total)),
+                    paymentIdempotencyKey: payload.idempotencyKey,
+                    paidAt: new Date(),
+                    completedByUserId: user.id,
+                    revision: Number(order.revision) + 1
+                },
+                { transaction }
+            );
 
             return order;
         });
@@ -508,12 +507,15 @@ const close = async (user, orderId, payload) => {
                 if (!OPEN_SECTION_STATUSES.includes(order.status)) {
                     throw CustomError(STATUS_CODE.CONFLICT, 'Completed orders cannot be cancelled');
                 }
-                await order.update({
-                    status: 'CANCELLED',
-                    notes: payload.reason || order.notes,
-                    closedAt: new Date(),
-                    revision: Number(order.revision) + 1
-                }, { transaction });
+                await order.update(
+                    {
+                        status: 'CANCELLED',
+                        notes: payload.reason || order.notes,
+                        closedAt: new Date(),
+                        revision: Number(order.revision) + 1
+                    },
+                    { transaction }
+                );
             } else if (order.status !== 'COMPLETED') {
                 throw CustomError(STATUS_CODE.CONFLICT, 'Complete payment before closing the order');
             } else if (!order.closedAt) {

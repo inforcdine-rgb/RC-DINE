@@ -1,24 +1,16 @@
+/* eslint-disable camelcase */
 import 'dotenv/config';
 import { v2 as cloudinary } from 'cloudinary';
 import multer from 'multer';
 import { CloudinaryStorage } from 'multer-storage-cloudinary';
 import logger from './logger.js';
 
-const requiredCloudinaryKeys = [
-    'CLOUDINARY_CLOUD_NAME',
-    'CLOUDINARY_API_KEY',
-    'CLOUDINARY_API_SECRET'
-];
+const requiredCloudinaryKeys = ['CLOUDINARY_CLOUD_NAME', 'CLOUDINARY_API_KEY', 'CLOUDINARY_API_SECRET'];
 
-const missingCloudinaryKeys = requiredCloudinaryKeys.filter(
-    (key) => !process.env[key]
-);
+const missingCloudinaryKeys = requiredCloudinaryKeys.filter((key) => !process.env[key]);
 
 if (missingCloudinaryKeys.length) {
-    logger(
-        'error',
-        `Missing Cloudinary configuration: ${missingCloudinaryKeys.join(', ')}`
-    );
+    logger('error', `Missing Cloudinary configuration: ${missingCloudinaryKeys.join(', ')}`);
 }
 
 cloudinary.config({
@@ -55,7 +47,6 @@ export const uploadHotelLogo = multer({
     limits: { fileSize: 1024 * 1024 },
     fileFilter: imageFilter
 });
-
 
 export const uploadLandingLogo = multer({
     storage: makeStorage({ folder: 'rc-dine/website/logo', width: 512, height: 512, crop: 'fit' }),

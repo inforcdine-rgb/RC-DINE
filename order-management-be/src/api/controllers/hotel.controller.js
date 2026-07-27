@@ -2,7 +2,12 @@ import logger from '../../config/logger.js';
 import hotelService from '../services/hotel.service.js';
 import { STATUS_CODE } from '../utils/common.js';
 import { resolveHotelAccess } from '../utils/hotelAccess.js';
-import { registerationValidation, updateValidation, paymentSettingsValidation, printerSettingsValidation } from '../validations/hotel.validation.js';
+import {
+    registerationValidation,
+    updateValidation,
+    paymentSettingsValidation,
+    printerSettingsValidation
+} from '../validations/hotel.validation.js';
 
 const register = async (req, res) => {
     try {
@@ -177,40 +182,30 @@ const updatePrinterSettings = async (req, res) => {
 
 const uploadLogo = async (req, res) => {
     try {
-        const hotelId = await resolveHotelAccess(
-            req.user,
-            req.params.id
-        );
+        const hotelId = await resolveHotelAccess(req.user, req.params.id);
 
         logger('debug', 'Hotel logo file received', {
             hotelId,
             file: req.file
                 ? {
-                    fieldname: req.file.fieldname,
-                    mimetype: req.file.mimetype,
-                    size: req.file.size,
-                    path: req.file.path,
-                    filename: req.file.filename
-                }
+                      fieldname: req.file.fieldname,
+                      mimetype: req.file.mimetype,
+                      size: req.file.size,
+                      path: req.file.path,
+                      filename: req.file.filename
+                  }
                 : null
         });
 
-        const logoUrl =
-            req.file?.path ||
-            req.file?.secure_url ||
-            req.file?.url;
+        const logoUrl = req.file?.path || req.file?.secure_url || req.file?.url;
 
         if (!logoUrl) {
             return res.status(400).send({
-                message:
-                    'Logo Cloudinary par upload nahi hui. Cloudinary configuration check karo.'
+                message: 'Logo Cloudinary par upload nahi hui. Cloudinary configuration check karo.'
             });
         }
 
-        const result = await hotelService.updateLogo(
-            hotelId,
-            logoUrl
-        );
+        const result = await hotelService.updateLogo(hotelId, logoUrl);
 
         return res.status(200).send(result);
     } catch (error) {
@@ -220,9 +215,7 @@ const uploadLogo = async (req, res) => {
         });
 
         return res.status(error.code || 500).send({
-            message:
-                error.message ||
-                'Hotel logo upload failed'
+            message: error.message || 'Hotel logo upload failed'
         });
     }
 };

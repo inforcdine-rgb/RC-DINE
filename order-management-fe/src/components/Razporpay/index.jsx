@@ -60,8 +60,7 @@ function Razorpay({
 
         // To get payment id in case of failed transaction.
         rzp1.on('payment.failed', (response) => {
-            console.log('PAYMENT FAILED', response);
-            paymentId.current = response.error.metadata.payment_id;
+            paymentId.current = response?.error?.metadata?.payment_id || null;
         });
 
         // to open razorpay checkout modal.
@@ -69,7 +68,6 @@ function Razorpay({
     };
 
     const onSuccess = (response) => {
-        console.log('PAYMENT SUCCESS RESPONSE', response);
         const razorpayPaymentId = response.razorpay_payment_id;
         const razorpaySignature = response.razorpay_signature;
 
@@ -105,7 +103,6 @@ function Razorpay({
     };
 
     useEffect(() => {
-        console.log('RAZORPAY ORDER RESPONSE', { orderId, amount, keyId });
         let options = {
             key: keyId || env.razorpay.id,
             name: hotelName,
@@ -148,7 +145,6 @@ function Razorpay({
             };
         }
 
-        console.log('RAZORPAY OPTIONS', options);
         displayRazorpay(options);
     }, []);
 

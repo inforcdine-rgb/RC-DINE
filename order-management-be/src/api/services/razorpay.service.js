@@ -1,3 +1,4 @@
+/* eslint-disable camelcase */
 import Razorpay from 'razorpay';
 import { getAdminSettings } from '../../config/adminSettings.js';
 import env from '../../config/env.js';

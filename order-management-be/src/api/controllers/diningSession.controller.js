@@ -16,10 +16,11 @@ import {
     tableAvailabilityValidation
 } from '../validations/diningSession.validation.js';
 
-const validationError = (res, result) =>
-    res.status(STATUS_CODE.BAD_REQUEST).send({ message: result.error.message });
+const validationError = (res, result) => res.status(STATUS_CODE.BAD_REQUEST).send({ message: result.error.message });
 const maskPhone = (value) => {
-    const phone = String(value || '').replace(/\D/g, '').slice(-10);
+    const phone = String(value || '')
+        .replace(/\D/g, '')
+        .slice(-10);
     return phone.length === 10 ? `${phone.slice(0, 2)}xxxxxx${phone.slice(-2)}` : 'Hidden';
 };
 
@@ -119,9 +120,7 @@ const requestJoin = async (req, res) => {
                 dedupeKey: `rc-join-request:${result.request.id}`,
                 preservePath: true,
                 requireInteraction: true,
-                actions: [
-                    { action: 'open', title: 'Review' }
-                ],
+                actions: [{ action: 'open', title: 'Review' }],
                 meta: {
                     action: 'session:join-requested',
                     requestId: result.request.id,
@@ -244,7 +243,10 @@ const leave = async (req, res) => {
         });
         emitToRcSession(result.sessionId, 'session:member-left', result);
         emitToRcSession(result.sessionId, 'session:members-updated', { sessionId: result.sessionId });
-        const session = await db.diningSessions.findOne({ where: { id: result.sessionId }, attributes: ['ownerMobile'] });
+        const session = await db.diningSessions.findOne({
+            where: { id: result.sessionId },
+            attributes: ['ownerMobile']
+        });
         await sendRcNotification([session?.ownerMobile], {
             title: 'RC Session member left',
             message: 'A member left your RC Session.',
@@ -272,16 +274,19 @@ const end = async (req, res) => {
             where: { sessionId: result.sessionId },
             attributes: ['mobileNumber']
         });
-        await sendRcNotification(members.map(({ mobileNumber }) => mobileNumber), {
-            title: 'RC Session ended',
-            message: 'The host ended the RC Session.',
-            type: 'RC_SESSION_ENDED',
-            category: 'RC_SESSION',
-            entityId: result.sessionId,
-            dedupeKey: `rc-session-ended:${result.sessionId}`,
-            preservePath: true,
-            meta: { action: 'session:ended', ...result }
-        });
+        await sendRcNotification(
+            members.map(({ mobileNumber }) => mobileNumber),
+            {
+                title: 'RC Session ended',
+                message: 'The host ended the RC Session.',
+                type: 'RC_SESSION_ENDED',
+                category: 'RC_SESSION',
+                entityId: result.sessionId,
+                dedupeKey: `rc-session-ended:${result.sessionId}`,
+                preservePath: true,
+                meta: { action: 'session:ended', ...result }
+            }
+        );
         return res.status(STATUS_CODE.OK).send(result);
     } catch (error) {
         return res.status(error.code || 500).send({ message: error.message });
@@ -319,11 +324,7 @@ const tableAction = async (req, res) => {
         const valid = managerSessionActionValidation(req.body);
         if (valid.error) return validationError(res, valid);
         const hotelId = await resolveHotelAccessByTableId(req.user, req.params.tableId);
-        const result = await diningSessionService.setTableAction(
-            hotelId,
-            req.params.tableId,
-            valid.value.action
-        );
+        const result = await diningSessionService.setTableAction(hotelId, req.params.tableId, valid.value.action);
         return res.status(STATUS_CODE.OK).send(result);
     } catch (error) {
         logger('error', 'RC Session table action error', { error: error.message });

@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { uploadHotelLogo } from '../../config/cloudinary.js';
+import logger from '../../config/logger.js';
 import hotelController from '../controllers/hotel.controller.js';
 import authenticate from '../middlewares/auth.js';
 import { ownerAuthentication } from '../middlewares/roleAuth.js';
@@ -10,7 +11,7 @@ const router = Router();
 const handleHotelLogoUpload = (req, res, next) => {
     uploadHotelLogo.single('logo')(req, res, (error) => {
         if (error) {
-            console.error('Hotel logo multer/cloudinary error:', {
+            logger('error', 'Hotel logo multer/cloudinary error', {
                 message: error.message,
                 code: error.code,
                 stack: error.stack
@@ -35,20 +36,9 @@ const handleHotelLogoUpload = (req, res, next) => {
 };
 
 router.put('/:id', authenticate, checkSubscriptionAccess, hotelController.update);
-router.post(
-    '/:id/logo',
-    authenticate,
-    ownerAuthentication,
-    handleHotelLogoUpload,
-    hotelController.uploadLogo
-);
+router.post('/:id/logo', authenticate, ownerAuthentication, handleHotelLogoUpload, hotelController.uploadLogo);
 
-router.delete(
-    '/:id/logo',
-    authenticate,
-    ownerAuthentication,
-    hotelController.removeLogo
-);
+router.delete('/:id/logo', authenticate, ownerAuthentication, hotelController.removeLogo);
 router.get('/:id/payment-settings', authenticate, checkSubscriptionAccess, hotelController.getPaymentSettings);
 router.put('/:id/payment-settings', authenticate, checkSubscriptionAccess, hotelController.updatePaymentSettings);
 router.get('/:id/printer-settings', authenticate, checkSubscriptionAccess, hotelController.getPrinterSettings);

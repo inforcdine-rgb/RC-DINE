@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import logger from './logger.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -26,7 +27,7 @@ export const getAdminSettings = () => {
             return JSON.parse(data);
         }
     } catch (error) {
-        console.error('Error reading admin settings file:', error);
+        logger('error', 'Error reading admin settings file', { error: error.message });
     }
     // Initialize file if not exists
     saveAdminSettings(defaultSettings);
@@ -38,7 +39,7 @@ export const saveAdminSettings = (settings) => {
         fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 4), 'utf8');
         return true;
     } catch (error) {
-        console.error('Error writing admin settings file:', error);
+        logger('error', 'Error writing admin settings file', { error: error.message });
         return false;
     }
 };

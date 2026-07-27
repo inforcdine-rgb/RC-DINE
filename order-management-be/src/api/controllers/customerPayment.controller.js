@@ -1,8 +1,8 @@
+/* eslint-disable camelcase */
 import crypto from 'crypto';
 import Razorpay from 'razorpay';
 import { Op } from 'sequelize';
 import { db } from '../../config/database.js';
-import env from '../../config/env.js';
 import logger from '../../config/logger.js';
 import { emitToHotel, emitToOrder } from '../../config/socket.js';
 import customerRepo from '../repositories/customer.repository.js';
@@ -32,7 +32,8 @@ const createOrder = async (req, res) => {
         menus.forEach((item) => {
             const liveItem = liveMenuById[item.menuId];
             if (!liveItem) throw CustomError(STATUS_CODE.NOT_FOUND, `${item.menuName || 'Menu item'} not found`);
-            if (liveItem.status === 'UNAVAILABLE') throw CustomError(STATUS_CODE.BAD_REQUEST, `${liveItem.name} is unavailable`);
+            if (liveItem.status === 'UNAVAILABLE')
+                throw CustomError(STATUS_CODE.BAD_REQUEST, `${liveItem.name} is unavailable`);
             item.price = liveItem.price;
             item.menuName = liveItem.name;
         });
@@ -53,7 +54,7 @@ const createOrder = async (req, res) => {
         const gstEnabled = !!hotel?.gstEnabled;
         const gstPercent = gstEnabled ? Number(hotel?.gstPercent || 0) : 0;
 
-        const subtotal = menus.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+        const subtotal = menus.reduce((sum, item) => sum + item.price * item.quantity, 0);
         const discountEnabled = !!hotel?.discountEnabled;
         const discountType = hotel?.discountType || null;
         const discountValue = Number(hotel?.discountValue || 0);
@@ -79,7 +80,10 @@ const createOrder = async (req, res) => {
 
         // Razorpay order creation with this hotel's own credentials
         const amount = Math.round(totalPrice * 100); // in paise
-        logger('info', `Creating Razorpay payment order for hotel ${hotelId}, customer ${customerId}, amount ${amount} paise`);
+        logger(
+            'info',
+            `Creating Razorpay payment order for hotel ${hotelId}, customer ${customerId}, amount ${amount} paise`
+        );
         const rzpOrder = await hotelRazorpay.orders.create({
             amount,
             currency: 'INR',
@@ -146,10 +150,7 @@ const verifyPayment = async (req, res) => {
             !Array.isArray(menus) ||
             !menus.length
         ) {
-            throw CustomError(
-                STATUS_CODE.BAD_REQUEST,
-                'Missing verification details'
-            );
+            throw CustomError(STATUS_CODE.BAD_REQUEST, 'Missing verification details');
         }
 
         /*
@@ -161,18 +162,11 @@ const verifyPayment = async (req, res) => {
             where: {
                 razorpayPaymentId
             },
-            attributes: [
-                'id',
-                'orderNumber',
-                'razorpayPaymentId'
-            ]
+            attributes: ['id', 'orderNumber', 'razorpayPaymentId']
         });
 
         if (existingPaidOrder) {
-            throw CustomError(
-                STATUS_CODE.CONFLICT,
-                'This payment has already been used'
-            );
+            throw CustomError(STATUS_CODE.CONFLICT, 'This payment has already been used');
         }
 
         /*
@@ -198,31 +192,17 @@ const verifyPayment = async (req, res) => {
         });
 
         if (!paymentHotel) {
-            throw CustomError(
-                STATUS_CODE.NOT_FOUND,
-                'Hotel not found'
-            );
+            throw CustomError(STATUS_CODE.NOT_FOUND, 'Hotel not found');
         }
 
         if (!paymentHotel.paymentEnabled) {
-            throw CustomError(
-                STATUS_CODE.BAD_REQUEST,
-                'Online payment is disabled for this hotel'
-            );
+            throw CustomError(STATUS_CODE.BAD_REQUEST, 'Online payment is disabled for this hotel');
         }
 
-        const razorpayKeySecret = hotelService.decrypt(
-            paymentHotel.razorpayKeySecret
-        );
+        const razorpayKeySecret = hotelService.decrypt(paymentHotel.razorpayKeySecret);
 
-        if (
-            !paymentHotel.razorpayKeyId ||
-            !razorpayKeySecret
-        ) {
-            throw CustomError(
-                STATUS_CODE.BAD_REQUEST,
-                'Hotel Razorpay settings are incomplete'
-            );
+        if (!paymentHotel.razorpayKeyId || !razorpayKeySecret) {
+            throw CustomError(STATUS_CODE.BAD_REQUEST, 'Hotel Razorpay settings are incomplete');
         }
 
         /*
@@ -233,28 +213,15 @@ const verifyPayment = async (req, res) => {
             .update(`${razorpayOrderId}|${razorpayPaymentId}`)
             .digest('hex');
 
-        const generatedBuffer = Buffer.from(
-            generatedSignature,
-            'utf8'
-        );
+        const generatedBuffer = Buffer.from(generatedSignature, 'utf8');
 
-        const receivedBuffer = Buffer.from(
-            String(razorpaySignature),
-            'utf8'
-        );
+        const receivedBuffer = Buffer.from(String(razorpaySignature), 'utf8');
 
         const signatureIsValid =
-            generatedBuffer.length === receivedBuffer.length &&
-            crypto.timingSafeEqual(
-                generatedBuffer,
-                receivedBuffer
-            );
+            generatedBuffer.length === receivedBuffer.length && crypto.timingSafeEqual(generatedBuffer, receivedBuffer);
 
         if (!signatureIsValid) {
-            throw CustomError(
-                STATUS_CODE.FORBIDDEN,
-                'Invalid payment signature'
-            );
+            throw CustomError(STATUS_CODE.FORBIDDEN, 'Invalid payment signature');
         }
 
         /*
@@ -265,51 +232,28 @@ const verifyPayment = async (req, res) => {
             key_secret: razorpayKeySecret
         });
 
-        const [razorpayPayment, razorpayOrder] =
-            await Promise.all([
-                hotelRazorpay.payments.fetch(
-                    razorpayPaymentId
-                ),
-                hotelRazorpay.orders.fetch(
-                    razorpayOrderId
-                )
-            ]);
+        const [razorpayPayment, razorpayOrder] = await Promise.all([
+            hotelRazorpay.payments.fetch(razorpayPaymentId),
+            hotelRazorpay.orders.fetch(razorpayOrderId)
+        ]);
 
         if (!razorpayPayment) {
-            throw CustomError(
-                STATUS_CODE.NOT_FOUND,
-                'Razorpay payment not found'
-            );
+            throw CustomError(STATUS_CODE.NOT_FOUND, 'Razorpay payment not found');
         }
 
         if (!razorpayOrder) {
-            throw CustomError(
-                STATUS_CODE.NOT_FOUND,
-                'Razorpay order not found'
-            );
+            throw CustomError(STATUS_CODE.NOT_FOUND, 'Razorpay order not found');
         }
 
         /*
          * Payment isi order ka hona chahiye.
          */
-        if (
-            String(razorpayPayment.order_id) !==
-            String(razorpayOrderId)
-        ) {
-            throw CustomError(
-                STATUS_CODE.BAD_REQUEST,
-                'Payment does not belong to this Razorpay order'
-            );
+        if (String(razorpayPayment.order_id) !== String(razorpayOrderId)) {
+            throw CustomError(STATUS_CODE.BAD_REQUEST, 'Payment does not belong to this Razorpay order');
         }
 
-        if (
-            String(razorpayPayment.currency || '').toUpperCase() !==
-            'INR'
-        ) {
-            throw CustomError(
-                STATUS_CODE.BAD_REQUEST,
-                'Invalid payment currency'
-            );
+        if (String(razorpayPayment.currency || '').toUpperCase() !== 'INR') {
+            throw CustomError(STATUS_CODE.BAD_REQUEST, 'Invalid payment currency');
         }
 
         /*
@@ -317,15 +261,10 @@ const verifyPayment = async (req, res) => {
          *
          * Database se current prices dobara fetch honge.
          */
-        const menuIds = menus
-            .map((item) => item.menuId)
-            .filter(Boolean);
+        const menuIds = menus.map((item) => item.menuId).filter(Boolean);
 
         if (!menuIds.length) {
-            throw CustomError(
-                STATUS_CODE.BAD_REQUEST,
-                'No valid menu items provided'
-            );
+            throw CustomError(STATUS_CODE.BAD_REQUEST, 'No valid menu items provided');
         }
 
         const liveMenuItems = await db.menu.findAll({
@@ -337,42 +276,26 @@ const verifyPayment = async (req, res) => {
             }
         });
 
-        const liveMenuById = liveMenuItems.reduce(
-            (result, menuItem) => {
-                result[String(menuItem.id)] = menuItem;
-                return result;
-            },
-            {}
-        );
+        const liveMenuById = liveMenuItems.reduce((result, menuItem) => {
+            result[String(menuItem.id)] = menuItem;
+            return result;
+        }, {});
 
         const verifiedMenus = menus.map((item) => {
-            const liveMenuItem =
-                liveMenuById[String(item.menuId)];
+            const liveMenuItem = liveMenuById[String(item.menuId)];
 
             if (!liveMenuItem) {
-                throw CustomError(
-                    STATUS_CODE.NOT_FOUND,
-                    `${item.menuName || 'Menu item'} not found`
-                );
+                throw CustomError(STATUS_CODE.NOT_FOUND, `${item.menuName || 'Menu item'} not found`);
             }
 
             if (liveMenuItem.status === 'UNAVAILABLE') {
-                throw CustomError(
-                    STATUS_CODE.BAD_REQUEST,
-                    `${liveMenuItem.name} is unavailable`
-                );
+                throw CustomError(STATUS_CODE.BAD_REQUEST, `${liveMenuItem.name} is unavailable`);
             }
 
             const quantity = Number(item.quantity);
 
-            if (
-                !Number.isInteger(quantity) ||
-                quantity <= 0
-            ) {
-                throw CustomError(
-                    STATUS_CODE.BAD_REQUEST,
-                    `Invalid quantity for ${liveMenuItem.name}`
-                );
+            if (!Number.isInteger(quantity) || quantity <= 0) {
+                throw CustomError(STATUS_CODE.BAD_REQUEST, `Invalid quantity for ${liveMenuItem.name}`);
             }
 
             return {
@@ -387,101 +310,57 @@ const verifyPayment = async (req, res) => {
         /*
          * 6. Backend par bill dobara calculate karo.
          */
-        const subtotal = verifiedMenus.reduce(
-            (sum, item) =>
-                sum +
-                Number(item.price) *
-                    Number(item.quantity),
-            0
-        );
+        const subtotal = verifiedMenus.reduce((sum, item) => sum + Number(item.price) * Number(item.quantity), 0);
 
-        const discountEnabled =
-            Boolean(paymentHotel.discountEnabled);
+        const discountEnabled = Boolean(paymentHotel.discountEnabled);
 
-        const discountType =
-            paymentHotel.discountType || null;
+        const discountType = paymentHotel.discountType || null;
 
-        const discountValue =
-            Number(paymentHotel.discountValue || 0);
+        const discountValue = Number(paymentHotel.discountValue || 0);
 
-        const discountAmount = calculateDiscount(
-            subtotal,
-            discountEnabled,
-            discountType,
-            discountValue
-        );
+        const discountAmount = calculateDiscount(subtotal, discountEnabled, discountType, discountValue);
 
-        const taxableAmount = Math.max(
-            0,
-            subtotal - discountAmount
-        );
+        const taxableAmount = Math.max(0, subtotal - discountAmount);
 
-        const gstEnabled =
-            Boolean(paymentHotel.gstEnabled);
+        const gstEnabled = Boolean(paymentHotel.gstEnabled);
 
-        const gstPercent = gstEnabled
-            ? Number(paymentHotel.gstPercent || 0)
-            : 0;
+        const gstPercent = gstEnabled ? Number(paymentHotel.gstPercent || 0) : 0;
 
         const safeTipAmount = Number(tipAmount) || 0;
 
         if (safeTipAmount < 0) {
-            throw CustomError(
-                STATUS_CODE.BAD_REQUEST,
-                'Invalid tip amount'
-            );
+            throw CustomError(STATUS_CODE.BAD_REQUEST, 'Invalid tip amount');
         }
 
-        const { totalPrice } = calculateBill(
-            taxableAmount,
-            safeTipAmount,
-            gstPercent,
-            gstEnabled
-        );
+        const { totalPrice } = calculateBill(taxableAmount, safeTipAmount, gstPercent, gstEnabled);
 
-        const expectedAmountInPaise = Math.round(
-            Number(totalPrice) * 100
-        );
+        const expectedAmountInPaise = Math.round(Number(totalPrice) * 100);
 
         /*
          * Razorpay order aur payment dono ka amount match hona chahiye.
          */
-        if (
-            Number(razorpayOrder.amount) !==
-            expectedAmountInPaise
-        ) {
+        if (Number(razorpayOrder.amount) !== expectedAmountInPaise) {
             logger('warn', 'Razorpay order amount mismatch', {
                 hotelId,
                 customerId,
                 razorpayOrderId,
                 expectedAmountInPaise,
-                razorpayOrderAmount:
-                    Number(razorpayOrder.amount)
+                razorpayOrderAmount: Number(razorpayOrder.amount)
             });
 
-            throw CustomError(
-                STATUS_CODE.BAD_REQUEST,
-                'Razorpay order amount does not match the current bill'
-            );
+            throw CustomError(STATUS_CODE.BAD_REQUEST, 'Razorpay order amount does not match the current bill');
         }
 
-        if (
-            Number(razorpayPayment.amount) !==
-            expectedAmountInPaise
-        ) {
+        if (Number(razorpayPayment.amount) !== expectedAmountInPaise) {
             logger('warn', 'Razorpay payment amount mismatch', {
                 hotelId,
                 customerId,
                 razorpayPaymentId,
                 expectedAmountInPaise,
-                razorpayPaymentAmount:
-                    Number(razorpayPayment.amount)
+                razorpayPaymentAmount: Number(razorpayPayment.amount)
             });
 
-            throw CustomError(
-                STATUS_CODE.BAD_REQUEST,
-                'Payment amount does not match the current bill'
-            );
+            throw CustomError(STATUS_CODE.BAD_REQUEST, 'Payment amount does not match the current bill');
         }
 
         /*
@@ -539,78 +418,42 @@ const verifyPayment = async (req, res) => {
             tableId,
             tableNumber,
             customerId,
-            orderId:
-                createdOrder?.orderId ||
-                createdOrder?.id ||
-                result?.orderId ||
-                result?.id,
-            orderNumber:
-                createdOrder?.orderNumber ||
-                result?.orderNumber,
+            orderId: createdOrder?.orderId || createdOrder?.id || result?.orderId || result?.id,
+            orderNumber: createdOrder?.orderNumber || result?.orderNumber,
             order: createdOrder,
             paymentMode: 'ONLINE',
             createdAt: new Date().toISOString()
         };
 
-        emitToHotel(
-            hotelId,
-            'new-order',
-            livePayload
-        );
+        emitToHotel(hotelId, 'new-order', livePayload);
 
         if (livePayload.orderId) {
-            emitToOrder(
-                livePayload.orderId,
-                'order-status-updated',
-                {
-                    hotelId,
-                    orderId: livePayload.orderId,
-                    orderNumber:
-                        livePayload.orderNumber,
-                    status:
-                        createdOrder?.orderStatus ||
-                        createdOrder?.status ||
-                        'PENDING',
-                    order: createdOrder,
-                    updatedAt:
-                        new Date().toISOString()
-                }
-            );
-        }
-
-        logger(
-            'info',
-            'Paid QR order Socket.IO event emitted',
-            {
+            emitToOrder(livePayload.orderId, 'order-status-updated', {
                 hotelId,
                 orderId: livePayload.orderId,
-                orderNumber:
-                    livePayload.orderNumber
-            }
-        );
-
-        return res
-            .status(STATUS_CODE.CREATED)
-            .json(result);
-    } catch (error) {
-        logger(
-            'error',
-            'Error verifying customer payment',
-            {
-                error: error.message,
-                code: error.code
-            }
-        );
-
-        return res
-            .status(
-                error.code ||
-                    STATUS_CODE.INTERNAL_SERVER_ERROR ||
-                    500
-            )
-            .json({
-                message: error.message
+                orderNumber: livePayload.orderNumber,
+                status: createdOrder?.orderStatus || createdOrder?.status || 'PENDING',
+                order: createdOrder,
+                updatedAt: new Date().toISOString()
             });
+        }
+
+        logger('info', 'Paid QR order Socket.IO event emitted', {
+            hotelId,
+            orderId: livePayload.orderId,
+            orderNumber: livePayload.orderNumber
+        });
+
+        return res.status(STATUS_CODE.CREATED).json(result);
+    } catch (error) {
+        logger('error', 'Error verifying customer payment', {
+            error: error.message,
+            code: error.code
+        });
+
+        return res.status(error.code || STATUS_CODE.INTERNAL_SERVER_ERROR || 500).json({
+            message: error.message
+        });
     }
 };
 

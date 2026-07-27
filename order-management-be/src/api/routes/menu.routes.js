@@ -7,12 +7,20 @@ import checkSubscriptionAccess from '../middlewares/subscription.js';
 const router = Router();
 
 // Category routes — unchanged
-router.route('/category').all(authenticate, checkSubscriptionAccess).post(menuController.createCategory).delete(menuController.removeCategory);
+router
+    .route('/category')
+    .all(authenticate, checkSubscriptionAccess)
+    .post(menuController.createCategory)
+    .delete(menuController.removeCategory);
 router.get('/category/:hotelId', authenticate, checkSubscriptionAccess, menuController.fetchCategory);
 router.put('/category/:id', authenticate, checkSubscriptionAccess, menuController.updateCategory);
 
 // Combo routes — separate from categories
-router.route('/combo').all(authenticate, checkSubscriptionAccess).post(menuController.createCombo).delete(menuController.removeCombos);
+router
+    .route('/combo')
+    .all(authenticate, checkSubscriptionAccess)
+    .post(menuController.createCombo)
+    .delete(menuController.removeCombos);
 router.get('/combo/:hotelId', authenticate, checkSubscriptionAccess, menuController.fetchCombos);
 router.put('/combo/:id', authenticate, checkSubscriptionAccess, menuController.updateCombo);
 

@@ -11,7 +11,10 @@ export const registrationValidation = (payload) => {
             phoneNumber: Joi.alternatives()
                 .try(
                     Joi.string().pattern(/^\d{10}$/),
-                    Joi.number().integer().min(10 ** 9).max(10 ** 10 - 1)
+                    Joi.number()
+                        .integer()
+                        .min(10 ** 9)
+                        .max(10 ** 10 - 1)
                 )
                 .required()
                 .messages({

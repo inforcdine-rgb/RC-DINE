@@ -15,47 +15,21 @@ router.post('/table/:tableId/request-join', customerSessionAuth, diningSessionCo
 router.post('/table/:tableId/join', customerSessionAuth, diningSessionController.requestJoin);
 
 // Customer-host approval APIs.
-router.get(
-    '/table/:tableId/pending-requests',
-    customerSessionAuth,
-    diningSessionController.pendingRequests
-);
-router.post(
-    '/table/:tableId/respond-request',
-    customerSessionAuth,
-    diningSessionController.respondToRequest
-);
-router.get(
-    '/join-request/:requestId/status',
-    customerSessionAuth,
-    diningSessionController.requestStatus
-);
+router.get('/table/:tableId/pending-requests', customerSessionAuth, diningSessionController.pendingRequests);
+router.post('/table/:tableId/respond-request', customerSessionAuth, diningSessionController.respondToRequest);
+router.get('/join-request/:requestId/status', customerSessionAuth, diningSessionController.requestStatus);
 router.get('/table/:tableId/details', customerSessionAuth, diningSessionController.customerDetails);
 router.post('/table/:tableId/leave', customerSessionAuth, diningSessionController.leave);
 router.post('/table/:tableId/end', customerSessionAuth, diningSessionController.end);
-router.delete(
-    '/table/:tableId/members/:memberId',
-    customerSessionAuth,
-    diningSessionController.removeMember
-);
+router.delete('/table/:tableId/members/:memberId', customerSessionAuth, diningSessionController.removeMember);
 
-router.get(
-    '/manager/table/:tableId',
-    authenticate,
-    checkSubscriptionAccess,
-    diningSessionController.details
-);
+router.get('/manager/table/:tableId', authenticate, checkSubscriptionAccess, diningSessionController.details);
 router.patch(
     '/manager/table/:tableId/action',
     authenticate,
     checkSubscriptionAccess,
     diningSessionController.tableAction
 );
-router.post(
-    '/manager/table/:tableId/close',
-    authenticate,
-    checkSubscriptionAccess,
-    diningSessionController.close
-);
+router.post('/manager/table/:tableId/close', authenticate, checkSubscriptionAccess, diningSessionController.close);
 
 export default router;

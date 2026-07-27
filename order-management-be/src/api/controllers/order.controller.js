@@ -127,24 +127,11 @@ const createWalkInOrder = async (req, res) => {
             source: 'MANAGER_POS',
             hotelId,
             tableId: result?.order?.tableId || payload.tableId || null,
-            tableNumber:
-                result?.order?.tableNumber ||
-                payload.tableNumber ||
-                payload.orderType ||
-                'Walk-in',
+            tableNumber: result?.order?.tableNumber || payload.tableNumber || payload.orderType || 'Walk-in',
             orderNumber: result?.order?.orderNumber || null,
-            orderType:
-                result?.order?.orderType ||
-                payload.orderType ||
-                'Walk-in',
-            totalAmount:
-                result?.order?.totalPrice ||
-                payload.totalPrice ||
-                0,
-            paymentMethod:
-                result?.order?.paymentMethod ||
-                payload.paymentMethod ||
-                'Cash',
+            orderType: result?.order?.orderType || payload.orderType || 'Walk-in',
+            totalAmount: result?.order?.totalPrice || payload.totalPrice || 0,
+            paymentMethod: result?.order?.paymentMethod || payload.paymentMethod || 'Cash',
             order: result?.order || result,
             createdAt: new Date().toISOString()
         };
@@ -159,10 +146,7 @@ const createWalkInOrder = async (req, res) => {
 
         return res.status(STATUS_CODE.CREATED).send(result);
     } catch (error) {
-        logger(
-            'error',
-            `Error occurred during walk-in order ${JSON.stringify(error)}`
-        );
+        logger('error', `Error occurred during walk-in order ${JSON.stringify(error)}`);
 
         return res.status(error.code || 500).send({
             message: error.message
@@ -285,10 +269,7 @@ const updateOrderStatus = async (req, res) => {
             });
         }
 
-        logger(
-            'debug',
-            `Request to update order status - hotelId: ${hotelId}, orderId: ${orderId}, status: ${status}`
-        );
+        logger('debug', `Request to update order status - hotelId: ${hotelId}, orderId: ${orderId}, status: ${status}`);
 
         const result = await orderService.updateOrderStatus(hotelId, orderId, status);
 
@@ -368,15 +349,9 @@ const resetTable = async (req, res) => {
     try {
         const { tableId } = req.params;
 
-        const hotelId = await resolveHotelAccessByTableId(
-            req.user,
-            tableId
-        );
+        const hotelId = await resolveHotelAccessByTableId(req.user, tableId);
 
-        const result = await orderService.resetTable(
-            tableId,
-            hotelId
-        );
+        const result = await orderService.resetTable(tableId, hotelId);
 
         return res.status(STATUS_CODE.OK).send(result);
     } catch (error) {
@@ -384,11 +359,9 @@ const resetTable = async (req, res) => {
             error
         });
 
-        return res
-            .status(error.code || STATUS_CODE.INTERNAL_SERVER_ERROR || 500)
-            .send({
-                message: error.message
-            });
+        return res.status(error.code || STATUS_CODE.INTERNAL_SERVER_ERROR || 500).send({
+            message: error.message
+        });
     }
 };
 
@@ -398,27 +371,16 @@ const cancelOrder = async (req, res) => {
 
         logger('debug', 'Request to cancel order', {
             orderId,
-            authenticatedUserId:
-                req.customer?.customerId ||
-                req.customer?.id ||
-                null
+            authenticatedUserId: req.customer?.customerId || req.customer?.id || null
         });
 
-        const authenticatedCustomerId =
-            req.customer?.customerId ||
-            req.customer?.id;
+        const authenticatedCustomerId = req.customer?.customerId || req.customer?.id;
 
         if (!authenticatedCustomerId) {
-            throw CustomError(
-                STATUS_CODE.UNAUTHORIZED,
-                'Customer authentication required'
-            );
+            throw CustomError(STATUS_CODE.UNAUTHORIZED, 'Customer authentication required');
         }
 
-        const result = await orderService.cancelOrder(
-            orderId,
-            authenticatedCustomerId
-        );
+        const result = await orderService.cancelOrder(orderId, authenticatedCustomerId);
 
         const livePayload = {
             hotelId: result.hotelId,

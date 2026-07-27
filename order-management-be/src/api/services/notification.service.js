@@ -15,7 +15,10 @@ import notificationRepo from '../repositories/notification.repository.js';
 import pushSubscriptionRepo from '../repositories/pushSubscription.repository.js';
 import { CustomError, STATUS_CODE } from '../utils/common.js';
 
-const normalizePhone = (value) => String(value || '').replace(/\D/g, '').slice(-10) || null;
+const normalizePhone = (value) =>
+    String(value || '')
+        .replace(/\D/g, '')
+        .slice(-10) || null;
 const endpointHash = (endpoint) => crypto.createHash('sha256').update(endpoint).digest('hex');
 const unique = (values = []) => [...new Set(values.filter(Boolean))];
 const getType = (data) => data.type || data.meta?.action || 'UPDATE';
@@ -66,11 +69,9 @@ const subscribe = async (payload) => {
                 endpointHash: { [Op.ne]: hash }
             }
         });
-        const presenceToken = jwt.sign(
-            { type: 'PUSH_PRESENCE', endpointHash: hash },
-            env.jwtSecret,
-            { expiresIn: '30d' }
-        );
+        const presenceToken = jwt.sign({ type: 'PUSH_PRESENCE', endpointHash: hash }, env.jwtSecret, {
+            expiresIn: '30d'
+        });
 
         logger('info', 'Notification subscription synchronized', {
             userId: data.userId,
@@ -96,9 +97,10 @@ const subscribe = async (payload) => {
 
 const unsubscribe = async (identityOrUserId, legacyCustomerId, criteria = {}) => {
     try {
-        const identity = typeof identityOrUserId === 'object'
-            ? identityOrUserId
-            : { userId: identityOrUserId, customerId: legacyCustomerId, ...criteria };
+        const identity =
+            typeof identityOrUserId === 'object'
+                ? identityOrUserId
+                : { userId: identityOrUserId, customerId: legacyCustomerId, ...criteria };
         const owner = recipientWhere(identity);
         const where = { ...owner };
 
@@ -122,8 +124,9 @@ const unsubscribe = async (identityOrUserId, legacyCustomerId, criteria = {}) =>
 
 const getRecipients = (userIds, customerId, options = {}) => [
     ...unique(userIds).map((userId) => ({ userId })),
-    ...unique([...(Array.isArray(customerId) ? customerId : [customerId]), ...(options.customerIds || [])])
-        .map((id) => ({ customerId: id })),
+    ...unique([...(Array.isArray(customerId) ? customerId : [customerId]), ...(options.customerIds || [])]).map(
+        (id) => ({ customerId: id })
+    ),
     ...unique(options.phoneNumbers).map((phoneNumber) => ({ phoneNumber: normalizePhone(phoneNumber) }))
 ];
 
@@ -228,52 +231,54 @@ const sendNotification = async (userIds, data, customerId = undefined, options =
         let failureCount = 0;
         const preferenceCache = new Map();
 
-        await Promise.all(subscriptions.map(async (subscription) => {
-            const stored = notifications.find(({ recipient }) => matchesRecipient(subscription, recipient));
-            if (!stored) return;
-            if (!(await isManagerNotificationEnabled(subscription.userId, preferenceCache))) return;
+        await Promise.all(
+            subscriptions.map(async (subscription) => {
+                const stored = notifications.find(({ recipient }) => matchesRecipient(subscription, recipient));
+                if (!stored) return;
+                if (!(await isManagerNotificationEnabled(subscription.userId, preferenceCache))) return;
 
-            if (subscription.expiration && new Date(subscription.expiration).getTime() <= Date.now()) {
-                failureCount += 1;
-                await pushSubscriptionRepo.remove({ where: { id: subscription.id } });
-                logger('info', 'Expired Web Push subscription removed', {
-                    event: 'subscription_removed',
-                    reason: 'expired',
-                    subscriptionId: subscription.id
-                });
-                return;
-            }
-
-            const payload = {
-                ...data,
-                notificationId: stored.notification.id,
-                type: getType(data),
-                category: getCategory(data),
-                createdAt: stored.notification.createdAt
-            };
-
-            try {
-                await deliverToSubscription(subscription, payload);
-                successCount += 1;
-                await subscription.update({ lastSeenAt: new Date() });
-            } catch (error) {
-                failureCount += 1;
-                logger('error', 'Web Push delivery failed', {
-                    event: 'push_failed',
-                    subscriptionId: subscription.id,
-                    statusCode: error?.statusCode,
-                    message: error?.message
-                });
-                if (error?.statusCode === 404 || error?.statusCode === 410) {
+                if (subscription.expiration && new Date(subscription.expiration).getTime() <= Date.now()) {
+                    failureCount += 1;
                     await pushSubscriptionRepo.remove({ where: { id: subscription.id } });
-                    logger('info', 'Invalid Web Push subscription removed', {
+                    logger('info', 'Expired Web Push subscription removed', {
                         event: 'subscription_removed',
-                        reason: `push_${error.statusCode}`,
+                        reason: 'expired',
                         subscriptionId: subscription.id
                     });
+                    return;
                 }
-            }
-        }));
+
+                const payload = {
+                    ...data,
+                    notificationId: stored.notification.id,
+                    type: getType(data),
+                    category: getCategory(data),
+                    createdAt: stored.notification.createdAt
+                };
+
+                try {
+                    await deliverToSubscription(subscription, payload);
+                    successCount += 1;
+                    await subscription.update({ lastSeenAt: new Date() });
+                } catch (error) {
+                    failureCount += 1;
+                    logger('error', 'Web Push delivery failed', {
+                        event: 'push_failed',
+                        subscriptionId: subscription.id,
+                        statusCode: error?.statusCode,
+                        message: error?.message
+                    });
+                    if (error?.statusCode === 404 || error?.statusCode === 410) {
+                        await pushSubscriptionRepo.remove({ where: { id: subscription.id } });
+                        logger('info', 'Invalid Web Push subscription removed', {
+                            event: 'subscription_removed',
+                            reason: `push_${error.statusCode}`,
+                            subscriptionId: subscription.id
+                        });
+                    }
+                }
+            })
+        );
 
         return { successCount, failureCount };
     } catch (error) {

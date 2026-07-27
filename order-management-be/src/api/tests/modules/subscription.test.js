@@ -88,10 +88,7 @@ describe('Subscription Middleware Tests', () => {
 
         await checkSubscriptionAccess(req, res, next);
 
-        expect(userRepo.update).toHaveBeenCalledWith(
-            { where: { id: 'owner-123' } },
-            { subscriptionStatus: 'EXPIRED' }
-        );
+        expect(userRepo.update).toHaveBeenCalledWith({ where: { id: 'owner-123' } }, { subscriptionStatus: 'EXPIRED' });
         expect(res.status).toHaveBeenCalledWith(403);
         expect(res.send).toHaveBeenCalledWith({ message: 'Subscription expired' });
         expect(next).not.toHaveBeenCalled();
@@ -145,10 +142,7 @@ describe('Subscription Middleware Tests', () => {
 
         await checkSubscriptionAccess(req, res, next);
 
-        expect(userRepo.update).toHaveBeenCalledWith(
-            { where: { id: 'owner-123' } },
-            { subscriptionStatus: 'EXPIRED' }
-        );
+        expect(userRepo.update).toHaveBeenCalledWith({ where: { id: 'owner-123' } }, { subscriptionStatus: 'EXPIRED' });
         expect(res.status).toHaveBeenCalledWith(403);
         expect(res.send).toHaveBeenCalledWith({ message: 'Subscription expired' });
         expect(next).not.toHaveBeenCalled();

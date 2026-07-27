@@ -67,16 +67,9 @@ const update = async (req, res) => {
             });
         }
 
-        const hotelId = await resolveHotelAccess(
-            req.user,
-            payload.hotelId
-        );
+        const hotelId = await resolveHotelAccess(req.user, payload.hotelId);
 
-        const existing = await menuService.fetchById(
-            id,
-            hotelId,
-            { isCombo: false }
-        );
+        const existing = await menuService.fetchById(id, hotelId, { isCombo: false });
 
         if (!existing) {
             if (newImage) {
@@ -90,17 +83,9 @@ const update = async (req, res) => {
 
         const oldImage = existing.image;
 
-        const result = await menuService.update(
-            id,
-            hotelId,
-            payload.data
-        );
+        const result = await menuService.update(id, hotelId, payload.data);
 
-        if (
-            newImage &&
-            oldImage &&
-            oldImage !== newImage
-        ) {
+        if (newImage && oldImage && oldImage !== newImage) {
             await deleteImage(oldImage);
         }
 
@@ -133,16 +118,9 @@ const uploadImage = async (req, res) => {
             });
         }
 
-        const hotelId = await resolveHotelAccess(
-            req.user,
-            req.body.hotelId
-        );
+        const hotelId = await resolveHotelAccess(req.user, req.body.hotelId);
 
-        const existing = await menuService.fetchById(
-            id,
-            hotelId,
-            { isCombo: false }
-        );
+        const existing = await menuService.fetchById(id, hotelId, { isCombo: false });
 
         if (!existing) {
             await deleteImage(newImage);
@@ -154,13 +132,9 @@ const uploadImage = async (req, res) => {
 
         const oldImage = existing.image;
 
-        const result = await menuService.update(
-            id,
-            hotelId,
-            {
-                image: newImage
-            }
-        );
+        const result = await menuService.update(id, hotelId, {
+            image: newImage
+        });
 
         if (oldImage && oldImage !== newImage) {
             await deleteImage(oldImage);
@@ -232,25 +206,14 @@ const updateCombo = async (req, res) => {
 
 const removeCombos = async (req, res) => {
     try {
-        const {
-            comboIds,
-            hotelId: requestedHotelId
-        } = req.body;
+        const { comboIds, hotelId: requestedHotelId } = req.body;
 
-        const hotelId = await resolveHotelAccess(
-            req.user,
-            requestedHotelId
-        );
+        const hotelId = await resolveHotelAccess(req.user, requestedHotelId);
 
-        const result = await menuService.removeCombos(
-            comboIds,
-            hotelId
-        );
+        const result = await menuService.removeCombos(comboIds, hotelId);
 
         await Promise.allSettled(
-            result.deletedItems
-                .filter((item) => item.image)
-                .map((item) => deleteImage(item.image))
+            result.deletedItems.filter((item) => item.image).map((item) => deleteImage(item.image))
         );
 
         return res.status(STATUS_CODE.OK).send({
@@ -271,20 +234,12 @@ const remove = async (req, res) => {
     try {
         const { menuIds, hotelId: requestedHotelId } = req.body;
 
-        const hotelId = await resolveHotelAccess(
-            req.user,
-            requestedHotelId
-        );
+        const hotelId = await resolveHotelAccess(req.user, requestedHotelId);
 
-        const result = await menuService.remove(
-            menuIds,
-            hotelId
-        );
+        const result = await menuService.remove(menuIds, hotelId);
 
         await Promise.allSettled(
-            result.deletedItems
-                .filter((item) => item.image)
-                .map((item) => deleteImage(item.image))
+            result.deletedItems.filter((item) => item.image).map((item) => deleteImage(item.image))
         );
 
         return res.status(STATUS_CODE.OK).send({
@@ -407,20 +362,12 @@ const removeCategory = async (req, res) => {
             });
         }
 
-        const hotelId = await resolveHotelAccessByCategoryIds(
-            req.user,
-            categoryIds
-        );
+        const hotelId = await resolveHotelAccessByCategoryIds(req.user, categoryIds);
 
-        const result = await menuService.removeCategory(
-            categoryIds,
-            hotelId
-        );
+        const result = await menuService.removeCategory(categoryIds, hotelId);
 
         await Promise.allSettled(
-            result.deletedItems
-                .filter((item) => item.image)
-                .map((item) => deleteImage(item.image))
+            result.deletedItems.filter((item) => item.image).map((item) => deleteImage(item.image))
         );
 
         return res.status(STATUS_CODE.OK).send({

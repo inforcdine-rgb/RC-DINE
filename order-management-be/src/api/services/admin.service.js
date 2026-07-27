@@ -1,12 +1,10 @@
 import moment from 'moment';
 import { Op } from 'sequelize';
 import { getAdminSettings, saveAdminSettings } from '../../config/adminSettings.js';
-import subscriptionPlanRepo from '../repositories/subscriptionPlan.repository.js';
 import { db } from '../../config/database.js';
-import env from '../../config/env.js';
 import logger from '../../config/logger.js';
 import { USER_ROLES } from '../models/user.model.js';
-import orderRepo from '../repositories/order.repository.js';
+import subscriptionPlanRepo from '../repositories/subscriptionPlan.repository.js';
 import userRepo from '../repositories/user.repository.js';
 import { CustomError, STATUS_CODE } from '../utils/common.js';
 import { hashPassword } from '../utils/password.js';
@@ -36,19 +34,20 @@ const sanitizeOwner = (owner) => {
 
 const dashboard = async () => {
     try {
-        const [ownerCount, managerCount, hotelCount, activeSubscriptions, expiredSubscriptions, subscribedOwners] = await Promise.all([
-            db.users.count({ where: { role: USER_ROLES[0] } }),
-            db.users.count({ where: { role: USER_ROLES[1] } }),
-            db.hotel.count(),
-            db.users.count({ where: { role: USER_ROLES[0], subscriptionStatus: 'ACTIVE' } }),
-            db.users.count({ where: { role: USER_ROLES[0], subscriptionStatus: 'EXPIRED' } }),
-            db.users.findAll({
-                where: {
-                    role: USER_ROLES[0],
-                    subscriptionPlan: { [Op.ne]: null }
-                }
-            })
-        ]);
+        const [ownerCount, managerCount, hotelCount, activeSubscriptions, expiredSubscriptions, subscribedOwners] =
+            await Promise.all([
+                db.users.count({ where: { role: USER_ROLES[0] } }),
+                db.users.count({ where: { role: USER_ROLES[1] } }),
+                db.hotel.count(),
+                db.users.count({ where: { role: USER_ROLES[0], subscriptionStatus: 'ACTIVE' } }),
+                db.users.count({ where: { role: USER_ROLES[0], subscriptionStatus: 'EXPIRED' } }),
+                db.users.findAll({
+                    where: {
+                        role: USER_ROLES[0],
+                        subscriptionPlan: { [Op.ne]: null }
+                    }
+                })
+            ]);
 
         const activePlans = getAdminSettings().plans;
         const totalRevenue = subscribedOwners.reduce((sum, owner) => {
@@ -56,7 +55,14 @@ const dashboard = async () => {
             return sum + (planInfo.amount || 0);
         }, 0);
 
-        return { ownerCount, managerCount, hotelCount, activeSubscriptions, expiredSubscriptions, revenue: totalRevenue };
+        return {
+            ownerCount,
+            managerCount,
+            hotelCount,
+            activeSubscriptions,
+            expiredSubscriptions,
+            revenue: totalRevenue
+        };
     } catch (error) {
         logger('error', 'Error while fetching admin dashboard data', { error });
         throw CustomError(error.code, error.message);
@@ -67,11 +73,13 @@ const listOwners = async (query = {}) => {
     try {
         const options = {
             where: { role: USER_ROLES[0] },
-            include: [{
-                model: db.hotelUserRelation,
-                attributes: ['hotelId'],
-                include: [{ model: db.hotel, attributes: ['id', 'name'] }]
-            }],
+            include: [
+                {
+                    model: db.hotelUserRelation,
+                    attributes: ['hotelId'],
+                    include: [{ model: db.hotel, attributes: ['id', 'name'] }]
+                }
+            ],
             order: [['createdAt', 'DESC']]
         };
 
@@ -97,10 +105,12 @@ const getOwnerDetail = async (ownerId) => {
     try {
         const owner = await db.users.findOne({
             where: { id: ownerId, role: USER_ROLES[0] },
-            include: [{
-                model: db.hotelUserRelation,
-                include: [{ model: db.hotel, attributes: ['id', 'name', 'address'] }]
-            }]
+            include: [
+                {
+                    model: db.hotelUserRelation,
+                    include: [{ model: db.hotel, attributes: ['id', 'name', 'address'] }]
+                }
+            ]
         });
 
         if (!owner) throw CustomError(STATUS_CODE.NOT_FOUND, 'Owner not found');
@@ -155,10 +165,7 @@ const extendSubscription = async (ownerId, days) => {
         const currentEnd = owner.subscriptionEndAt || owner.trialEndAt || new Date();
         const newEnd = moment(currentEnd).add(days, 'days').toDate();
 
-        await userRepo.update(
-            { where: { id: ownerId } },
-            { subscriptionEndAt: newEnd, subscriptionStatus: 'ACTIVE' }
-        );
+        await userRepo.update({ where: { id: ownerId } }, { subscriptionEndAt: newEnd, subscriptionStatus: 'ACTIVE' });
 
         logger('info', `Subscription extended for owner ${ownerId} by ${days} days`);
         return {
@@ -199,7 +206,10 @@ const revenue = async () => {
         const weekStart = moment().startOf('week');
         const monthStart = moment().startOf('month');
         const yearStart = moment().startOf('year');
-        let today = 0; let week = 0; let month = 0; let year = 0;
+        let today = 0;
+        let week = 0;
+        let month = 0;
+        let year = 0;
 
         purchases.forEach((p) => {
             const amount = p.amountPaid;
@@ -228,13 +238,21 @@ const getSettings = async (adminId) => {
         let maskedSecret = '';
         if (settings.razorpay.keySecret) {
             const len = settings.razorpay.keySecret.length;
-            maskedSecret = len > 8
-                ? settings.razorpay.keySecret.slice(0, 4) + '*'.repeat(len - 8) + settings.razorpay.keySecret.slice(-4)
-                : '••••••••';
+            maskedSecret =
+                len > 8
+                    ? settings.razorpay.keySecret.slice(0, 4) +
+                      '*'.repeat(len - 8) +
+                      settings.razorpay.keySecret.slice(-4)
+                    : '••••••••';
         }
 
         return {
-            profile: { firstName: admin.firstName, lastName: admin.lastName, email: admin.email, phoneNumber: admin.phoneNumber },
+            profile: {
+                firstName: admin.firstName,
+                lastName: admin.lastName,
+                email: admin.email,
+                phoneNumber: admin.phoneNumber
+            },
             razorpay: { keyId: settings.razorpay.keyId, keySecret: maskedSecret },
             plans: (await subscriptionPlanRepo.findAll()).reduce((result, plan) => {
                 result[plan.code] = {

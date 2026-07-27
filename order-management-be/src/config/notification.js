@@ -23,8 +23,10 @@ const vapidKeysMatch = (publicKey, privateKey) => {
         const ecdh = crypto.createECDH('prime256v1');
         ecdh.setPrivateKey(decodeKey(privateKey));
         const derivedPublicKey = ecdh.getPublicKey(undefined, 'uncompressed');
-        return expectedPublicKey.length === derivedPublicKey.length &&
-            crypto.timingSafeEqual(expectedPublicKey, derivedPublicKey);
+        return (
+            expectedPublicKey.length === derivedPublicKey.length &&
+            crypto.timingSafeEqual(expectedPublicKey, derivedPublicKey)
+        );
     } catch (_error) {
         return false;
     }
@@ -35,8 +37,8 @@ export const initNotifications = async () => {
     const publicKeyValid = decodeKey(env.notification.publicKey).length === 65;
     const privateKeyValid = decodeKey(env.notification.privateKey).length === 32;
     const emailValid = Boolean(String(env.notification.email || '').trim());
-    const keyPairValid = publicKeyValid && privateKeyValid &&
-        vapidKeysMatch(env.notification.publicKey, env.notification.privateKey);
+    const keyPairValid =
+        publicKeyValid && privateKeyValid && vapidKeysMatch(env.notification.publicKey, env.notification.privateKey);
 
     if (!keyPairValid || !emailValid) {
         const message =
@@ -52,11 +54,7 @@ export const initNotifications = async () => {
         ? env.notification.email
         : `mailto:${env.notification.email}`;
 
-    webpush.setVapidDetails(
-        subject,
-        env.notification.publicKey,
-        env.notification.privateKey
-    );
+    webpush.setVapidDetails(subject, env.notification.publicKey, env.notification.privateKey);
 
     webPushReady = true;
     logger('info', 'Web Push notification connection successful');

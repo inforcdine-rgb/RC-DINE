@@ -25,7 +25,12 @@ export const resolveHotelAccess = async (user, requestedHotelId) => {
         if (!assignedHotelId) {
             throw CustomError(STATUS_CODE.FORBIDDEN, 'Manager is not assigned to any cafe');
         }
-        if (requestedHotelId && requestedHotelId !== 'undefined' && requestedHotelId !== 'null' && requestedHotelId !== assignedHotelId) {
+        if (
+            requestedHotelId &&
+            requestedHotelId !== 'undefined' &&
+            requestedHotelId !== 'null' &&
+            requestedHotelId !== assignedHotelId
+        ) {
             throw CustomError(STATUS_CODE.FORBIDDEN, 'Access denied to this cafe');
         }
         return assignedHotelId;
@@ -47,15 +52,9 @@ export const resolveHotelAccess = async (user, requestedHotelId) => {
     return requestedHotelId;
 };
 
-export const resolveHotelAccessByCategoryId = async (
-    user,
-    categoryId
-) => {
+export const resolveHotelAccessByCategoryId = async (user, categoryId) => {
     if (!categoryId) {
-        throw CustomError(
-            STATUS_CODE.BAD_REQUEST,
-            'Category id is required'
-        );
+        throw CustomError(STATUS_CODE.BAD_REQUEST, 'Category id is required');
     }
 
     const categoryResult = await categoryRepo.find({
@@ -65,34 +64,20 @@ export const resolveHotelAccessByCategoryId = async (
         attributes: ['hotelId']
     });
 
-    const category =
-        categoryResult?.rows?.[0] ||
-        categoryResult;
+    const category = categoryResult?.rows?.[0] || categoryResult;
 
     if (!category?.hotelId) {
-        throw CustomError(
-            STATUS_CODE.NOT_FOUND,
-            'Category not found'
-        );
+        throw CustomError(STATUS_CODE.NOT_FOUND, 'Category not found');
     }
 
-    await resolveHotelAccess(
-        user,
-        category.hotelId
-    );
+    await resolveHotelAccess(user, category.hotelId);
 
     return category.hotelId;
 };
 
-export const resolveHotelAccessByCategoryIds = async (
-    user,
-    categoryIds
-) => {
+export const resolveHotelAccessByCategoryIds = async (user, categoryIds) => {
     if (!categoryIds?.length) {
-        throw CustomError(
-            STATUS_CODE.BAD_REQUEST,
-            'Category id is required'
-        );
+        throw CustomError(STATUS_CODE.BAD_REQUEST, 'Category id is required');
     }
 
     const { rows } = await categoryRepo.find({
@@ -105,25 +90,13 @@ export const resolveHotelAccessByCategoryIds = async (
     });
 
     if (!rows?.length) {
-        throw CustomError(
-            STATUS_CODE.NOT_FOUND,
-            'Category not found'
-        );
+        throw CustomError(STATUS_CODE.NOT_FOUND, 'Category not found');
     }
 
-    const hotelIds = [
-        ...new Set(
-            rows
-                .map((row) => row.hotelId)
-                .filter(Boolean)
-        )
-    ];
+    const hotelIds = [...new Set(rows.map((row) => row.hotelId).filter(Boolean))];
 
     if (hotelIds.length !== 1) {
-        throw CustomError(
-            STATUS_CODE.BAD_REQUEST,
-            'Categories must belong to the same cafe'
-        );
+        throw CustomError(STATUS_CODE.BAD_REQUEST, 'Categories must belong to the same cafe');
     }
 
     const hotelId = hotelIds[0];

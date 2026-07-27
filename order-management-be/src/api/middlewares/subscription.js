@@ -22,11 +22,13 @@ const checkSubscriptionAccess = async (req, res, next) => {
             if (managerHotelId) {
                 const relation = await hotelUserRelationRepo.find({
                     where: { hotelId: managerHotelId },
-                    include: [{
-                        model: db.users,
-                        where: { role: 'OWNER' },
-                        attributes: ['id']
-                    }],
+                    include: [
+                        {
+                            model: db.users,
+                            where: { role: 'OWNER' },
+                            attributes: ['id']
+                        }
+                    ],
                     limit: 1
                 });
                 if (relation?.rows?.[0]) {
@@ -72,10 +74,13 @@ const checkSubscriptionAccess = async (req, res, next) => {
             const trialStart = now.toISOString();
             const trialEnd = moment(now).add(3, 'days').toISOString();
             try {
-                await userRepo.update({ where: { id: owner.id } }, {
-                    trialStartAt: trialStart,
-                    trialEndAt: trialEnd
-                });
+                await userRepo.update(
+                    { where: { id: owner.id } },
+                    {
+                        trialStartAt: trialStart,
+                        trialEndAt: trialEnd
+                    }
+                );
                 owner.trialStartAt = trialStart;
                 owner.trialEndAt = trialEnd;
                 logger('info', `Initialized 2-minute trial for existing user ${owner.email}`);

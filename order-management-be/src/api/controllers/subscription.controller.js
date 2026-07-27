@@ -105,7 +105,8 @@ const verifyPayment = async (req, res) => {
 
         const generatedBuffer = Buffer.from(generated, 'utf8');
         const signatureBuffer = Buffer.from(String(razorpaySignature), 'utf8');
-        const validSignature = generatedBuffer.length === signatureBuffer.length &&
+        const validSignature =
+            generatedBuffer.length === signatureBuffer.length &&
             crypto.timingSafeEqual(generatedBuffer, signatureBuffer);
 
         if (!validSignature) {
@@ -121,24 +122,23 @@ const verifyPayment = async (req, res) => {
 
         if (user.subscriptionEndAt && moment(user.subscriptionEndAt).isAfter(now)) {
             start = user.subscriptionStartAt || now.toISOString();
-            end = moment(user.subscriptionEndAt)
-                .add(Number(selectedPlan.days), 'days')
-                .toISOString();
+            end = moment(user.subscriptionEndAt).add(Number(selectedPlan.days), 'days').toISOString();
         } else {
             start = now.toISOString();
-            end = moment(now)
-                .add(Number(selectedPlan.days), 'days')
-                .toISOString();
+            end = moment(now).add(Number(selectedPlan.days), 'days').toISOString();
         }
 
-        await userRepo.update({ where: { id: req.user.id } }, {
-            subscriptionStartAt: start,
-            subscriptionEndAt: end,
-            subscriptionStatus: 'ACTIVE',
-            subscriptionPlan: selectedPlan.code,
-            razorpayOrderId,
-            razorpayPaymentId
-        });
+        await userRepo.update(
+            { where: { id: req.user.id } },
+            {
+                subscriptionStartAt: start,
+                subscriptionEndAt: end,
+                subscriptionStatus: 'ACTIVE',
+                subscriptionPlan: selectedPlan.code,
+                razorpayOrderId,
+                razorpayPaymentId
+            }
+        );
 
         return res.status(STATUS_CODE.OK).send({
             success: true,
@@ -175,11 +175,13 @@ const status = async (req, res) => {
             if (managerHotelId) {
                 const ownerRelation = await hotelUserRelationRepo.find({
                     where: { hotelId: managerHotelId },
-                    include: [{
-                        model: db.users,
-                        where: { role: 'OWNER' },
-                        attributes: ['id']
-                    }],
+                    include: [
+                        {
+                            model: db.users,
+                            where: { role: 'OWNER' },
+                            attributes: ['id']
+                        }
+                    ],
                     limit: 1
                 });
 
@@ -209,10 +211,13 @@ const status = async (req, res) => {
             trialStart = now.toISOString();
             trialEnd = moment(now).add(2, 'days').toISOString();
             try {
-                await userRepo.update({ where: { id: subscriptionUserId } }, {
-                    trialStartAt: trialStart,
-                    trialEndAt: trialEnd
-                });
+                await userRepo.update(
+                    { where: { id: subscriptionUserId } },
+                    {
+                        trialStartAt: trialStart,
+                        trialEndAt: trialEnd
+                    }
+                );
             } catch (error) {
                 logger('error', 'Error initializing trial fields', { error });
             }
@@ -232,9 +237,7 @@ const status = async (req, res) => {
 
         if (user.subscriptionEndAt) {
             const subscriptionEndMoment = moment(user.subscriptionEndAt);
-            subscriptionRemaining = subscriptionEndMoment.isAfter(now)
-                ? subscriptionEndMoment.diff(now, 'seconds')
-                : 0;
+            subscriptionRemaining = subscriptionEndMoment.isAfter(now) ? subscriptionEndMoment.diff(now, 'seconds') : 0;
             if (subscriptionEndMoment.isBefore(now) && statusValue === 'ACTIVE') {
                 statusValue = 'EXPIRED';
                 await userRepo.update({ where: { id: subscriptionUserId } }, { subscriptionStatus: 'EXPIRED' });

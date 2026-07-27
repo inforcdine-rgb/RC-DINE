@@ -103,7 +103,16 @@ const getTableDetails = async (id) => {
                 },
                 {
                     model: db.hotel,
-                    attributes: ['id', 'name', 'logo', 'gstEnabled', 'gstPercent', 'discountEnabled', 'discountType', 'discountValue'],
+                    attributes: [
+                        'id',
+                        'name',
+                        'logo',
+                        'gstEnabled',
+                        'gstPercent',
+                        'discountEnabled',
+                        'discountType',
+                        'discountValue'
+                    ],
                     include: [
                         {
                             model: db.hotelUserRelation,
@@ -270,7 +279,16 @@ const getMenuDetails = async (hotelId) => {
     try {
         const options = {
             where: { id: hotelId },
-            attributes: ['id', 'name', 'logo', 'gstEnabled', 'gstPercent', 'discountEnabled', 'discountType', 'discountValue'],
+            attributes: [
+                'id',
+                'name',
+                'logo',
+                'gstEnabled',
+                'gstPercent',
+                'discountEnabled',
+                'discountType',
+                'discountValue'
+            ],
             include: [
                 {
                     model: db.categories,
@@ -279,14 +297,34 @@ const getMenuDetails = async (hotelId) => {
                         {
                             model: db.menu,
                             where: { status: MENU_STATUS[0], isCombo: false },
-                            attributes: ['id', 'name', 'description', 'price', 'image', 'foodType', 'isCartSuggestion', 'isCombo', 'comboItems']
+                            attributes: [
+                                'id',
+                                'name',
+                                'description',
+                                'price',
+                                'image',
+                                'foodType',
+                                'isCartSuggestion',
+                                'isCombo',
+                                'comboItems'
+                            ]
                         }
                     ]
                 },
                 {
                     model: db.menu,
                     where: { status: MENU_STATUS[0], isCombo: true },
-                    attributes: ['id', 'name', 'description', 'price', 'image', 'foodType', 'isCartSuggestion', 'isCombo', 'comboItems'],
+                    attributes: [
+                        'id',
+                        'name',
+                        'description',
+                        'price',
+                        'image',
+                        'foodType',
+                        'isCartSuggestion',
+                        'isCombo',
+                        'comboItems'
+                    ],
                     required: false
                 }
             ],
@@ -345,9 +383,9 @@ const placeOrder = async (payload) => {
         }
         let activeSession = table.activeSessionId
             ? await db.diningSessions.findOne({
-                where: { id: table.activeSessionId, tableId, hotelId, status: 'ACTIVE' },
-                attributes: ['id']
-            })
+                  where: { id: table.activeSessionId, tableId, hotelId, status: 'ACTIVE' },
+                  attributes: ['id']
+              })
             : null;
 
         // QR checkout must never take a successful payment and then reject the food order
@@ -488,25 +526,27 @@ const placeOrder = async (payload) => {
                     error: error.message
                 });
             });
-        notificationService.sendNotification(
-            undefined,
-            {
-                title: 'Order placed',
-                message: `Your order ${orderNumber} has been placed successfully.`,
-                path: `/cart/${orderId}`,
-                type: 'ORDER_PLACED',
-                category: 'ORDERS',
-                entityId: orderId,
-                dedupeKey: `customer-order-placed:${orderId}`,
-                meta: {
-                    action: NOTIFICATION_ACTIONS.ORDER_PLACEMENT,
-                    orderId,
-                    orderNumber,
-                    status: ORDER_STATUS[0]
-                }
-            },
-            customerId
-        ).catch((error) => logger('error', 'Customer order notification failed', { error: error.message }));
+        notificationService
+            .sendNotification(
+                undefined,
+                {
+                    title: 'Order placed',
+                    message: `Your order ${orderNumber} has been placed successfully.`,
+                    path: `/cart/${orderId}`,
+                    type: 'ORDER_PLACED',
+                    category: 'ORDERS',
+                    entityId: orderId,
+                    dedupeKey: `customer-order-placed:${orderId}`,
+                    meta: {
+                        action: NOTIFICATION_ACTIONS.ORDER_PLACEMENT,
+                        orderId,
+                        orderNumber,
+                        status: ORDER_STATUS[0]
+                    }
+                },
+                customerId
+            )
+            .catch((error) => logger('error', 'Customer order notification failed', { error: error.message }));
         const orderedItems = menus
             .filter((menu) => Number(menu.quantity) > 0)
             .map((menu) => ({
@@ -524,7 +564,11 @@ const placeOrder = async (payload) => {
             invoiceTableData.push([item.name, String(item.quantity), String(item.totalPrice)]);
         });
         if (discountAmount > 0) {
-            invoiceTableData.push(['', discountType === 'PERCENT' ? `Discount (${discountValue}%)` : 'Discount', `-${discountAmount}`]);
+            invoiceTableData.push([
+                '',
+                discountType === 'PERCENT' ? `Discount (${discountValue}%)` : 'Discount',
+                `-${discountAmount}`
+            ]);
         }
         invoiceTableData.push(['', 'Tip', String(tipAmount)]);
         invoiceTableData.push(['', 'SGST', String(sgst)]);
@@ -618,7 +662,9 @@ const createWalkInOrder = async (payload) => {
         const taxableAmount = Math.max(0, subtotal - discountAmount);
         const { sgst, cgst, totalPrice } = calculateBill(taxableAmount, 0, gstPercent, gstEnabled);
 
-        const paymentMethod = String(payload.paymentMethod || 'CASH').trim().toUpperCase();
+        const paymentMethod = String(payload.paymentMethod || 'CASH')
+            .trim()
+            .toUpperCase();
         if (!['CASH', 'UPI', 'CARD'].includes(paymentMethod)) {
             throw CustomError(STATUS_CODE.BAD_REQUEST, 'Invalid payment method');
         }
@@ -629,9 +675,7 @@ const createWalkInOrder = async (payload) => {
         }
 
         const normalizedTotalPrice = Number(Number(totalPrice || 0).toFixed(2));
-        const normalizedCashReceived = paymentMethod === 'CASH'
-            ? Number(submittedCash.toFixed(2))
-            : 0;
+        const normalizedCashReceived = paymentMethod === 'CASH' ? Number(submittedCash.toFixed(2)) : 0;
         const totalInPaise = Math.round(normalizedTotalPrice * 100);
         const receivedInPaise = Math.round(normalizedCashReceived * 100);
 
@@ -643,9 +687,7 @@ const createWalkInOrder = async (payload) => {
         }
 
         const cashReceived = normalizedCashReceived;
-        const changeAmount = paymentMethod === 'CASH'
-            ? Number(((receivedInPaise - totalInPaise) / 100).toFixed(2))
-            : 0;
+        const changeAmount = paymentMethod === 'CASH' ? Number(((receivedInPaise - totalInPaise) / 100).toFixed(2)) : 0;
         const paymentStatus = 'PAID';
 
         const customer = await customerRepo.save({
@@ -811,7 +853,20 @@ const active = async (tableId) => {
                                     [Op.notIn]: [ORDER_STATUS[2], ORDER_STATUS[3]]
                                 }
                             },
-                            attributes: ['id', 'price', 'quantity', 'status', 'edited', 'customerId', 'hotelId', 'razorpayPaymentId', 'description', 'updatedAt', 'orderNumber', 'menu'],
+                            attributes: [
+                                'id',
+                                'price',
+                                'quantity',
+                                'status',
+                                'edited',
+                                'customerId',
+                                'hotelId',
+                                'razorpayPaymentId',
+                                'description',
+                                'updatedAt',
+                                'orderNumber',
+                                'menu'
+                            ],
                             include: [
                                 {
                                     model: db.menu
@@ -841,7 +896,9 @@ const active = async (tableId) => {
                 if (!cur.orderTime || new Date(next.updatedAt) > new Date(cur.orderTime)) {
                     cur.orderTime = next.updatedAt;
                     cur.orderId = `${next.customerId}-${next.edited}`;
-                    cur.orderNumber = next.orderNumber || `ORD-${next?.createdAt ? new Date(next.createdAt).getTime().toString().slice(-8) : 'XXXX'}`;
+                    cur.orderNumber =
+                        next.orderNumber ||
+                        `ORD-${next?.createdAt ? new Date(next.createdAt).getTime().toString().slice(-8) : 'XXXX'}`;
                 }
 
                 if (next.status === ORDER_STATUS[0]) {
@@ -973,7 +1030,23 @@ const completed = async (hotelId, filters) => {
                         },
                         quantity: { [Op.gt]: 0 }
                     },
-                    attributes: ['id', 'price', 'quantity', 'razorpayPaymentId', 'status', 'edited', 'orderNumber', 'createdAt', 'updatedAt', 'description', 'subtotalAmount', 'cgstAmount', 'sgstAmount', 'tipAmount', 'finalAmount'],
+                    attributes: [
+                        'id',
+                        'price',
+                        'quantity',
+                        'razorpayPaymentId',
+                        'status',
+                        'edited',
+                        'orderNumber',
+                        'createdAt',
+                        'updatedAt',
+                        'description',
+                        'subtotalAmount',
+                        'cgstAmount',
+                        'sgstAmount',
+                        'tipAmount',
+                        'finalAmount'
+                    ],
                     include: [
                         {
                             model: db.menu,
@@ -1125,16 +1198,22 @@ const completed = async (hotelId, filters) => {
                 obj.totalPrice = storedFinalAmount !== null ? storedFinalAmount : totalPrice;
                 obj.paymentId = versionOrders[0]?.razorpayPaymentId || '-';
                 obj.orderId = `${item.id}-${version}`;
-                obj.orderNumber = versionOrders[0]?.orderNumber || `ORD-${versionOrders[0]?.createdAt ? new Date(versionOrders[0].createdAt).getTime().toString().slice(-8) : 'XXXX'}`;
+                obj.orderNumber =
+                    versionOrders[0]?.orderNumber ||
+                    `ORD-${versionOrders[0]?.createdAt ? new Date(versionOrders[0].createdAt).getTime().toString().slice(-8) : 'XXXX'}`;
                 obj.orderTime = versionOrders[0]?.createdAt || null;
                 obj.orderStatus = versionOrders[0]?.status || ORDER_STATUS[3];
                 obj.tableNumber = item.table?.tableNumber || versionOrders[0]?.table?.tableNumber || '-';
 
-                const sourceText = versionOrders.map((order) => order.description || '').join(' ').toLowerCase();
+                const sourceText = versionOrders
+                    .map((order) => order.description || '')
+                    .join(' ')
+                    .toLowerCase();
                 const customerEmail = String(item.email || '').toLowerCase();
-                obj.source = sourceText.includes('walk-in') || customerEmail.startsWith('walkin-')
-                    ? 'MANAGER_POS'
-                    : 'CUSTOMER_QR';
+                obj.source =
+                    sourceText.includes('walk-in') || customerEmail.startsWith('walkin-')
+                        ? 'MANAGER_POS'
+                        : 'CUSTOMER_QR';
 
                 obj.data = { ...obj };
                 data.push(obj);
@@ -1173,7 +1252,30 @@ const getOrderDetails = async (hotelId, orderId) => {
                         },
                         quantity: { [Op.gt]: 0 }
                     },
-                    attributes: ['id', 'price', 'quantity', 'razorpayPaymentId', 'status', 'edited', 'orderNumber', 'createdAt', 'updatedAt', 'menuId', 'subtotalAmount', 'cgstAmount', 'sgstAmount', 'tipAmount', 'finalAmount', 'discountType', 'discountValue', 'discountAmount', 'paymentMethod', 'cashReceived', 'changeAmount', 'paymentStatus'],
+                    attributes: [
+                        'id',
+                        'price',
+                        'quantity',
+                        'razorpayPaymentId',
+                        'status',
+                        'edited',
+                        'orderNumber',
+                        'createdAt',
+                        'updatedAt',
+                        'menuId',
+                        'subtotalAmount',
+                        'cgstAmount',
+                        'sgstAmount',
+                        'tipAmount',
+                        'finalAmount',
+                        'discountType',
+                        'discountValue',
+                        'discountAmount',
+                        'paymentMethod',
+                        'cashReceived',
+                        'changeAmount',
+                        'paymentStatus'
+                    ],
                     include: [
                         {
                             model: db.menu,
@@ -1242,12 +1344,11 @@ const getOrderDetails = async (hotelId, orderId) => {
             attributes: ['gstEnabled', 'gstPercent']
         });
 
-        const { sgst, cgst, totalPrice: totalAmount } = calculateBill(
-            totalPrice,
-            tipAmount,
-            hotelSettings?.gstPercent || 0,
-            hotelSettings?.gstEnabled
-        );
+        const {
+            sgst,
+            cgst,
+            totalPrice: totalAmount
+        } = calculateBill(totalPrice, tipAmount, hotelSettings?.gstPercent || 0, hotelSettings?.gstEnabled);
 
         const hotel = await hotelRepo.find({
             where: { id: hotelId },
@@ -1256,7 +1357,9 @@ const getOrderDetails = async (hotelId, orderId) => {
 
         const result = {
             orderId,
-            orderNumber: orders[0]?.orderNumber || `ORD-${orders[0]?.createdAt ? new Date(orders[0].createdAt).getTime().toString().slice(-8) : 'XXXX'}`,
+            orderNumber:
+                orders[0]?.orderNumber ||
+                `ORD-${orders[0]?.createdAt ? new Date(orders[0].createdAt).getTime().toString().slice(-8) : 'XXXX'}`,
             customerId: customer.id,
             customerName: customer.name,
             srNo: editedVersion,
@@ -1286,10 +1389,11 @@ const getOrderDetails = async (hotelId, orderId) => {
             hotelId,
             hotelName: hotel?.name || '',
 
-            source:
-                String(customer.email || '').toLowerCase().startsWith('walkin-')
-                    ? 'MANAGER_POS'
-                    : 'CUSTOMER_QR'
+            source: String(customer.email || '')
+                .toLowerCase()
+                .startsWith('walkin-')
+                ? 'MANAGER_POS'
+                : 'CUSTOMER_QR'
         };
 
         logger('debug', `Order details fetched`, result);
@@ -1420,7 +1524,9 @@ const generateInvoice = async (hotelId, orderId) => {
             hotelId: hotel?.id || hotelId,
             invoiceNumber: orderDetails.orderNumber,
             orderId: orderDetails.orderId,
-            date: orderDetails.orderDateTime ? new Date(orderDetails.orderDateTime).toLocaleString() : new Date().toLocaleString(),
+            date: orderDetails.orderDateTime
+                ? new Date(orderDetails.orderDateTime).toLocaleString()
+                : new Date().toLocaleString(),
             tableNumber: String(orderDetails.tableNumber),
             tableData: invoiceTableData,
             totalAmount: String(orderDetails.totalAmount),
@@ -1464,7 +1570,9 @@ const getOrderStatus = async (orderId) => {
 
         return {
             orderId,
-            orderNumber: order.orderNumber || `ORD-${order?.createdAt ? new Date(order.createdAt).getTime().toString().slice(-8) : 'XXXX'}`,
+            orderNumber:
+                order.orderNumber ||
+                `ORD-${order?.createdAt ? new Date(order.createdAt).getTime().toString().slice(-8) : 'XXXX'}`,
             status: order.status
         };
     } catch (error) {
@@ -1524,10 +1632,7 @@ const resetTable = async (tableId, hotelId) => {
         );
 
         if (!updatedCount) {
-            throw CustomError(
-                STATUS_CODE.NOT_FOUND,
-                'Table not found or access denied'
-            );
+            throw CustomError(STATUS_CODE.NOT_FOUND, 'Table not found or access denied');
         }
 
         return {
@@ -1539,10 +1644,7 @@ const resetTable = async (tableId, hotelId) => {
             error
         });
 
-        throw CustomError(
-            error.code || STATUS_CODE.INTERNAL_SERVER_ERROR,
-            error.message
-        );
+        throw CustomError(error.code || STATUS_CODE.INTERNAL_SERVER_ERROR, error.message);
     }
 };
 
@@ -1569,14 +1671,8 @@ const cancelOrder = async (orderId, authenticatedCustomerId) => {
             throw CustomError(STATUS_CODE.NOT_FOUND, 'Order not found');
         }
 
-        if (
-            !authenticatedCustomerId ||
-            String(order.customerId) !== String(authenticatedCustomerId)
-        ) {
-            throw CustomError(
-                STATUS_CODE.FORBIDDEN,
-                'You cannot cancel another customer’s order'
-            );
+        if (!authenticatedCustomerId || String(order.customerId) !== String(authenticatedCustomerId)) {
+            throw CustomError(STATUS_CODE.FORBIDDEN, 'You cannot cancel another customer’s order');
         }
 
         // Check if order is in PENDING status only

@@ -1,3 +1,4 @@
+/* eslint-disable camelcase */
 import CryptoJS from 'crypto-js';
 import moment from 'moment';
 import Razorpay from 'razorpay';
@@ -42,7 +43,9 @@ const create = async (payload, ownerId) => {
             name: payload.name,
             address: payload.address,
             careNumber: payload.careNumber,
-            gstNumber: String(payload.gstNumber || '').trim().toUpperCase(),
+            gstNumber: String(payload.gstNumber || '')
+                .trim()
+                .toUpperCase(),
             openTime: payload.openTime,
             closeTime: payload.closeTime
         }; // Saving the hotel data
@@ -645,7 +648,10 @@ const updatePaymentSettings = async (hotelId, payload) => {
             razorpayMerchantEmail: razorpayMerchantEmail || null,
             razorpayMerchantPhone: razorpayMerchantPhone || null,
             paymentEnabled: !!paymentEnabled,
-            gstNumber: String(gstNumber || '').trim().toUpperCase() || null,
+            gstNumber:
+                String(gstNumber || '')
+                    .trim()
+                    .toUpperCase() || null,
             gstEnabled: !!gstEnabled,
             gstPercent: gstEnabled ? Number(gstPercent || 0) : 0,
             discountEnabled: !!discountEnabled,
@@ -670,10 +676,7 @@ const updatePaymentSettings = async (hotelId, payload) => {
 
 const testPaymentSettings = async (hotelId, payload) => {
     try {
-        const {
-            razorpayKeyId,
-            razorpayKeySecret
-        } = payload;
+        const { razorpayKeyId, razorpayKeySecret } = payload;
 
         const finalKeyId = razorpayKeyId;
         let finalKeySecret = razorpayKeySecret;
@@ -710,7 +713,15 @@ const getPrinterSettings = async (hotelId) => {
     try {
         const hotel = await hotelRepo.find({
             where: { id: hotelId },
-            attributes: ['printerWidth', 'address', 'careNumber', 'gstNumber', 'logo', 'receiptShowLogo', 'receiptFooterMessage']
+            attributes: [
+                'printerWidth',
+                'address',
+                'careNumber',
+                'gstNumber',
+                'logo',
+                'receiptShowLogo',
+                'receiptFooterMessage'
+            ]
         });
         if (!hotel) throw CustomError(STATUS_CODE.NOT_FOUND, 'Hotel not found');
         return {
@@ -732,18 +743,28 @@ const updatePrinterSettings = async (hotelId, payload) => {
     try {
         const hotel = await hotelRepo.find({ where: { id: hotelId } });
         if (!hotel) throw CustomError(STATUS_CODE.NOT_FOUND, 'Hotel not found');
-        const cleanPhone = String(payload.phone || '').replace(/[^0-9+\- ]/g, '').trim().slice(0, 20);
+        const cleanPhone = String(payload.phone || '')
+            .replace(/[^0-9+\- ]/g, '')
+            .trim()
+            .slice(0, 20);
         const digits = cleanPhone.replace(/\D/g, '');
         if (cleanPhone && (digits.length < 10 || digits.length > 15)) {
             throw CustomError(STATUS_CODE.BAD_REQUEST, 'Valid phone number is required');
         }
         const settings = {
             printerWidth: ['58', '80', 'auto'].includes(payload.printerWidth) ? payload.printerWidth : '58',
-            address: String(payload.address || '').trim().slice(0, 250),
+            address: String(payload.address || '')
+                .trim()
+                .slice(0, 250),
             careNumber: cleanPhone,
-            gstNumber: String(payload.gstNumber || '').trim().toUpperCase() || null,
+            gstNumber:
+                String(payload.gstNumber || '')
+                    .trim()
+                    .toUpperCase() || null,
             receiptShowLogo: payload.showLogo !== false,
-            receiptFooterMessage: String(payload.footerMessage || 'Thank you! Visit again.').trim().slice(0, 120)
+            receiptFooterMessage: String(payload.footerMessage || 'Thank you! Visit again.')
+                .trim()
+                .slice(0, 120)
         };
         await hotelRepo.update({ id: hotelId }, settings);
         return {

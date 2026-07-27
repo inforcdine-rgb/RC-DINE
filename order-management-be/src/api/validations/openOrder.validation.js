@@ -10,7 +10,10 @@ export const validateCreateOpenOrder = (payload) =>
         tableId: Joi.string().trim().allow(null, ''),
         orderType: Joi.string().valid('DINE_IN', 'WALK_IN', 'PARCEL', 'TAKE_AWAY').required(),
         customerName: Joi.string().trim().max(120).allow('', null),
-        customerPhone: Joi.string().trim().pattern(/^[0-9+()\- ]{7,20}$/).allow('', null),
+        customerPhone: Joi.string()
+            .trim()
+            .pattern(/^[0-9+()\- ]{7,20}$/)
+            .allow('', null),
         notes: Joi.string().trim().max(500).allow('', null),
         idempotencyKey
     }).validate(payload, options);

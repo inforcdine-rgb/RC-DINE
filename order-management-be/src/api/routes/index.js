@@ -1,8 +1,8 @@
 import { Router } from 'express';
 import adminRoutes from './admin.routes.js';
 import checkoutRoutes from './checkout.routes.js';
-import customerAuthRoutes from './customerAuth.routes.js';
 import contactEnquiryRoutes from './contactEnquiry.routes.js';
+import customerAuthRoutes from './customerAuth.routes.js';
 import customerPaymentRoutes from './customerPayment.routes.js';
 import diningSessionRoutes from './diningSession.routes.js';
 import hotelRoutes from './hotel.routes.js';

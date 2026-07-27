@@ -21,8 +21,11 @@ export const subscribeValidation = (payload) => {
     }
 };
 
-export const unsubscribeValidation = (payload) => Joi.object({
-    endpoint: Joi.string().uri().max(2048),
-    deviceId: Joi.string().max(255),
-    allDevices: Joi.boolean().valid(true)
-}).or('endpoint', 'deviceId', 'allDevices').validate(payload);
+export const unsubscribeValidation = (payload) =>
+    Joi.object({
+        endpoint: Joi.string().uri().max(2048),
+        deviceId: Joi.string().max(255),
+        allDevices: Joi.boolean().valid(true)
+    })
+        .or('endpoint', 'deviceId', 'allDevices')
+        .validate(payload);

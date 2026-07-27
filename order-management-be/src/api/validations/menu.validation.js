@@ -73,7 +73,18 @@ export const updateValidation = (payload) => {
             isTodayDeal: Joi.boolean().optional(),
             isCombo: Joi.boolean().optional(),
             comboItems: Joi.array().items(Joi.string()).min(2).max(5).optional().allow(null)
-        }).or('name', 'description', 'price', 'foodType', 'status', 'image', 'isCartSuggestion', 'isTodayDeal', 'isCombo', 'comboItems');
+        }).or(
+            'name',
+            'description',
+            'price',
+            'foodType',
+            'status',
+            'image',
+            'isCartSuggestion',
+            'isTodayDeal',
+            'isCombo',
+            'comboItems'
+        );
         return schema.validate(payload);
     } catch (error) {
         logger('error', `Error in updating menu ${error}`);

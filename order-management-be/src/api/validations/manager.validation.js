@@ -18,9 +18,12 @@ export const updateManagerValidation = (payload) => {
 export const updateManagerCredentialsValidation = (payload) => {
     try {
         const schema = Joi.object({
-            email: Joi.string().email().messages({
-                'string.email': 'Please enter a valid email'
-            }).optional(),
+            email: Joi.string()
+                .email()
+                .messages({
+                    'string.email': 'Please enter a valid email'
+                })
+                .optional(),
             password: Joi.string()
                 .pattern(/^(?=.*[a-zA-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/)
                 .optional()
@@ -48,20 +51,14 @@ export const createManagerValidation = (payload) => {
                     'string.empty': 'Phone number is required',
                     'string.pattern.base': 'Phone number must be 10 digits'
                 }),
-            email: Joi.string()
-                .email()
-                .required()
-                .messages({
-                    'string.empty': 'Email is required',
-                    'string.email': 'Please enter a valid email'
-                }),
-            password: Joi.string()
-                .min(8)
-                .required()
-                .messages({
-                    'string.empty': 'Password is required',
-                    'string.min': 'Password must be at least 8 characters'
-                }),
+            email: Joi.string().email().required().messages({
+                'string.empty': 'Email is required',
+                'string.email': 'Please enter a valid email'
+            }),
+            password: Joi.string().min(8).required().messages({
+                'string.empty': 'Password is required',
+                'string.min': 'Password must be at least 8 characters'
+            }),
             hotelId: Joi.string().required().messages({
                 'string.empty': 'Hotel/Cafe is required'
             })

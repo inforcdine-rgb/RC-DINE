@@ -1,13 +1,7 @@
 import { DataTypes } from 'sequelize';
 import { TABLES } from '../utils/common.js';
 
-export const TABLE_STATUS = [
-    'OPEN',
-    'BOOKED',
-    'AVAILABLE',
-    'OCCUPIED',
-    'PAYMENT_PENDING'
-];
+export const TABLE_STATUS = ['OPEN', 'BOOKED', 'AVAILABLE', 'OCCUPIED', 'PAYMENT_PENDING'];
 
 const tableModel = (sequelize) =>
     sequelize.define(

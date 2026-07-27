@@ -15,7 +15,7 @@ import {
     setSubscriptionOrder,
     verifySubscriptionPaymentRequest
 } from '../../store/slice';
-import { clearSelectedPlan, getSelectedPlan, setPageSeo } from '../../utils/seo';
+import { clearSelectedPlan, getSelectedPlan, saveSelectedPlan, setPageSeo } from '../../utils/seo';
 
 const fallbackFeatures = [
     'Online menu ordering',
@@ -97,7 +97,7 @@ function Subscription() {
     const handleBuy = (planKey) => {
         setError('');
         setSelectedPlan(planKey);
-        localStorage.setItem('rcdine:selected-plan', planKey);
+        saveSelectedPlan(planKey);
         setShowModal(true);
     };
 

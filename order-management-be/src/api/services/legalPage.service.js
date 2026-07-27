@@ -43,7 +43,9 @@ Access may be suspended or terminated for misuse, fraud, security risk or materi
 };
 
 const normalizeSlug = (slug) => {
-    const value = String(slug || '').trim().toLowerCase();
+    const value = String(slug || '')
+        .trim()
+        .toLowerCase();
 
     if (!Object.prototype.hasOwnProperty.call(DEFAULT_PAGES, value)) {
         const error = new Error('Legal page not found');
@@ -104,11 +106,17 @@ const update = async (slug, payload = {}) => {
     }
 
     if (payload.metaTitle !== undefined) {
-        changes.metaTitle = String(payload.metaTitle || '').trim().slice(0, 180) || null;
+        changes.metaTitle =
+            String(payload.metaTitle || '')
+                .trim()
+                .slice(0, 180) || null;
     }
 
     if (payload.metaDescription !== undefined) {
-        changes.metaDescription = String(payload.metaDescription || '').trim().slice(0, 320) || null;
+        changes.metaDescription =
+            String(payload.metaDescription || '')
+                .trim()
+                .slice(0, 320) || null;
     }
 
     if (payload.isPublished !== undefined) {

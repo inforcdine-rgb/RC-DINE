@@ -10,7 +10,10 @@ import { CustomError, STATUS_CODE } from '../utils/common.js';
 
 const ACTIVE_SESSION_STATUSES = ['ACTIVE', 'PAYMENT_PENDING'];
 const JOIN_REQUEST_TTL_MS = 60 * 1000;
-const normalizeMobile = (value) => String(value || '').replace(/\D/g, '').slice(-10);
+const normalizeMobile = (value) =>
+    String(value || '')
+        .replace(/\D/g, '')
+        .slice(-10);
 
 const generateSessionCode = async () => {
     for (let attempt = 0; attempt < 8; attempt += 1) {
@@ -42,10 +45,7 @@ const expireRequestIfNeeded = async (request, options = {}) => {
     if (!request || request.status !== 'PENDING') return request;
     if (new Date(request.expiresAt).getTime() > Date.now()) return request;
 
-    await request.update(
-        { status: 'EXPIRED', respondedAt: new Date() },
-        options
-    );
+    await request.update({ status: 'EXPIRED', respondedAt: new Date() }, options);
     return request;
 };
 
@@ -79,7 +79,10 @@ const getCustomerSessionDetails = async ({ tableId, mobileNumber }) => {
     const members = await db.sessionMembers.findAll({
         where: { sessionId: session.id, status: 'ACTIVE' },
         attributes: ['id', 'mobileNumber', 'role', 'status', 'joinedAt'],
-        order: [['role', 'DESC'], ['joinedAt', 'ASC']]
+        order: [
+            ['role', 'DESC'],
+            ['joinedAt', 'ASC']
+        ]
     });
 
     return {
@@ -140,10 +143,7 @@ const end = async ({ tableId, mobileNumber }) =>
             { status: 'CANCELLED', respondedAt: now },
             { where: { sessionId: session.id, status: 'PENDING' }, transaction }
         );
-        await table.update(
-            { status: 'AVAILABLE', activeSessionId: null, qrEnabled: true },
-            { transaction }
-        );
+        await table.update({ status: 'AVAILABLE', activeSessionId: null, qrEnabled: true }, { transaction });
         return { message: 'RC Session ended', sessionId: session.id, tableId: session.tableId };
     });
 
@@ -164,9 +164,7 @@ const getAvailability = async (tableId) => {
         },
         canOrder: Boolean(table.qrEnabled) && table.status !== 'PAYMENT_PENDING',
         hasActiveSession: Boolean(session),
-        session: session
-            ? { id: session.id, status: session.status, startedAt: session.startedAt }
-            : null
+        session: session ? { id: session.id, status: session.status, startedAt: session.startedAt } : null
     };
 };
 
@@ -210,10 +208,7 @@ const start = async ({ tableId, customerId, mobileNumber }) => {
             { transaction }
         );
 
-        await table.update(
-            { status: 'OCCUPIED', activeSessionId: session.id, qrEnabled: true },
-            { transaction }
-        );
+        await table.update({ status: 'OCCUPIED', activeSessionId: session.id, qrEnabled: true }, { transaction });
 
         return {
             message: 'RC Session started successfully',
@@ -495,19 +490,20 @@ const getJoinRequestStatus = async ({ requestId, mobileNumber }) => {
             request.status === 'ACCEPTED'
                 ? 'RC Session joined successfully'
                 : request.status === 'REJECTED'
-                    ? 'Host rejected your request'
-                    : request.status === 'EXPIRED'
-                        ? 'Join request expired. Please try again'
-                        : 'Waiting for host approval',
-        session: request.status === 'ACCEPTED' && session
-            ? {
-                id: session.id,
-                sessionCode: session.sessionCode,
-                status: session.status,
-                tableId: session.tableId,
-                hotelId: session.hotelId
-            }
-            : null
+                  ? 'Host rejected your request'
+                  : request.status === 'EXPIRED'
+                    ? 'Join request expired. Please try again'
+                    : 'Waiting for host approval',
+        session:
+            request.status === 'ACCEPTED' && session
+                ? {
+                      id: session.id,
+                      sessionCode: session.sessionCode,
+                      status: session.status,
+                      tableId: session.tableId,
+                      hotelId: session.hotelId
+                  }
+                : null
     };
 };
 

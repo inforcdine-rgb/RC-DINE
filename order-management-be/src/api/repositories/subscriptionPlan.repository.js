@@ -49,7 +49,9 @@ const DEFAULT_PLANS = [
 ];
 
 const normalizeCode = (code) => {
-    const value = String(code || '').trim().toUpperCase();
+    const value = String(code || '')
+        .trim()
+        .toUpperCase();
     return value === 'SIX_MONTHS' ? 'HALF_YEARLY' : value;
 };
 
@@ -65,12 +67,18 @@ const ensureDefaults = async () => {
 const findActive = async () =>
     db.subscriptionPlans.findAll({
         where: { isActive: true },
-        order: [['displayOrder', 'ASC'], ['id', 'ASC']]
+        order: [
+            ['displayOrder', 'ASC'],
+            ['id', 'ASC']
+        ]
     });
 
 const findAll = async () =>
     db.subscriptionPlans.findAll({
-        order: [['displayOrder', 'ASC'], ['id', 'ASC']]
+        order: [
+            ['displayOrder', 'ASC'],
+            ['id', 'ASC']
+        ]
     });
 
 const findByCode = async (code, activeOnly = true) => {

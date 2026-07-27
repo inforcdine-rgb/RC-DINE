@@ -9,7 +9,13 @@ const router = Router();
 router.post('/', authenticate, checkSubscriptionAccess, ownerAuthentication, managerController.create);
 router.get('/', authenticate, checkSubscriptionAccess, ownerAuthentication, managerController.fetch);
 router.put('/:id', authenticate, checkSubscriptionAccess, ownerAuthentication, managerController.update);
-router.patch('/:id/credentials', authenticate, checkSubscriptionAccess, ownerAuthentication, managerController.updateCredentials);
+router.patch(
+    '/:id/credentials',
+    authenticate,
+    checkSubscriptionAccess,
+    ownerAuthentication,
+    managerController.updateCredentials
+);
 router.delete('/:id', authenticate, checkSubscriptionAccess, ownerAuthentication, managerController.remove);
 router.get('/assignable', authenticate, checkSubscriptionAccess, ownerAuthentication, managerController.getAssignable);
 

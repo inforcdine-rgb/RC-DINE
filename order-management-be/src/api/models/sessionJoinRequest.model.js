@@ -3,13 +3,7 @@ import { v4 as uuidv4 } from 'uuid';
 
 import { TABLES } from '../utils/common.js';
 
-export const SESSION_JOIN_REQUEST_STATUS = [
-    'PENDING',
-    'ACCEPTED',
-    'REJECTED',
-    'EXPIRED',
-    'CANCELLED'
-];
+export const SESSION_JOIN_REQUEST_STATUS = ['PENDING', 'ACCEPTED', 'REJECTED', 'EXPIRED', 'CANCELLED'];
 
 const sessionJoinRequestModel = (sequelize) =>
     sequelize.define(

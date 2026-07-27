@@ -3,12 +3,13 @@ import notificationService from '../services/notification.service.js';
 import { STATUS_CODE } from '../utils/common.js';
 import { subscribeValidation, unsubscribeValidation } from '../validations/notification.validation.js';
 
-const getIdentity = (req) => req.user?.id
-    ? { userId: req.user.id }
-    : {
-        customerId: req.customer?.customerId || null,
-        phoneNumber: req.customer?.phoneNumber || null
-    };
+const getIdentity = (req) =>
+    req.user?.id
+        ? { userId: req.user.id }
+        : {
+              customerId: req.customer?.customerId || null,
+              phoneNumber: req.customer?.phoneNumber || null
+          };
 
 const handleError = (res, error, context) => {
     logger('error', context, { message: error.message, code: error.code });

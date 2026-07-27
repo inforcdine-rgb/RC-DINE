@@ -320,7 +320,10 @@ const reset = async (payload) => {
         // Verification checks are removed.
 
         if (isDev) {
-            await userRepo.update({ where: { id: user.id } }, { password: await encryptPassword(newPassword), status: USER_STATUS[0] });
+            await userRepo.update(
+                { where: { id: user.id } },
+                { password: await encryptPassword(newPassword), status: USER_STATUS[0] }
+            );
             return { message: 'Password reset successfully' };
         }
 

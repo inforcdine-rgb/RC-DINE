@@ -12,9 +12,6 @@ router
     .post(tableController.create)
     .delete(tableController.remove);
 
-router
-    .route('/:hotelId/:tableId')
-    .all(authenticate, checkSubscriptionAccess)
-    .put(tableController.updateName);
+router.route('/:hotelId/:tableId').all(authenticate, checkSubscriptionAccess).put(tableController.updateName);
 
 export default router;

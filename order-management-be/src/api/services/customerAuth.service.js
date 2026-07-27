@@ -22,10 +22,7 @@ const normalizeIndianMobile = (value) => {
 };
 
 const hashOtp = (phoneNumber, otp) =>
-    crypto
-        .createHmac('sha256', env.customerAuth.otpHashSecret)
-        .update(`${phoneNumber}:${otp}`)
-        .digest('hex');
+    crypto.createHmac('sha256', env.customerAuth.otpHashSecret).update(`${phoneNumber}:${otp}`).digest('hex');
 
 const generateOtp = () => String(crypto.randomInt(100000, 1000000));
 
@@ -40,10 +37,7 @@ const safeJson = async (response) => {
 
 const sendFast2SmsQuickMessage = async ({ phoneNumber, otp }) => {
     if (process.env.OTP_DEV_MODE === 'true') {
-        logger(
-            'info',
-            `🔐 DEV OTP for ${phoneNumber}: ${otp}`
-        );
+        logger('info', `🔐 DEV OTP for ${phoneNumber}: ${otp}`);
 
         return {
             return: true,
@@ -76,9 +70,7 @@ const sendFast2SmsQuickMessage = async ({ phoneNumber, otp }) => {
         const payload = await safeJson(response);
 
         if (!response.ok || payload.return === false) {
-            const providerMessage = Array.isArray(payload.message)
-                ? payload.message.join(', ')
-                : payload.message;
+            const providerMessage = Array.isArray(payload.message) ? payload.message.join(', ') : payload.message;
             logger('error', `Fast2SMS rejected OTP request: ${providerMessage || response.status}`);
             throw CustomError(
                 STATUS_CODE.BAD_GATEWAY,
@@ -192,11 +184,9 @@ const verifyOtp = async (rawPhoneNumber, rawOtp) => {
     const verifiedAt = new Date();
     await record.update({ verifiedAt, attempts: Number(record.attempts) });
 
-    const token = jwt.sign(
-        { type: 'CUSTOMER', phoneNumber },
-        env.customerAuth.jwtSecret,
-        { expiresIn: env.customerAuth.tokenExpiry }
-    );
+    const token = jwt.sign({ type: 'CUSTOMER', phoneNumber }, env.customerAuth.jwtSecret, {
+        expiresIn: env.customerAuth.tokenExpiry
+    });
 
     return { token, phoneNumber, verifiedAt };
 };
