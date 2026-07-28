@@ -90,7 +90,7 @@ const createOrder = async (req, res) => {
         // Razorpay order creation with this hotel's own credentials
         const amount = Math.round(totalPrice * 100); // in paise
         logger(
-            'in} catch (errorfo',
+            'info',
             `Creating Razorpay payment order for hotel ${hotelId}, customer ${customerId}, amount ${amount} paise`
         );
         const rzpOrder = await hotelRazorpay.orders.create({
