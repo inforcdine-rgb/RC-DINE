@@ -33,6 +33,8 @@ import { hashPassword } from '../api/utils/password.js';
 import env from './env.js';
 import logger from './logger.js';
 
+const isProduction = env.app.env === 'production';
+
 const config = {
     host: env.db.host,
     dialect: env.db.dialect,
@@ -40,6 +42,16 @@ const config = {
     port: env.db.port,
     username: env.db.user,
     password: env.db.password,
+
+    dialectOptions: isProduction
+        ? {
+            ssl: {
+                require: true,
+                rejectUnauthorized: false
+            }
+        }
+        : {},
+
     pool: {
         max: 3,
         min: 0,
