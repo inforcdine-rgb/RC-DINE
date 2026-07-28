@@ -68,6 +68,14 @@ const createOrder = async (req, res) => {
         const razorpayKeyId = hotel?.razorpayKeyId;
         const razorpayKeySecret = hotelService.decrypt(hotel?.razorpayKeySecret);
 
+        logger('info', 'Razorpay credentials loaded', {
+
+            keyId: razorpayKeyId,
+
+            secretLength: razorpayKeySecret ? razorpayKeySecret.length : 0
+
+        });
+
         if (!razorpayKeyId || !razorpayKeySecret) {
             throw CustomError(STATUS_CODE.BAD_REQUEST, 'Hotel Razorpay settings are incomplete');
         }
@@ -80,7 +88,7 @@ const createOrder = async (req, res) => {
         // Razorpay order creation with this hotel's own credentials
         const amount = Math.round(totalPrice * 100); // in paise
         logger(
-            'info',
+            'in} catch (errorfo',
             `Creating Razorpay payment order for hotel ${hotelId}, customer ${customerId}, amount ${amount} paise`
         );
         const rzpOrder = await hotelRazorpay.orders.create({
@@ -445,9 +453,14 @@ const verifyPayment = async (req, res) => {
 
         return res.status(STATUS_CODE.CREATED).json(result);
     } catch (error) {
-        logger('error', 'Error verifying customer payment', {
-            error: error.message,
-            code: error.code
+        logger('error', 'Error creating customer payment order', {
+            message: error?.message,
+            stack: error?.stack,
+            code: error?.code,
+            statusCode: error?.statusCode,
+            response: error?.response?.data,
+            description: error?.description,
+            errorObject: error
         });
 
         return res.status(error.code || STATUS_CODE.INTERNAL_SERVER_ERROR || 500).json({
