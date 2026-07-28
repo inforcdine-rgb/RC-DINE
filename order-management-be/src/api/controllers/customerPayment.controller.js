@@ -93,11 +93,30 @@ const createOrder = async (req, res) => {
             'info',
             `Creating Razorpay payment order for hotel ${hotelId}, customer ${customerId}, amount ${amount} paise`
         );
-        const rzpOrder = await hotelRazorpay.orders.create({
-            amount,
-            currency: 'INR',
-            receipt: `cust_pay_${Date.now()}`
-        });
+        let rzpOrder;
+
+        try {
+            rzpOrder = await hotelRazorpay.orders.create({
+                amount,
+                currency: 'INR',
+                receipt: `cust_pay_${Date.now()}`
+            });
+
+            logger('info', 'Razorpay order created', {
+                orderId: rzpOrder.id
+            });
+        } catch (err) {
+            logger('error', 'Razorpay create order failed', {
+                message: err?.message,
+                statusCode: err?.statusCode,
+                error: err?.error,
+                description: err?.description,
+                response: err?.response?.data,
+                stack: err?.stack
+            });
+
+            throw err;
+        }
 
         logger('info', 'Razorpay order created successfully', {
             orderId: rzpOrder.id
