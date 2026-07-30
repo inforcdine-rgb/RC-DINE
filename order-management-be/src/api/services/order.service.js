@@ -372,69 +372,45 @@ const placeOrder = async (payload) => {
         const tipAmount = Math.max(0, Number(payload.tipAmount) || 0);
 
         const table = await tableRepo.findOne({
-            where: { id: tableId, hotelId },
-            attributes: ['id', 'status']
+            where: {
+                id: tableId,
+                hotelId
+            },
+            attributes: ['id', 'status', 'customerId']
         });
-        if (!table?.qrEnabled) {
-            throw CustomError(STATUS_CODE.FORBIDDEN, 'This table QR is currently unavailable');
+
+        if (!table) {
+            throw CustomError(STATUS_CODE.NOT_FOUND, 'Table not found');
         }
+
         if (table.status === 'PAYMENT_PENDING') {
-            throw CustomError(STATUS_CODE.CONFLICT, 'Payment is pending for this table');
+            throw CustomError(
+                STATUS_CODE.CONFLICT,
+                'Payment is pending for this table'
+            );
         }
-        let activeSession = table.activeSessionId
-            ? await db.diningSessions.findOne({
-                where: { id: table.activeSessionId, tableId, hotelId, status: 'ACTIVE' },
-                attributes: ['id']
-            })
-            : null;
 
-        // QR checkout must never take a successful payment and then reject the food order
-        // only because an RC Session was not created beforehand. Create a safe session
-        // automatically for the scanned table/customer and continue the paid order flow.
-        if (!activeSession) {
-            const customer = await customerRepo.findOne({
-                where: { id: customerId },
-                attributes: ['id', 'phoneNumber']
-            });
-            if (!customer) {
-                throw CustomError(STATUS_CODE.NOT_FOUND, 'Customer not found');
-            }
+        const customer = await customerRepo.findOne({
+            where: {
+                id: customerId,
+                hotelId
+            },
+            attributes: ['id']
+        });
 
-            let sessionCode;
-            do {
-                sessionCode = `RC${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
-            } while (await db.diningSessions.findOne({ where: { sessionCode }, attributes: ['id'] }));
-
-            activeSession = await db.diningSessions.create({
-                sessionCode,
-                hotelId,
-                tableId,
-                ownerCustomerId: customerId,
-                ownerMobile: String(customer.phoneNumber || '9999999999'),
-                status: 'ACTIVE'
-            });
-
-            await db.sessionMembers.create({
-                sessionId: activeSession.id,
-                customerId,
-                mobileNumber: String(customer.phoneNumber || '9999999999'),
-                role: 'OWNER',
-                status: 'ACTIVE'
-            });
-
-            await table.update({
-                status: 'OCCUPIED',
-                activeSessionId: activeSession.id,
-                qrEnabled: true
-            });
-
-            logger('info', 'RC Session auto-created during QR order placement', {
-                hotelId,
-                tableId,
-                customerId,
-                sessionId: activeSession.id
-            });
+        if (!customer) {
+            throw CustomError(
+                STATUS_CODE.NOT_FOUND,
+                'Customer not found'
+            );
         }
+
+        logger('info', 'QR order validation successful', {
+            hotelId,
+            tableId,
+            customerId,
+            tableStatus: table.status
+        });
 
         // Find all orders for this customer to determine the next edited version
         const previousOrders = {
@@ -477,7 +453,7 @@ const placeOrder = async (payload) => {
                 customerId,
                 hotelId,
                 tableId,
-                sessionId: activeSession.id,
+                sessionId: null,
                 price: price * quantity,
                 quantity,
                 status: ORDER_STATUS[0],
@@ -498,6 +474,18 @@ const placeOrder = async (payload) => {
         });
 
         const res = await orderRepo.save(data);
+        await tableRepo.update(
+            {
+                where: {
+                    id: tableId,
+                    hotelId
+                }
+            },
+            {
+                status: TABLE_STATUS[1],
+                customerId
+            }
+        );
         logger('info', 'order operations successful', res);
         const userIds = await getNotificationUserIds(hotelId);
 
