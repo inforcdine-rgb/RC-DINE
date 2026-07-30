@@ -1,4 +1,5 @@
 # Enforce LF line endings for frontend
+.gitattributes text eol=lf
 * text=auto
 *.js text eol=lf
 *.jsx text eol=lf
@@ -8,3 +9,10 @@
 *.json text eol=lf
 public/* text eol=lf
 src/* text eol=lf
+
+# Binary assets must never pass through line-ending conversion.
+*.ico -text
+*.jpeg -text
+*.jpg -text
+*.mp3 -text
+*.png -text

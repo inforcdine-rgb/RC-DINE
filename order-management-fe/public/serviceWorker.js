@@ -1,4 +1,16 @@
-/* global clients */
+/* global caches, clients */
+
+const CACHE_VERSION = 'v1';
+const APP_SHELL_CACHE = `rcdine-shell-${CACHE_VERSION}`;
+const RUNTIME_CACHE = `rcdine-runtime-${CACHE_VERSION}`;
+const APP_SHELL = [
+    '/offline.html',
+    '/manifest.json',
+    '/icons/icon-192.png',
+    '/icons/icon-512.png',
+    '/icons/icon-maskable-192.png',
+    '/icons/icon-maskable-512.png'
+];
 
 const normalizePayload = (raw = {}) => {
     const data = raw.data || raw;
@@ -27,8 +39,78 @@ const logPushEvent = (event, details = {}) => {
     console.info('[RCDINE_PUSH_SW]', { event, ...details, timestamp: new Date().toISOString() });
 };
 
-self.addEventListener('install', () => self.skipWaiting());
-self.addEventListener('activate', (event) => event.waitUntil(clients.claim()));
+self.addEventListener('install', (event) => {
+    event.waitUntil(caches.open(APP_SHELL_CACHE).then((cache) => cache.addAll(APP_SHELL)));
+    self.skipWaiting();
+});
+
+self.addEventListener('activate', (event) => {
+    event.waitUntil(
+        Promise.all([
+            caches
+                .keys()
+                .then((keys) =>
+                    Promise.all(
+                        keys
+                            .filter(
+                                (key) => key.startsWith('rcdine-') && ![APP_SHELL_CACHE, RUNTIME_CACHE].includes(key)
+                            )
+                            .map((key) => caches.delete(key))
+                    )
+                ),
+            clients.claim()
+        ])
+    );
+});
+
+const cacheSuccessfulResponse = async (request, response) => {
+    if (!response || !response.ok || response.type === 'opaque') return response;
+    const cache = await caches.open(RUNTIME_CACHE);
+    await cache.put(request, response.clone());
+    return response;
+};
+
+const handleNavigationRequest = async (request) => {
+    try {
+        const response = await fetch(request);
+        if (response.ok) {
+            const cache = await caches.open(RUNTIME_CACHE);
+            await cache.put('/', response.clone());
+        }
+        return response;
+    } catch (_error) {
+        return (await caches.match(request)) || (await caches.match('/')) || caches.match('/offline.html');
+    }
+};
+
+const handleStaticAssetRequest = async (request) => {
+    const cachedResponse = await caches.match(request);
+    const networkResponse = fetch(request)
+        .then((response) => cacheSuccessfulResponse(request, response))
+        .catch(() => null);
+    return cachedResponse || networkResponse;
+};
+
+self.addEventListener('fetch', (event) => {
+    const { request } = event;
+    if (request.method !== 'GET') return;
+
+    const requestUrl = new URL(request.url);
+    if (requestUrl.origin !== self.location.origin) return;
+
+    if (request.mode === 'navigate') {
+        event.respondWith(handleNavigationRequest(request));
+        return;
+    }
+
+    const cacheablePublicAsset =
+        ['/static/', '/icons/', '/sounds/'].some((path) => requestUrl.pathname.startsWith(path)) ||
+        ['/fevicon.ico', '/R-C%20DINE.png', '/R-C DINE.png'].includes(requestUrl.pathname);
+
+    if (cacheablePublicAsset && ['style', 'script', 'image', 'font', 'audio'].includes(request.destination)) {
+        event.respondWith(handleStaticAssetRequest(request));
+    }
+});
 
 self.addEventListener('push', (event) => {
     let raw = {};

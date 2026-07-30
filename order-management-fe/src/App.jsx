@@ -8,9 +8,14 @@ import './assets/styles/auth.css';
 import './assets/styles/button.css';
 import Loader from './components/Loader';
 import ManagerLiveOrders from './components/ManagerLiveOrders';
+import PwaInstallPrompt from './components/PwaInstallPrompt';
 import RefreshExperience from './components/RefreshExperience';
 import Routes from './routes';
-import { initializeNotificationLifecycle, initializeWebPush } from './services/notification.service';
+import {
+    initializeNotificationLifecycle,
+    initializeWebPush,
+    registerServiceWorker
+} from './services/notification.service';
 
 function App() {
     const { isLoading } = useSelector((state) => state.app);
@@ -18,6 +23,9 @@ function App() {
 
     useEffect(() => {
         initializeNotificationLifecycle();
+        registerServiceWorker().catch((error) => {
+            console.warn('PWA service worker registration failed:', error?.message || error);
+        });
     }, []);
 
     useEffect(() => {
@@ -38,6 +46,7 @@ function App() {
         <>
             {isLoading && <Loader />}
             <ManagerLiveOrders />
+            <PwaInstallPrompt />
             <RefreshExperience>
                 <Routes />
             </RefreshExperience>
