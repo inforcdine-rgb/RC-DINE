@@ -26,7 +26,6 @@ import {
     setOrderDetails,
     setUpdatedOrderDetails,
     setViewOrderDetails,
-    customerPaymentConfirmationRequest,
     customerPrePaymentRequest,
     verifyCustomerPaymentRequest
 } from '../../store/slice';
@@ -299,33 +298,28 @@ function OrderPlacement() {
     };
 
     const handlePaymentSuccess = (payload) => {
-        if (orderPaymentData?.isPrePayment) {
-            /* eslint-disable camelcase */
-            dispatch(
-                verifyCustomerPaymentRequest({
-                    razorpay_order_id: payload.orderId,
-                    razorpay_payment_id: payload.paymentId,
-                    razorpay_signature: payload.razorpaySignature,
-                    hotelId: tableDetails.hotel.id,
-                    customerId: tableDetails.customer.id,
-                    tableId: tableDetails.id,
-                    tableNumber: tableDetails.tableNumber,
-                    menus: orderPaymentData.menus,
-                    tipAmount: orderPaymentData.tipAmount || 0,
-                    navigate
-                })
+        const menus = Array.isArray(orderPaymentData?.menus)
+            ? orderPaymentData.menus
+            : Object.values(orderDetails || {}).filter(
+                (item) => item && item.menuId && Number(item.quantity) > 0
             );
-            /* eslint-enable camelcase */
-        } else {
-            dispatch(
-                customerPaymentConfirmationRequest({
-                    manual: false,
-                    customerId: tableDetails.customer.id,
-                    orderId: payload.orderId,
-                    paymentId: payload.paymentId
-                })
-            );
-        }
+
+        /* eslint-disable camelcase */
+        dispatch(
+            verifyCustomerPaymentRequest({
+                razorpay_order_id: payload.orderId,
+                razorpay_payment_id: payload.paymentId,
+                razorpay_signature: payload.razorpaySignature,
+                hotelId: tableDetails.hotel.id,
+                customerId: tableDetails.customer.id,
+                tableId: tableDetails.id,
+                tableNumber: tableDetails.tableNumber,
+                menus,
+                tipAmount: Number(orderPaymentData?.tipAmount || tipAmount || 0),
+                navigate
+            })
+        );
+    /* eslint-enable camelcase */
     };
 
     const downloadInvoicePdf = () => {

@@ -373,7 +373,7 @@ const placeOrder = async (payload) => {
 
         const table = await tableRepo.findOne({
             where: { id: tableId, hotelId },
-            attributes: ['id', 'qrEnabled', 'status', 'activeSessionId']
+            attributes: ['id', 'status']
         });
         if (!table?.qrEnabled) {
             throw CustomError(STATUS_CODE.FORBIDDEN, 'This table QR is currently unavailable');

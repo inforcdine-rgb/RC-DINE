@@ -68,15 +68,22 @@ function Razorpay({
     };
 
     const onSuccess = (response) => {
+        console.log('Razorpay payment success response:', response);
+
         const razorpayPaymentId = response.razorpay_payment_id;
         const razorpaySignature = response.razorpay_signature;
+        const razorpayOrderId = response.razorpay_order_id || orderId;
 
         if (action === ACTIONS.SUBSCRIPTION) {
             dispatch(subscriptionSuccessRequest({ subscriptionId, paymentId: razorpayPaymentId, navigate }));
         }
 
         if (action === ACTIONS.ORDERS) {
-            handleSuccess({ orderId, paymentId: razorpayPaymentId, razorpaySignature });
+            handleSuccess({
+                orderId: razorpayOrderId,
+                paymentId: razorpayPaymentId,
+                razorpaySignature
+            });
         }
     };
 
