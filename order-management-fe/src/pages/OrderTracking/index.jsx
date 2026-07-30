@@ -221,7 +221,11 @@ function OrderTracking() {
             setLiveStatus('CANCELLED');
         } catch (error) {
             console.error('Failed to cancel order', error);
-            toast.error(error.response?.data?.message || 'Failed to cancel order');
+            toast.error(
+                error.response?.data?.message ||
+                error.message ||
+                'Failed to cancel order'
+            );
         } finally {
             setCancellingOrder(false);
         }

@@ -114,8 +114,6 @@ function OrderPlacement() {
 
     useEffect(() => {
         if (token) {
-            localStorage.setItem('rcCustomerToken', token);
-            localStorage.setItem('customerToken', token);
             const decryptedText = CryptoJS.AES.decrypt(token, env.cryptoSecret).toString(CryptoJS.enc.Utf8);
 
             if (decryptedText && decryptedText.trim().length > 0) {

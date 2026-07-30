@@ -5,21 +5,42 @@ import { STATUS_CODE } from '../utils/common.js';
 
 const customerSessionAuth = (req, res, next) => {
     const authorization = req.headers.authorization || '';
-    const token = authorization.startsWith('Bearer ') ? authorization.slice(7).trim() : '';
+    const token = authorization.startsWith('Bearer ')
+        ? authorization.slice(7).trim()
+        : '';
 
     if (!token) {
-        return res.status(STATUS_CODE.UNAUTHORIZED).json({ message: 'Customer login required' });
+        return res.status(STATUS_CODE.UNAUTHORIZED).json({
+            message: 'Customer login required'
+        });
     }
 
     try {
-        const payload = jwt.verify(token, env.customerAuth.jwtSecret);
-        if (payload.type !== 'CUSTOMER' || !payload.phoneNumber) {
-            return res.status(STATUS_CODE.UNAUTHORIZED).json({ message: 'Invalid customer token' });
+        const payload = jwt.verify(
+            token,
+            env.customerAuth.jwtSecret
+        );
+
+        const allowedTypes = [
+            'CUSTOMER',
+            'CUSTOMER_PUSH'
+        ];
+
+        if (
+            !allowedTypes.includes(payload.type) ||
+            !payload.customerId
+        ) {
+            return res.status(STATUS_CODE.UNAUTHORIZED).json({
+                message: 'Invalid customer token'
+            });
         }
+
         req.customer = payload;
         return next();
-    } catch (_error) {
-        return res.status(STATUS_CODE.UNAUTHORIZED).json({ message: 'Customer session expired or invalid' });
+    } catch (error) {
+        return res.status(STATUS_CODE.UNAUTHORIZED).json({
+            message: 'Customer session expired or invalid'
+        });
     }
 };
 

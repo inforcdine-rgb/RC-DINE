@@ -141,10 +141,37 @@ export const resetTable = async (tableId) => {
 
 export const cancelOrder = async (orderId) => {
     try {
-        return await api(method.PATCH, `/order/${orderId}/cancel`);
+        const customerJwt =
+            localStorage.getItem('rcCustomerPushToken');
+
+        if (!customerJwt) {
+            throw new Error(
+                'Customer session token not found. QR dobara scan karein.'
+            );
+        }
+
+        const response = await instance.patch(
+            `/order/${orderId}/cancel`,
+            {},
+            {
+                headers: {
+                    Authorization: `Bearer ${customerJwt}`
+                }
+            }
+        );
+
+        return response.data;
     } catch (error) {
-        console.error(`Error while cancelling order ${error}`);
-        throw error;
+        console.error(
+            'Error while cancelling order:',
+            error.response?.data || error
+        );
+
+        throw new Error(
+            error.response?.data?.message ||
+            error.message ||
+            'Order cancel nahi hua'
+        );
     }
 };
 
