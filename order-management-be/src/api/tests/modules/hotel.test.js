@@ -1,8 +1,12 @@
 import { db } from '../../../config/database.js';
 import hotelController from '../../controllers/hotel.controller.js';
+import customerRepo from '../../repositories/customer.repository.js';
 import hotelRepo from '../../repositories/hotel.repository.js';
 import hotelUserRelationRepo from '../../repositories/hotelUserRelation.repository.js';
+import menuRepo from '../../repositories/menu.repository.js';
 import orderRepo from '../../repositories/order.repository.js';
+import tableRepo from '../../repositories/table.repository.js';
+import hotelService from '../../services/hotel.service.js';
 import { create, list, remove, update } from '../utils/dummy.hotel.js';
 
 jest.mock('../../../config/database.js', () => ({
@@ -15,7 +19,16 @@ jest.mock('../../../config/database.js', () => ({
             destroy: jest.fn().mockResolvedValue(1)
         },
         orders: {
+            bulkCreate: jest.fn(),
             destroy: jest.fn().mockResolvedValue(1)
+        },
+        openOrders: {
+            sum: jest.fn().mockResolvedValue(0),
+            count: jest.fn().mockResolvedValue(0),
+            findAll: jest.fn().mockResolvedValue([])
+        },
+        openOrderItems: {
+            findAll: jest.fn().mockResolvedValue([])
         },
         categories: {
             destroy: jest.fn().mockResolvedValue(1)
@@ -47,9 +60,17 @@ let res = {};
 const hotelRepoSaveSpy = jest.spyOn(hotelRepo, 'save');
 const hotelRepoUpdateSpy = jest.spyOn(hotelRepo, 'update');
 const hotelRepoRemoveSpy = jest.spyOn(hotelRepo, 'remove');
+const hotelRepoFindSpy = jest.spyOn(hotelRepo, 'find');
 const hotelUserRelationRepoSaveSpy = jest.spyOn(hotelUserRelationRepo, 'save');
 const hotelUserRelationRepoFindSpy = jest.spyOn(hotelUserRelationRepo, 'find');
 const hotelUserRelationRepoRemoveSpy = jest.spyOn(hotelUserRelationRepo, 'remove');
+const hotelUserRelationRepoCountSpy = jest.spyOn(hotelUserRelationRepo, 'count');
+const customerRepoFindSpy = jest.spyOn(customerRepo, 'find');
+const tableRepoCountSpy = jest.spyOn(tableRepo, 'count');
+const menuRepoCountSpy = jest.spyOn(menuRepo, 'count');
+const orderRepoFindSpy = jest.spyOn(orderRepo, 'find');
+const orderRepoSumSpy = jest.spyOn(orderRepo, 'sum');
+const orderRepoSumRevenueSpy = jest.spyOn(orderRepo, 'sumRevenueByCustomerIds');
 const orderRepoFindSalesByHotelIdsSpy = jest.spyOn(orderRepo, 'findSalesByHotelIds');
 
 // Describing the test suite for hotel registration functionality
@@ -60,6 +81,11 @@ describe('testing hotel cases', () => {
         db.customer.destroy.mockResolvedValue(1);
         db.tables.destroy.mockResolvedValue(1);
         db.orders.destroy.mockResolvedValue(1);
+        db.openOrders.sum.mockResolvedValue(0);
+        db.openOrders.count.mockResolvedValue(0);
+        db.openOrders.findAll.mockResolvedValue([]);
+        db.openOrderItems.findAll.mockResolvedValue([]);
+        customerRepoFindSpy.mockImplementation((options) => db.customer.findAndCountAll(options));
         db.categories.destroy.mockResolvedValue(1);
         db.menu.destroy.mockResolvedValue(1);
         db.hotelUserRelation.destroy.mockResolvedValue(1);
@@ -174,6 +200,7 @@ describe('testing hotel cases', () => {
         const { success } = list;
         hotelUserRelationRepoFindSpy.mockResolvedValue(success.db.data);
         orderRepoFindSalesByHotelIdsSpy.mockResolvedValue([]);
+        db.openOrders.findAll.mockResolvedValue([{ hotelId: 'test-hotel-id-1', sales: '75.50' }]);
 
         await hotelController.list(success.req, res);
 
@@ -184,11 +211,79 @@ describe('testing hotel cases', () => {
             expect.objectContaining({
                 count: success.res.data.count,
                 rows: [
-                    expect.objectContaining({ id: 'test-hotel-id-1', sales: 0 }),
+                    expect.objectContaining({ id: 'test-hotel-id-1', sales: 75.5 }),
                     expect.objectContaining({ id: 'test-hotel-id-2', sales: 0 })
                 ]
             })
         );
+    });
+
+    test('dashboard combines QR and completed Manager POS analytics without duplicate records', async () => {
+        const today = new Date().toISOString().slice(0, 10);
+        const month = today.slice(0, 7);
+
+        hotelRepoFindSpy.mockResolvedValue({ id: 'hotel-1', name: 'Cafe' });
+        customerRepoFindSpy.mockResolvedValue({ rows: [{ id: 'customer-1' }], count: 1 });
+        hotelUserRelationRepoCountSpy.mockResolvedValue(2);
+        tableRepoCountSpy.mockResolvedValue(3);
+        menuRepoCountSpy.mockResolvedValue(4);
+        orderRepoSumSpy.mockResolvedValue(100);
+        orderRepoFindSpy
+            .mockResolvedValueOnce({ rows: [{ date: today, totalPrice: '100' }] })
+            .mockResolvedValueOnce({ rows: [{ month, totalPrice: '100' }] })
+            .mockResolvedValueOnce({
+                rows: [{ menuName: 'Burger', totalQuantity: '2', totalPrice: '100' }]
+            });
+
+        db.openOrders.sum.mockResolvedValue(50);
+        db.openOrders.count.mockResolvedValue(1);
+        db.openOrders.findAll
+            .mockResolvedValueOnce([{ period: today, totalPrice: '50' }])
+            .mockResolvedValueOnce([{ period: month, totalPrice: '50' }]);
+        db.openOrderItems.findAll.mockResolvedValue([
+            { menuName: 'Burger', totalQuantity: '1', totalPrice: '40' },
+            { menuName: 'Fries', totalQuantity: '2', totalPrice: '20' }
+        ]);
+
+        const result = await hotelService.dashboard('hotel-1', { role: 'OWNER' });
+
+        expect(result.cardsData.sale).toBe(150);
+        expect(result.cardsData.orders).toBe(2);
+        expect(result.weeklyData.week).toBe(150);
+        expect(result.monthlyData.year).toBe(150);
+        expect(result.top5.Burger).toEqual({ quantity: 3, revenue: 140 });
+        expect(result.top5.Fries).toEqual({ quantity: 2, revenue: 20 });
+        expect(db.orders.bulkCreate).not.toHaveBeenCalled();
+    });
+
+    test('owner revenue reports completed Manager POS sales even when there are no QR customers', async () => {
+        const today = new Date().toISOString().slice(0, 10);
+        const month = today.slice(0, 7);
+
+        hotelUserRelationRepoFindSpy.mockResolvedValue({
+            rows: [{ hotel: { id: 'hotel-1', name: 'Cafe' } }]
+        });
+        customerRepoFindSpy.mockResolvedValue({ rows: [], count: 0 });
+        orderRepoSumRevenueSpy.mockResolvedValue(0);
+        orderRepoFindSpy.mockResolvedValue({ rows: [] });
+        orderRepoFindSalesByHotelIdsSpy.mockResolvedValue([]);
+        db.openOrders.sum
+            .mockResolvedValueOnce(10)
+            .mockResolvedValueOnce(20)
+            .mockResolvedValueOnce(30)
+            .mockResolvedValueOnce(40);
+        db.openOrders.findAll
+            .mockResolvedValueOnce([{ period: today, totalPrice: '20' }])
+            .mockResolvedValueOnce([{ period: month, totalPrice: '40' }])
+            .mockResolvedValueOnce([{ hotelId: 'hotel-1', sales: '40' }]);
+
+        const result = await hotelService.revenue('owner-1');
+
+        expect(result.summary).toEqual({ today: 10, week: 20, month: 30, year: 40 });
+        expect(result.weeklyTrend[today.slice(-2)]).toBe(20);
+        expect(Object.values(result.monthlyTrend)).toContain(40);
+        expect(result.hotelBreakdown).toEqual([{ hotelId: 'hotel-1', hotelName: 'Cafe', revenue: 40 }]);
+        expect(db.openOrders.sum).toHaveBeenCalledTimes(4);
     });
 
     test('test list hotel failed', async () => {

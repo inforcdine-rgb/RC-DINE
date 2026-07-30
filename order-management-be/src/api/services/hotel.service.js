@@ -16,9 +16,54 @@ import hotelRepo from '../repositories/hotel.repository.js';
 import hotelUserRelationRepo from '../repositories/hotelUserRelation.repository.js';
 import menuRepo from '../repositories/menu.repository.js';
 import orderRepo from '../repositories/order.repository.js';
+import posOrderAnalyticsRepo from '../repositories/posOrderAnalytics.repository.js';
 import subscriptionRepo from '../repositories/subscription.repository.js';
 import tableRepo from '../repositories/table.repository.js';
 import { CustomError, STATUS_CODE } from '../utils/common.js';
+
+const numberValue = (value) => Number(value) || 0;
+
+const mergeSalesByHotel = (...rowSets) =>
+    rowSets.flat().reduce((sales, row) => {
+        sales[row.hotelId] = numberValue(sales[row.hotelId]) + numberValue(row.sales);
+        return sales;
+    }, {});
+
+const mergeRevenueTrendRows = (sources, periodFormat) => {
+    const totals = new Map();
+
+    sources.forEach(({ rows, key }) => {
+        rows.forEach((row) => {
+            const rawPeriod = row[key];
+            const parsedPeriod = moment(rawPeriod);
+            if (!parsedPeriod.isValid()) return;
+
+            const period = parsedPeriod.format(periodFormat);
+            totals.set(period, numberValue(totals.get(period)) + numberValue(row.totalPrice));
+        });
+    });
+
+    return [...totals.entries()]
+        .sort(([first], [second]) => first.localeCompare(second))
+        .map(([period, totalPrice]) => ({ period, totalPrice }));
+};
+
+const mergeTopSellingRows = (...rowSets) => {
+    const byName = rowSets.flat().reduce((items, row) => {
+        const menuName = String(row.menuName || '').trim();
+        if (!menuName) return items;
+
+        const current = items.get(menuName) || { menuName, totalQuantity: 0, totalPrice: 0 };
+        current.totalQuantity += numberValue(row.totalQuantity);
+        current.totalPrice += numberValue(row.totalPrice);
+        items.set(menuName, current);
+        return items;
+    }, new Map());
+
+    return [...byName.values()]
+        .sort((first, second) => second.totalQuantity - first.totalQuantity || second.totalPrice - first.totalPrice)
+        .slice(0, 5);
+};
 
 const create = async (payload, ownerId) => {
     try {
@@ -157,12 +202,12 @@ const list = async (userId) => {
         let salesByHotelId = {};
 
         if (hotelIds.length) {
-            const salesRows = await orderRepo.findSalesByHotelIds(hotelIds);
+            const [customerOrderSales, managerPosSales] = await Promise.all([
+                orderRepo.findSalesByHotelIds(hotelIds),
+                posOrderAnalyticsRepo.findCompletedSalesByHotelIds(hotelIds)
+            ]);
 
-            salesByHotelId = salesRows.reduce((acc, row) => {
-                acc[row.hotelId] = Number(row.sales) || 0;
-                return acc;
-            }, {});
+            salesByHotelId = mergeSalesByHotel(customerOrderSales, managerPosSales);
         }
 
         const rows = hotels.rows.reduce((cur, next) => {
@@ -271,6 +316,7 @@ const dashboard = async (hotelId, user) => {
             where: { hotelId }
         };
         const { rows: customers, count: customerCount } = await customerRepo.find(countOptions);
+        const customerIds = customers.map((item) => item.id);
         logger('debug', 'Customer count for hotel', customerCount);
 
         const managerCount = await hotelUserRelationRepo.count(countOptions);
@@ -282,13 +328,18 @@ const dashboard = async (hotelId, user) => {
         const totalRevenueOptions = {
             where: {
                 customerId: {
-                    [Op.in]: customers.map((item) => item.id)
+                    [Op.in]: customerIds
                 },
                 status: ORDER_STATUS[3]
             }
         };
         logger('debug', 'Options to get total revenue', totalRevenueOptions);
-        const totalPrice = await orderRepo.sum('finalAmount', totalRevenueOptions);
+        const [customerOrderRevenue, managerPosRevenue, completedManagerPosOrders] = await Promise.all([
+            orderRepo.sum('finalAmount', totalRevenueOptions),
+            posOrderAnalyticsRepo.sumCompletedRevenue([hotelId]),
+            posOrderAnalyticsRepo.countCompletedOrders([hotelId])
+        ]);
+        const totalPrice = numberValue(customerOrderRevenue) + numberValue(managerPosRevenue);
 
         const menuCount = await menuRepo.count(countOptions);
         logger('debug', 'Menu items count', menuCount);
@@ -303,7 +354,7 @@ const dashboard = async (hotelId, user) => {
             ],
             where: {
                 customerId: {
-                    [Op.in]: customers.map((item) => item.id)
+                    [Op.in]: customerIds
                 },
                 status: ORDER_STATUS[3],
                 createdAt: {
@@ -315,18 +366,28 @@ const dashboard = async (hotelId, user) => {
             raw: true
         };
         logger('debug', 'Options to get week data', weeklyOptions);
-        const { rows: weekData } = await orderRepo.find(weeklyOptions);
+        const [{ rows: customerWeekData }, managerPosWeekData] = await Promise.all([
+            orderRepo.find(weeklyOptions),
+            posOrderAnalyticsRepo.findRevenueTrend([hotelId], { start: startOfWeek, end: endOfWeek }, 'day')
+        ]);
+        const weekData = mergeRevenueTrendRows(
+            [
+                { rows: customerWeekData, key: 'date' },
+                { rows: managerPosWeekData, key: 'period' }
+            ],
+            'YYYY-MM-DD'
+        );
         const weeklyData = {
             week: 0,
             today: 0,
             data: {}
         };
         weekData.forEach((item) => {
-            weeklyData.week += Number(item.totalPrice);
-            if (moment(item.date).isSame(moment(), 'day')) {
-                weeklyData.today = Number(item.totalPrice);
+            weeklyData.week += numberValue(item.totalPrice);
+            if (moment(item.period).isSame(moment(), 'day')) {
+                weeklyData.today = numberValue(item.totalPrice);
             }
-            weeklyData.data[moment(item.date).format('DD')] = item.totalPrice;
+            weeklyData.data[moment(item.period).format('DD')] = item.totalPrice;
         });
         /* weekly data end */
 
@@ -340,7 +401,7 @@ const dashboard = async (hotelId, user) => {
             ],
             where: {
                 customerId: {
-                    [Op.in]: customers.map((item) => item.id)
+                    [Op.in]: customerIds
                 },
                 status: ORDER_STATUS[3],
                 createdAt: {
@@ -352,14 +413,24 @@ const dashboard = async (hotelId, user) => {
             raw: true
         };
         logger('debug', 'Options to get month wise data', monthlyOptions);
-        const { rows: monthData } = await orderRepo.find(monthlyOptions);
+        const [{ rows: customerMonthData }, managerPosMonthData] = await Promise.all([
+            orderRepo.find(monthlyOptions),
+            posOrderAnalyticsRepo.findRevenueTrend([hotelId], { start: startOfYear, end: endOfYear }, 'month')
+        ]);
+        const monthData = mergeRevenueTrendRows(
+            [
+                { rows: customerMonthData, key: 'month' },
+                { rows: managerPosMonthData, key: 'period' }
+            ],
+            'YYYY-MM'
+        );
         const monthlyData = {
             year: 0,
             data: {}
         };
         monthData.forEach((item) => {
-            monthlyData.year += Number(item.totalPrice);
-            monthlyData.data[moment(item.month).format('MMM')] = item.totalPrice;
+            monthlyData.year += numberValue(item.totalPrice);
+            monthlyData.data[moment(item.period).format('MMM')] = item.totalPrice;
         });
         /* monthly data start */
 
@@ -371,7 +442,7 @@ const dashboard = async (hotelId, user) => {
             ],
             where: {
                 customerId: {
-                    [Op.in]: customers.map((item) => item.id)
+                    [Op.in]: customerIds
                 },
                 status: ORDER_STATUS[3]
             },
@@ -384,14 +455,17 @@ const dashboard = async (hotelId, user) => {
             ],
             group: ['orders.menuId', 'menu.name'],
             order: [[Sequelize.literal('totalQuantity'), 'DESC']],
-            limit: 5,
             raw: true
         };
-        const { rows: menus } = await orderRepo.find(topMenuOptions);
+        const [{ rows: customerMenuRows }, managerPosMenuRows] = await Promise.all([
+            orderRepo.find(topMenuOptions),
+            posOrderAnalyticsRepo.findTopSellingItems(hotelId)
+        ]);
+        const menus = mergeTopSellingRows(customerMenuRows, managerPosMenuRows);
         const top5 = menus.reduce((cur, next) => {
             cur[next.menuName] = {
-                quantity: Number(next.totalQuantity) || 0,
-                revenue: Number(next.totalPrice) || 0
+                quantity: numberValue(next.totalQuantity),
+                revenue: numberValue(next.totalPrice)
             };
             return cur;
         }, {});
@@ -399,7 +473,10 @@ const dashboard = async (hotelId, user) => {
         const result = {
             hotel,
             cardsData: {
-                orders: customerCount,
+                // QR orders historically use one customer record as this card's
+                // unit. POS has no customer row, so completed POS headers are the
+                // equivalent unit and are added without changing QR semantics.
+                orders: customerCount + numberValue(completedManagerPosOrders),
                 managers: managerCount - 1,
                 tables: tableCount,
                 sale: totalPrice,
@@ -452,10 +529,6 @@ const revenue = async (ownerId) => {
         });
         const customerIds = customers.map((item) => item.id);
 
-        if (!customerIds.length) {
-            return emptyResponse;
-        }
-
         const todayRange = {
             start: moment().startOf('day').toISOString(),
             end: moment().endOf('day').toISOString()
@@ -473,12 +546,21 @@ const revenue = async (ownerId) => {
             end: moment().endOf('year').toISOString()
         };
 
-        const [today, week, month, year] = await Promise.all([
-            orderRepo.sumRevenueByCustomerIds(customerIds, todayRange),
-            orderRepo.sumRevenueByCustomerIds(customerIds, weekRange),
-            orderRepo.sumRevenueByCustomerIds(customerIds, monthRange),
-            orderRepo.sumRevenueByCustomerIds(customerIds, yearRange)
-        ]);
+        const [customerToday, customerWeek, customerMonth, customerYear, posToday, posWeek, posMonth, posYear] =
+            await Promise.all([
+                orderRepo.sumRevenueByCustomerIds(customerIds, todayRange),
+                orderRepo.sumRevenueByCustomerIds(customerIds, weekRange),
+                orderRepo.sumRevenueByCustomerIds(customerIds, monthRange),
+                orderRepo.sumRevenueByCustomerIds(customerIds, yearRange),
+                posOrderAnalyticsRepo.sumCompletedRevenue(hotelIds, todayRange),
+                posOrderAnalyticsRepo.sumCompletedRevenue(hotelIds, weekRange),
+                posOrderAnalyticsRepo.sumCompletedRevenue(hotelIds, monthRange),
+                posOrderAnalyticsRepo.sumCompletedRevenue(hotelIds, yearRange)
+            ]);
+        const today = numberValue(customerToday) + numberValue(posToday);
+        const week = numberValue(customerWeek) + numberValue(posWeek);
+        const month = numberValue(customerMonth) + numberValue(posMonth);
+        const year = numberValue(customerYear) + numberValue(posYear);
 
         const weeklyOptions = {
             attributes: [
@@ -494,9 +576,18 @@ const revenue = async (ownerId) => {
             group: [Sequelize.fn('DATE', Sequelize.col('createdAt'))],
             raw: true
         };
-        const { rows: weekData } = await orderRepo.find(weeklyOptions);
-        const weeklyTrend = weekData.reduce((acc, item) => {
-            acc[moment(item.date).format('DD')] = Number(item.totalPrice) || 0;
+        const [{ rows: customerWeekData }, managerPosWeekData] = await Promise.all([
+            orderRepo.find(weeklyOptions),
+            posOrderAnalyticsRepo.findRevenueTrend(hotelIds, weekRange, 'day')
+        ]);
+        const weeklyTrend = mergeRevenueTrendRows(
+            [
+                { rows: customerWeekData, key: 'date' },
+                { rows: managerPosWeekData, key: 'period' }
+            ],
+            'YYYY-MM-DD'
+        ).reduce((acc, item) => {
+            acc[moment(item.period).format('DD')] = numberValue(item.totalPrice);
             return acc;
         }, {});
 
@@ -514,17 +605,26 @@ const revenue = async (ownerId) => {
             group: [Sequelize.fn('DATE_FORMAT', Sequelize.col('createdAt'), '%Y-%m')],
             raw: true
         };
-        const { rows: monthData } = await orderRepo.find(monthlyOptions);
-        const monthlyTrend = monthData.reduce((acc, item) => {
-            acc[moment(item.month).format('MMM')] = Number(item.totalPrice) || 0;
+        const [{ rows: customerMonthData }, managerPosMonthData] = await Promise.all([
+            orderRepo.find(monthlyOptions),
+            posOrderAnalyticsRepo.findRevenueTrend(hotelIds, yearRange, 'month')
+        ]);
+        const monthlyTrend = mergeRevenueTrendRows(
+            [
+                { rows: customerMonthData, key: 'month' },
+                { rows: managerPosMonthData, key: 'period' }
+            ],
+            'YYYY-MM'
+        ).reduce((acc, item) => {
+            acc[moment(item.period).format('MMM')] = numberValue(item.totalPrice);
             return acc;
         }, {});
 
-        const salesRows = await orderRepo.findSalesByHotelIds(hotelIds);
-        const salesByHotelId = salesRows.reduce((acc, row) => {
-            acc[row.hotelId] = Number(row.sales) || 0;
-            return acc;
-        }, {});
+        const [customerSalesRows, managerPosSalesRows] = await Promise.all([
+            orderRepo.findSalesByHotelIds(hotelIds),
+            posOrderAnalyticsRepo.findCompletedSalesByHotelIds(hotelIds)
+        ]);
+        const salesByHotelId = mergeSalesByHotel(customerSalesRows, managerPosSalesRows);
 
         const hotelBreakdown = hotels.map((item) => ({
             hotelId: item.id,

@@ -39,6 +39,33 @@ const formatElapsed = (createdAt, now = Date.now()) => {
     return `${Math.floor(minutes / 60)}h ${minutes % 60}m`;
 };
 
+// Completed Manager POS orders use the open-order API, while QR orders use the
+// customer-order API. Normalize both shapes only for this dashboard view; the
+// transaction remains stored once in its authoritative table.
+const normalizeCompletedPosOrder = (order) => {
+    const total = Number(order.finalAmount || 0);
+
+    return {
+        ...order,
+        orderId: order.id,
+        orderStatus: 'COMPLETED',
+        orderTime: order.paidAt || order.updatedAt,
+        source: 'MANAGER_POS',
+        tableNumber: order.table?.tableNumber || '-',
+        totalAmount: total,
+        totalPrice: total,
+        price: total,
+        items: (order.items || []).map((item) => ({
+            ...item,
+            name: item.itemName,
+            menuName: item.itemName,
+            itemPrice: Number(item.lineTotal || 0),
+            totalPrice: Number(item.lineTotal || 0),
+            price: Number(item.lineTotal || 0)
+        }))
+    };
+};
+
 function ManagerPOS() {
     const location = useLocation();
     const navigate = useNavigate();
@@ -72,6 +99,9 @@ function ManagerPOS() {
     const [dashboardOrders, setDashboardOrders] = useState([]);
     const dashboardOrdersRef = useRef([]);
     dashboardOrdersRef.current = dashboardOrders;
+    const [completedPosOrders, setCompletedPosOrders] = useState([]);
+    const completedPosOrdersRef = useRef([]);
+    completedPosOrdersRef.current = completedPosOrders;
     const [dashboardLoading, setDashboardLoading] = useState(false);
     const [statusPopup, setStatusPopup] = useState(null);
     const [selectedDashboardOrder, setSelectedDashboardOrder] = useState(null);
@@ -159,15 +189,29 @@ function ManagerPOS() {
         async ({ silent = false } = {}) => {
             if (!hotelId) return false;
             try {
-                if (!silent && dashboardOrdersRef.current.length === 0) setDashboardLoading(true);
-                const result = await orderService.getCompletedOrders({
-                    hotelId,
-                    skip: 0,
-                    limit: 50,
-                    sortKey: 'orderTime',
-                    sortOrder: 'desc'
-                });
-                const rows = result?.data || result?.rows || [];
+                if (!silent && dashboardOrdersRef.current.length === 0 && completedPosOrdersRef.current.length === 0) {
+                    setDashboardLoading(true);
+                }
+
+                const dayStart = new Date();
+                dayStart.setHours(0, 0, 0, 0);
+                const dayEnd = new Date(dayStart);
+                dayEnd.setDate(dayEnd.getDate() + 1);
+
+                const [customerOrdersResult, posOrdersResult] = await Promise.allSettled([
+                    orderService.getCompletedOrders({
+                        hotelId,
+                        skip: 0,
+                        limit: 50,
+                        sortKey: 'orderTime',
+                        sortOrder: 'desc'
+                    }),
+                    orderService.getCompletedOpenOrders({
+                        hotelId,
+                        dateFrom: dayStart.toISOString(),
+                        dateTo: dayEnd.toISOString()
+                    })
+                ]);
                 const getFingerprint = (orders) =>
                     JSON.stringify(
                         orders.map((order) => [
@@ -178,10 +222,38 @@ function ManagerPOS() {
                             order.tableNumber
                         ])
                     );
-                const before = getFingerprint(dashboardOrdersRef.current);
-                const after = getFingerprint(rows);
-                const changed = before !== after;
-                if (changed) setDashboardOrders(rows);
+
+                let changed = false;
+                if (customerOrdersResult.status === 'fulfilled') {
+                    const result = customerOrdersResult.value;
+                    const rows = result?.data || result?.rows || [];
+                    const customerOrdersChanged = getFingerprint(dashboardOrdersRef.current) !== getFingerprint(rows);
+                    if (customerOrdersChanged) {
+                        dashboardOrdersRef.current = rows;
+                        setDashboardOrders(rows);
+                        changed = true;
+                    }
+                } else {
+                    console.error('Failed to load customer dashboard orders', customerOrdersResult.reason);
+                }
+
+                if (posOrdersResult.status === 'fulfilled') {
+                    const result = posOrdersResult.value;
+                    const rows = (result?.orders || result?.data?.orders || []).map(normalizeCompletedPosOrder);
+                    const posOrdersChanged = getFingerprint(completedPosOrdersRef.current) !== getFingerprint(rows);
+                    if (posOrdersChanged) {
+                        completedPosOrdersRef.current = rows;
+                        setCompletedPosOrders(rows);
+                        changed = true;
+                    }
+                } else {
+                    console.error('Failed to load completed POS dashboard orders', posOrdersResult.reason);
+                }
+
+                if (customerOrdersResult.status === 'rejected' && posOrdersResult.status === 'rejected') {
+                    throw customerOrdersResult.reason;
+                }
+
                 return changed;
             } catch (error) {
                 console.error('Failed to load POS dashboard orders', error);
@@ -343,9 +415,11 @@ function ManagerPOS() {
 
     const getStatusKey = (status = '') => String(status).toUpperCase().replace(/\s+/g, '_');
     const getSourceLabel = (order) => (order?.source === 'MANAGER_POS' ? '🟢 Manager POS' : '📱 Customer QR');
-    const recentOrders = dashboardOrders.slice(0, 5);
+    const recentOrders = [...dashboardOrders, ...completedPosOrders]
+        .sort((first, second) => new Date(second.orderTime) - new Date(first.orderTime))
+        .slice(0, 5);
     const pendingCount = dashboardOrders.filter((order) => getStatusKey(order.orderStatus) === 'PENDING').length;
-    const completedTodayOrders = dashboardOrders.filter((order) => {
+    const completedTodayOrders = [...dashboardOrders, ...completedPosOrders].filter((order) => {
         const orderDate = order.orderTime ? new Date(order.orderTime) : null;
         const today = new Date();
         return (
@@ -380,8 +454,12 @@ function ManagerPOS() {
         if (!order?.orderId || !hotelId) return;
         try {
             setDetailsLoading(true);
-            const result = await orderService.getOrderDetails(hotelId, order.orderId);
-            const details = result?.data || result?.order || result || order;
+            const isManagerPosOrder = order.source === 'MANAGER_POS';
+            const result = isManagerPosOrder
+                ? await orderService.getOpenOrder(order.id || order.orderId)
+                : await orderService.getOrderDetails(hotelId, order.orderId);
+            const rawDetails = result?.data || result?.order || result || order;
+            const details = isManagerPosOrder ? normalizeCompletedPosOrder(rawDetails) : rawDetails;
             setSelectedDashboardOrder({ ...order, ...details });
         } catch (error) {
             toast.error(error?.response?.data?.message || error.message || 'Order details load nahi hua');
