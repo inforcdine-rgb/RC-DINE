@@ -4,7 +4,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import Loader from '../../components/Loader';
 import OMTModal from '../../components/Modal';
-import { cancelOrder, downloadInvoice, getOrderStatus, getPublicOrderDetails } from '../../services/order.service';
+import { downloadInvoice, getOrderStatus, getPublicOrderDetails } from '../../services/order.service';
 import { connectSocket } from '../../services/socket.service';
 import { setOrderDetails, setTrackingOrder } from '../../store/slice';
 import { registerRefreshHandler, runBackgroundTask } from '../../utils/refreshBus';
@@ -21,8 +21,7 @@ function OrderTracking() {
     const [loading, setLoading] = useState(true);
     const [showReadyModal, setShowReadyModal] = useState(false);
     const [downloadingInvoice, setDownloadingInvoice] = useState(false);
-    const [cancellingOrder, setCancellingOrder] = useState(false);
-    const [cancellationTimeLeft, setCancellationTimeLeft] = useState(300);
+    const [setCancellationTimeLeft] = useState(300);
     const [orderCreatedAt, setOrderCreatedAt] = useState(null);
 
     const statusIntervalRef = useRef(null);
@@ -207,30 +206,6 @@ function OrderTracking() {
         }
     };
 
-    const handleCancelOrder = async () => {
-        if (!order || cancellationTimeLeft <= 0) {
-            toast.error('Cannot cancel this order');
-            return;
-        }
-
-        try {
-            setCancellingOrder(true);
-            await cancelOrder(order.orderId);
-            toast.success('Order cancelled successfully');
-            playOrderCancelledSound(order.orderId);
-            setLiveStatus('CANCELLED');
-        } catch (error) {
-            console.error('Failed to cancel order', error);
-            toast.error(
-                error.response?.data?.message ||
-                error.message ||
-                'Failed to cancel order'
-            );
-        } finally {
-            setCancellingOrder(false);
-        }
-    };
-
     const getCustomerOrderRoute = () => {
         const storedToken =
             localStorage.getItem('rcCustomerToken') ||
@@ -365,14 +340,6 @@ function OrderTracking() {
                     <button className="rc-track-primary" onClick={handleDownloadInvoice} disabled={downloadingInvoice}>
                         {downloadingInvoice ? 'Downloading...' : 'Download Invoice'}
                     </button>
-
-                    {!isReady && !isCancelled && cancellationTimeLeft > 0 && (
-                        <button className="rc-track-warning" onClick={handleCancelOrder} disabled={cancellingOrder}>
-                            {cancellingOrder
-                                ? 'Cancelling...'
-                                : `Cancel Order (${Math.ceil(cancellationTimeLeft / 60)}m)`}
-                        </button>
-                    )}
 
                     {(isReady || isCancelled) && (
                         <button className="rc-track-done" onClick={handleCloseOrder}>
