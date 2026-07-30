@@ -142,7 +142,9 @@ instance.interceptors.request.use(
         config.__showGlobalLoader = !config.__backgroundRequest && !cached;
         startRequest(config);
         const staffToken = localStorage.getItem('token');
-        const customerToken = localStorage.getItem('rcCustomerToken');
+        const customerToken =
+            localStorage.getItem('rcCustomerToken') ||
+            localStorage.getItem('customerToken');
 
         const token = staffToken || customerToken;
 
