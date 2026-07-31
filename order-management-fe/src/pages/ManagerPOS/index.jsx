@@ -395,7 +395,7 @@ function ManagerPOS() {
                 runBackgroundTask(() =>
                     Promise.all([loadDashboardOrders({ silent: true }), loadOpenOrders({ silent: true })])
                 ),
-            15000
+            60000
         );
         return () => clearInterval(timer);
     }, [loadDashboardOrders, loadOpenOrders]);

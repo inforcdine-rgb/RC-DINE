@@ -29,14 +29,28 @@ const corsOptions = {
 };
 app.use(cors(corsOptions));
 
-// Rate limiting - login attack se bachao
+// Render/Nginx proxy ke piche correct client IP detect karne ke liye
+app.set('trust proxy', 1);
+
+// General API rate limit
 const generalLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
-    max: env.app.isDevelopment ? 1000 : 300,
+
+    // Manager POS ek screen par multiple APIs use karta hai,
+    // isliye 300 requests bahut kam the.
+    max: env.app.isDevelopment ? 5000 : 3000,
+
     standardHeaders: true,
     legacyHeaders: false,
-    message: { message: 'To many attempts. please try again few minutes.' }
+
+    // Health check aur basic server route ko block mat karo
+    skip: (req) => req.method === 'OPTIONS',
+
+    message: {
+        message: 'Too many requests. Please try again after a few minutes.'
+    }
 });
+
 app.use('/api', generalLimiter);
 
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));

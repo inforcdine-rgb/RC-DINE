@@ -196,7 +196,7 @@ function Sidebar() {
         socket.on('order-status-updated', handleStatusUpdated);
         socket.on('order-cancelled', handleOrderCancelled);
 
-        const refreshTimer = setInterval(refreshPendingCountInBackground, 30000);
+        const refreshTimer = setInterval(refreshPendingCountInBackground, 120000);
 
         return () => {
             socket.off('connect', joinHotelRoom);
