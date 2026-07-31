@@ -3,7 +3,7 @@ import Razorpay from 'razorpay';
 import { getAdminSettings } from '../../config/adminSettings.js';
 import env from '../../config/env.js';
 import logger from '../../config/logger.js';
-import { CustomError } from '../utils/common.js';
+import { CustomError, STATUS_CODE } from '../utils/common.js';
 
 const getRazorpayInstance = () => {
     const settings = getAdminSettings();
@@ -79,7 +79,19 @@ const order = async (data) => {
         return order;
     } catch (error) {
         logger('error', 'Error while creating order', { error });
-        throw CustomError(error.code, error.message);
+
+        const statusCode =
+            Number(error?.statusCode) ||
+            Number(error?.status) ||
+            STATUS_CODE.INTERNAL_SERVER_ERROR;
+
+        const message =
+            error?.error?.description ||
+            error?.description ||
+            error?.message ||
+            'Unable to create Razorpay order';
+
+        throw CustomError(statusCode, message);
     }
 };
 

@@ -54,7 +54,7 @@ const createOrder = async (req, res) => {
         const data = {
             amount: amountInPaise,
             currency: 'INR',
-            receipt: `subscription_${req.user.id}_${Date.now()}`,
+            receipt: `sub_${String(req.user.id).replace(/-/g, '').slice(0, 12)}_${Date.now()}`,
             notes: {
                 userId: String(req.user.id),
                 plan: selectedPlan.code
