@@ -49,11 +49,11 @@ function AuthRoutes() {
 
     if (user.role === 'MANAGER') {
         if (location.pathname === '/subscription') {
-            return <Navigate to="/dashboard" replace />;
+            return <Navigate to="/walkin-pos" replace />;
         }
 
         if (location.pathname.startsWith('/admin')) {
-            return <Navigate to="/dashboard" replace />;
+            return <Navigate to="/walkin-pos" replace />;
         }
     }
 

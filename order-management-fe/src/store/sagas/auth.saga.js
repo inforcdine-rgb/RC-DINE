@@ -145,7 +145,7 @@ function* getUserRequestSaga(action) {
                 ((res.role.toUpperCase() === USER_ROLES[1] || Object.keys(viewData).length === 2) &&
                     [...OWNER_TABS].find((obj) => obj.path === path))
             ) {
-                navigate('/dashboard');
+                navigate('/walkin-pos');
             }
 
             if (res.role.toUpperCase() === USER_ROLES[2] && !path.startsWith('/admin')) {

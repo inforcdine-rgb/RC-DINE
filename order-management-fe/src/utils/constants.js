@@ -157,7 +157,7 @@ export const MANAGER_TABS = [
         id: 'orders',
         Icon: MdOutlineAttachMoney,
         title: 'Analytics',
-        path: '/dashboard'
+        path: '/analytics'
     }
 ];
 

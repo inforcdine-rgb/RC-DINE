@@ -26,6 +26,9 @@ function PublicRoutes() {
                 if (role === 'OWNER') {
                     return <Navigate to="/hotels" />;
                 }
+                if (role === 'MANAGER') {
+                    return <Navigate to="/walkin-pos" />;
+                }
             }
         } catch (error) {
             console.warn('Unable to resolve role for public route redirect', error);

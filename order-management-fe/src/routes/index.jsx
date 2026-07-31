@@ -67,7 +67,7 @@ export default function Routes() {
                 </Route>
 
                 <Route path="/" element={<AuthRoutes />}>
-                    <Route path="dashboard" element={<Dashboard />} />
+                    <Route path="analytics" element={<Dashboard />} />
                     <Route path="hotels" element={<Hotels />} />
                     <Route path="manager" element={<Managers />} />
                     <Route path="revenue" element={<Revenue />} />
