@@ -95,4 +95,3 @@ export default function Routes() {
         </BrowserRouter>
     );
 }
-
