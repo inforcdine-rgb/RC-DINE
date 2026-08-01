@@ -64,6 +64,8 @@ export default function Routes() {
                     <Route path="contact" element={<Contact />} />
                     <Route path="privacy" element={<LegalPage />} />
                     <Route path="terms" element={<LegalPage />} />
+                    <Route path="refund-policy" element={<LegalPage />} />
+                    <Route path="shipping-policy" element={<LegalPage />} />
                 </Route>
 
                 <Route path="/" element={<AuthRoutes />}>
