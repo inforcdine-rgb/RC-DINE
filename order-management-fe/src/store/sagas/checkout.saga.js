@@ -77,7 +77,7 @@ function* verifySubscriptionPaymentRequestSaga(action) {
         const userRes = yield authService.getUser();
         yield put(getUserSuccess(userRes));
         toast.success('Subscription activated successfully!');
-        if (navigate) navigate('/dashboard');
+        if (navigate) navigate('/hotels');
     } catch (error) {
         toast.error(`Failed to verify subscription payment: ${error.message}`);
     }
