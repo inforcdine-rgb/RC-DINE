@@ -966,6 +966,20 @@ function Landing() {
                         <button type="button" className="footer-link-button" onClick={() => navigate('/terms')}>
                             Terms
                         </button>
+                        <button
+                            type="button"
+                            className="footer-link-button"
+                            onClick={() => navigate('/refund-policy')}
+                        >
+                            Cancellation & Refunds
+                        </button>
+                        <button
+                            type="button"
+                            className="footer-link-button"
+                            onClick={() => navigate('/shipping-policy')}
+                        >
+                            Shipping & Delivery
+                        </button>
                     </div>
                     <small>© 2026 RC Dine</small>
                 </div>
