@@ -24,17 +24,24 @@ const PAGE_SIZE = 20;
 const SOUND_SETTING_KEY = 'rcdineNotificationSound';
 const FILTERS = ['ALL', 'ORDERS', 'PAYMENTS', 'RC_SESSION', 'GENERAL'];
 
-const normalizeNotification = (item = {}) => ({
-    ...item,
-    id: item.id || item.notificationId || `${item.type || 'notification'}-${item.createdAt || Date.now()}`,
-    title: item.title || 'R&C Dine',
-    message: item.message || item.body || item.text || 'New update received',
-    category: item.category || item.meta?.category || 'GENERAL',
-    type: item.type || item.meta?.action || 'UPDATE',
-    path: item.path || (item.orderId ? `/cart/${item.orderId}` : ''),
-    isRead: item.status === 'INACTIVE' || item.read === true,
-    createdAt: item.createdAt || new Date().toISOString()
-});
+const normalizeNotification = (item = {}) => {
+    const storedPayload = item.payload || {};
+    const meta = item.meta || storedPayload.meta || {};
+    return {
+        ...storedPayload,
+        ...item,
+        id: item.id || item.notificationId || `${item.type || 'notification'}-${item.createdAt || Date.now()}`,
+        title: item.title || storedPayload.title || 'R&C Dine',
+        message: item.message || item.body || item.text || storedPayload.message || 'New update received',
+        category: item.category || storedPayload.category || meta.category || 'GENERAL',
+        type: item.type || storedPayload.type || meta.action || 'UPDATE',
+        path: item.path || storedPayload.path || (item.orderId ? `/cart/${item.orderId}` : ''),
+        preservePath: Boolean(item.preservePath ?? storedPayload.preservePath),
+        meta,
+        isRead: item.status === 'INACTIVE' || item.read === true,
+        createdAt: item.createdAt || new Date().toISOString()
+    };
+};
 
 const mergeNotifications = (current, incoming) => {
     const merged = new Map();
@@ -129,6 +136,23 @@ function NotificationCenter({ open, onClose, audience = 'manager', token, onUnre
     }, [loadNotifications, open]);
 
     useEffect(() => {
+        loadNotifications();
+        const syncWhenAvailable = () => loadNotifications();
+        const syncWhenVisible = () => {
+            if (document.visibilityState === 'visible') loadNotifications();
+        };
+
+        window.addEventListener('online', syncWhenAvailable, { passive: true });
+        window.addEventListener('focus', syncWhenAvailable, { passive: true });
+        document.addEventListener('visibilitychange', syncWhenVisible, { passive: true });
+        return () => {
+            window.removeEventListener('online', syncWhenAvailable);
+            window.removeEventListener('focus', syncWhenAvailable);
+            document.removeEventListener('visibilitychange', syncWhenVisible);
+        };
+    }, [loadNotifications]);
+
+    useEffect(() => {
         const handleNotification = (event) => {
             const item = normalizeNotification(event.detail || {});
             setNotifications((current) => mergeNotifications(current, [item]));
@@ -151,6 +175,20 @@ function NotificationCenter({ open, onClose, audience = 'manager', token, onUnre
             window.removeEventListener('rcdineNotificationsUpdated', handleLocalNotification);
         };
     }, [audience, loadNotifications, soundEnabled]);
+
+    useEffect(() => {
+        const handleRead = (event) => {
+            const notificationId = event.detail?.notificationId;
+            if (!notificationId) return;
+            setNotifications((current) =>
+                current.map((item) =>
+                    item.id === notificationId ? { ...item, isRead: true, status: 'INACTIVE' } : item
+                )
+            );
+        };
+        window.addEventListener('rcdine:notification-read', handleRead);
+        return () => window.removeEventListener('rcdine:notification-read', handleRead);
+    }, []);
 
     const filtered = useMemo(
         () =>
@@ -219,8 +257,9 @@ function NotificationCenter({ open, onClose, audience = 'manager', token, onUnre
                 return next;
             });
         }
-        if (item.path) {
-            onClose?.();
+        onClose?.();
+        window.dispatchEvent(new CustomEvent('rcdine:notification-clicked', { detail: item }));
+        if (item.path && !item.preservePath) {
             navigate(item.path.startsWith('/') ? item.path : `/${item.path}`);
         }
     };

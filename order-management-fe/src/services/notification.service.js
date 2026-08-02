@@ -6,6 +6,7 @@ const DEVICE_ID_KEY = 'rcdinePushDeviceId';
 const PRESENCE_TOKEN_KEY = 'rcdinePushPresenceToken';
 const LAST_SYNC_KEY = 'rcdinePushLastSync';
 const SYNC_INTERVAL_MS = 5 * 60 * 1000;
+const NOTIFICATION_QUERY_KEY = 'rcNotification';
 let lifecycleInitialized = false;
 const syncPromises = new Map();
 
@@ -25,6 +26,12 @@ const urlBase64ToUint8Array = (base64String) => {
     const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
     const rawData = window.atob(base64);
     return Uint8Array.from([...rawData].map((char) => char.charCodeAt(0)));
+};
+
+const validateVapidKey = (value) => {
+    const key = urlBase64ToUint8Array(value);
+    if (key.length !== 65) throw new Error('REACT_APP_NOTIFICATION_KEY is not a valid Web Push public key');
+    return key;
 };
 
 const arrayBufferToBase64Url = (buffer) => {
@@ -126,7 +133,7 @@ const syncSubscription = async ({ audience, token }) => {
     if (!subscription) {
         subscription = await registration.pushManager.subscribe({
             userVisibleOnly: true,
-            applicationServerKey: urlBase64ToUint8Array(configuredVapidKey)
+            applicationServerKey: validateVapidKey(configuredVapidKey)
         });
         logPushEvent('subscription_created', { audience });
     }
@@ -247,6 +254,43 @@ export const initializeNotificationLifecycle = () => {
         });
     };
 
+    const markClickedNotificationRead = async (payload = {}) => {
+        const notificationId = payload.notificationId;
+        if (!notificationId) return;
+
+        try {
+            if (localStorage.getItem('token')) {
+                await update(notificationId);
+            } else {
+                const customerToken = getCustomerNotificationToken();
+                if (customerToken) await readCustomerNotification(notificationId, customerToken);
+            }
+            window.dispatchEvent(
+                new CustomEvent('rcdine:notification-read', { detail: { notificationId } })
+            );
+        } catch (error) {
+            logPushEvent('notification_read_failed', {
+                notificationId,
+                message: error?.message || String(error)
+            });
+        }
+    };
+
+    const consumeNotificationLaunch = () => {
+        const url = new URL(window.location.href);
+        const notificationId = url.searchParams.get(NOTIFICATION_QUERY_KEY);
+        if (!notificationId) return;
+
+        url.searchParams.delete(NOTIFICATION_QUERY_KEY);
+        window.history.replaceState(window.history.state, '', `${url.pathname}${url.search}${url.hash}`);
+        markClickedNotificationRead({ notificationId });
+        window.dispatchEvent(
+            new CustomEvent('rcdine:notification-clicked', {
+                detail: { notificationId, url: window.location.href }
+            })
+        );
+    };
+
     navigator.serviceWorker.addEventListener('message', (event) => {
         if (event.data?.type === 'PUSH_SUBSCRIPTION_CHANGED') {
             localStorage.removeItem(LAST_SYNC_KEY);
@@ -260,10 +304,22 @@ export const initializeNotificationLifecycle = () => {
                 type: event.data.payload?.type
             });
         }
+        if (event.data?.type === 'NOTIFICATION_CLICKED') {
+            const payload = event.data.payload || {};
+            markClickedNotificationRead(payload);
+            window.dispatchEvent(new CustomEvent('rcdine:notification-clicked', { detail: payload }));
+        }
     });
 
     window.addEventListener('online', () => silentSync(), { passive: true });
-    window.addEventListener('focus', () => silentSync(), { passive: true });
+    window.addEventListener(
+        'focus',
+        () => {
+            silentSync();
+            consumeNotificationLaunch();
+        },
+        { passive: true }
+    );
     window.addEventListener('rcdine:push-presence-invalid', () => {
         localStorage.removeItem(PRESENCE_TOKEN_KEY);
         localStorage.removeItem(LAST_SYNC_KEY);
@@ -278,6 +334,7 @@ export const initializeNotificationLifecycle = () => {
     );
     navigator.serviceWorker.addEventListener('controllerchange', () => silentSync(true));
     window.setInterval(silentSync, SYNC_INTERVAL_MS);
+    consumeNotificationLaunch();
 };
 
 export const registerWebPush = () => enableWebPush({ audience: 'manager', requestPermission: true });

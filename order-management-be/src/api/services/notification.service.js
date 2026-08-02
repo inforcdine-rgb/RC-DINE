@@ -15,6 +15,9 @@ import notificationRepo from '../repositories/notification.repository.js';
 import pushSubscriptionRepo from '../repositories/pushSubscription.repository.js';
 import { CustomError, STATUS_CODE } from '../utils/common.js';
 
+const DEFAULT_PUSH_TTL_SECONDS = 7 * 24 * 60 * 60;
+const MAX_PUSH_TTL_SECONDS = 28 * 24 * 60 * 60;
+
 const normalizePhone = (value) =>
     String(value || '')
         .replace(/\D/g, '')
@@ -135,13 +138,19 @@ const buildStoredNotification = (recipient, data) => ({
     ...recipient,
     title: data.title || 'R&C Dine',
     message: data.message || data.body || 'New update received',
-    path: data.path || '/dashboard',
+    path: data.path || (recipient.userId ? '/analytics' : '/'),
     type: getType(data),
     category: getCategory(data),
     entityId: data.entityId || data.orderId || data.meta?.orderId || data.meta?.requestId || null,
     dedupeKey: data.dedupeKey || null,
     payload: data
 });
+
+const getPushTtl = (payload) => {
+    const requestedTtl = Number(payload.ttl);
+    if (!Number.isFinite(requestedTtl)) return DEFAULT_PUSH_TTL_SECONDS;
+    return Math.min(MAX_PUSH_TTL_SECONDS, Math.max(60, Math.round(requestedTtl)));
+};
 
 const storeNotification = async (recipient, data) => {
     if (data.dedupeKey) {
@@ -199,7 +208,7 @@ const deliverToSubscription = async (subscription, payload) => {
             keys: { p256dh: subscription.p256dh, auth: subscription.auth }
         },
         JSON.stringify(payload),
-        { TTL: 60 * 60, urgency: payload.urgency || 'high' }
+        { TTL: getPushTtl(payload), urgency: payload.urgency || 'high' }
     );
     logger('info', 'Web Push notification sent', {
         event: 'notification_delivered',
@@ -250,6 +259,9 @@ const sendNotification = async (userIds, data, customerId = undefined, options =
 
                 const payload = {
                     ...data,
+                    title: stored.notification.title,
+                    message: stored.notification.message,
+                    path: stored.notification.path,
                     notificationId: stored.notification.id,
                     type: getType(data),
                     category: getCategory(data),

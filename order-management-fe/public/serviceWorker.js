@@ -1,9 +1,10 @@
 /* global caches, clients */
 
-const CACHE_VERSION = 'v1';
+const CACHE_VERSION = 'v2';
 const APP_SHELL_CACHE = `rcdine-shell-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `rcdine-runtime-${CACHE_VERSION}`;
 const APP_SHELL = [
+    '/',
     '/offline.html',
     '/manifest.json',
     '/icons/icon-192.png',
@@ -11,6 +12,21 @@ const APP_SHELL = [
     '/icons/icon-maskable-192.png',
     '/icons/icon-maskable-512.png'
 ];
+
+const toSameOriginUrl = (value, fallback = '/') => {
+    try {
+        const url = new URL(value || fallback, self.location.origin);
+        return url.origin === self.location.origin ? url.href : new URL(fallback, self.location.origin).href;
+    } catch (_error) {
+        return new URL(fallback, self.location.origin).href;
+    }
+};
+
+const addNotificationContext = (value, notificationId) => {
+    const url = new URL(toSameOriginUrl(value));
+    if (notificationId) url.searchParams.set('rcNotification', notificationId);
+    return url.href;
+};
 
 const normalizePayload = (raw = {}) => {
     const data = raw.data || raw;
@@ -76,8 +92,12 @@ const handleNavigationRequest = async (request) => {
         if (response.ok) {
             const cache = await caches.open(RUNTIME_CACHE);
             await cache.put('/', response.clone());
+            return response;
         }
-        return response;
+
+        // A static host without an SPA rewrite returns 404 for routes such as
+        // /orders or /cart/:id. Serve the cached React shell in that case.
+        return (await caches.match('/')) || response;
     } catch (_error) {
         return (await caches.match(request)) || (await caches.match('/')) || caches.match('/offline.html');
     }
@@ -121,12 +141,12 @@ self.addEventListener('push', (event) => {
     }
 
     const payload = normalizePayload(raw);
-    const targetUrl = new URL(payload.path, self.location.origin).href;
+    const targetUrl = toSameOriginUrl(payload.path);
     const payloadActions = Array.isArray(payload.actions) ? payload.actions.slice(0, 2) : [];
     const actions = payloadActions.map(({ action, title, icon }) => ({ action, title, icon }));
     const actionUrls = payloadActions.reduce((result, action) => {
         if (action.action && action.path) {
-            result[action.action] = new URL(action.path, self.location.origin).href;
+            result[action.action] = toSameOriginUrl(action.path);
         }
         return result;
     }, {});
@@ -182,7 +202,8 @@ self.addEventListener('notificationclick', (event) => {
     if (event.action === 'dismiss') return;
 
     const data = event.notification?.data || {};
-    const targetUrl = data.actionUrls?.[event.action] || data.url || new URL('/', self.location.origin).href;
+    const requestedUrl = data.actionUrls?.[event.action] || data.url || '/';
+    const targetUrl = addNotificationContext(requestedUrl, data.notificationId);
 
     event.waitUntil(
         getWindowClients().then(async (clientList) => {
@@ -191,10 +212,16 @@ self.addEventListener('notificationclick', (event) => {
             );
             for (const client of orderedClients) {
                 if (new URL(client.url).origin !== self.location.origin) continue;
-                if (!data.preservePath && 'navigate' in client && client.url !== targetUrl) {
-                    await client.navigate(targetUrl);
+
+                const currentUrl = addNotificationContext(client.url, data.notificationId);
+                const destination = data.preservePath ? currentUrl : targetUrl;
+                if ('navigate' in client && client.url !== destination) {
+                    await client.navigate(destination);
                 }
-                client.postMessage({ type: 'NOTIFICATION_CLICKED', payload: data });
+                client.postMessage({
+                    type: 'NOTIFICATION_CLICKED',
+                    payload: { ...data, url: destination }
+                });
                 if ('focus' in client) return client.focus();
             }
             return clients.openWindow ? clients.openWindow(targetUrl) : null;

@@ -121,6 +121,20 @@ function MenuCard({
     useEffect(() => registerRefreshHandler('customer-rc-session', loadSessionDetails), [loadSessionDetails]);
 
     useEffect(() => {
+        const handleNotificationClick = (event) => {
+            const notification = event.detail || {};
+            const type = String(notification.type || notification.meta?.action || '').toUpperCase();
+            if (!type.startsWith('RC_') && notification.category !== 'RC_SESSION') return;
+
+            loadSessionDetails();
+            if (type === 'RC_JOIN_REQUEST') setOpenPanel('pending');
+        };
+
+        window.addEventListener('rcdine:notification-clicked', handleNotificationClick);
+        return () => window.removeEventListener('rcdine:notification-clicked', handleNotificationClick);
+    }, [loadSessionDetails]);
+
+    useEffect(() => {
         if (!rcSession?.id) return undefined;
         loadSessionDetails();
         const socket = joinRcSessionRoom(rcSession.id);

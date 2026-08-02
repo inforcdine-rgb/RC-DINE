@@ -43,6 +43,7 @@ const scheduleJoinRequestExpiry = (requestId, expiresAt) => {
             await sendRcNotification([request.mobileNumber], {
                 title: 'Join request expired',
                 message: 'Your RC Session join request expired.',
+                path: `/place/${encodeURIComponent(request.tableId)}`,
                 type: 'RC_JOIN_EXPIRED',
                 category: 'RC_SESSION',
                 entityId: requestId,
@@ -114,6 +115,7 @@ const requestJoin = async (req, res) => {
             await sendRcNotification([session?.ownerMobile], {
                 title: 'RC Session join request',
                 message: `${result.request.requesterName} wants to join your session. Phone: ${maskPhone(req.customer.phoneNumber)}`,
+                path: `/place/${encodeURIComponent(result.session.tableId)}`,
                 type: 'RC_JOIN_REQUEST',
                 category: 'RC_SESSION',
                 entityId: result.request.id,
@@ -124,7 +126,8 @@ const requestJoin = async (req, res) => {
                 meta: {
                     action: 'session:join-requested',
                     requestId: result.request.id,
-                    sessionId: result.session.id
+                    sessionId: result.session.id,
+                    tableId: result.session.tableId
                 }
             });
             scheduleJoinRequestExpiry(result.request.id, result.request.expiresAt);
@@ -181,6 +184,7 @@ const respondToRequest = async (req, res) => {
         await sendRcNotification([request?.mobileNumber], {
             title: result.status === 'ACCEPTED' ? 'Join request approved' : 'Join request rejected',
             message: result.message,
+            path: `/place/${encodeURIComponent(req.params.tableId)}`,
             type: result.status === 'ACCEPTED' ? 'RC_JOIN_APPROVED' : 'RC_JOIN_REJECTED',
             category: 'RC_SESSION',
             entityId: result.requestId,
@@ -222,6 +226,7 @@ const removeMember = async (req, res) => {
         await sendRcNotification([result.mobileNumber], {
             title: 'Removed from RC Session',
             message: 'The host removed you from the RC Session.',
+            path: `/place/${encodeURIComponent(req.params.tableId)}`,
             type: 'RC_MEMBER_REMOVED',
             category: 'RC_SESSION',
             entityId: result.sessionId,
@@ -250,6 +255,7 @@ const leave = async (req, res) => {
         await sendRcNotification([session?.ownerMobile], {
             title: 'RC Session member left',
             message: 'A member left your RC Session.',
+            path: `/place/${encodeURIComponent(req.params.tableId)}`,
             type: 'RC_MEMBER_LEFT',
             category: 'RC_SESSION',
             entityId: result.sessionId,
@@ -279,6 +285,7 @@ const end = async (req, res) => {
             {
                 title: 'RC Session ended',
                 message: 'The host ended the RC Session.',
+                path: `/place/${encodeURIComponent(result.tableId || req.params.tableId)}`,
                 type: 'RC_SESSION_ENDED',
                 category: 'RC_SESSION',
                 entityId: result.sessionId,
