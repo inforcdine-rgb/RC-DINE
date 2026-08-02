@@ -44,7 +44,7 @@ const generalLimiter = rateLimit({
     legacyHeaders: false,
 
     // Health check aur basic server route ko block mat karo
-    skip: (req) => req.method === 'OPTIONS',
+    skip: (req) => req.method === 'OPTIONS' || req.path === '/health',
 
     message: {
         message: 'Too many requests. Please try again after a few minutes.'
@@ -54,6 +54,15 @@ const generalLimiter = rateLimit({
 app.use('/api', generalLimiter);
 
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+
+app.get('/api/health', (_req, res) => {
+    return res.status(200).json({
+        success: true,
+        status: 'OK',
+        service: 'RC Dine Backend',
+        timestamp: new Date().toISOString()
+    });
+});
 
 app.get('/', (_req, res) => {
     res.send('Welcome to R&C Dine Restaurant Management System!');

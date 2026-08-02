@@ -5,19 +5,57 @@ import { toast } from 'react-toastify';
 import env from '../../config/env';
 import { setSubscriptionData, subscriptionSuccessRequest, setOrderPaymentData } from '../../store/slice';
 
-const loadScript = (src) =>
-    new Promise((resolve) => {
+let razorpayLoadPromise = null;
+
+const loadRazorpayScript = () => {
+    if (window.Razorpay) {
+        return Promise.resolve(true);
+    }
+
+    if (razorpayLoadPromise) {
+        return razorpayLoadPromise;
+    }
+
+    razorpayLoadPromise = new Promise((resolve) => {
+        const existingScript = document.querySelector(
+            'script[src="https://checkout.razorpay.com/v1/checkout.js"]'
+        );
+
+        if (existingScript) {
+            existingScript.addEventListener(
+                'load',
+                () => resolve(true),
+                { once: true }
+            );
+
+            existingScript.addEventListener(
+                'error',
+                () => {
+                    razorpayLoadPromise = null;
+                    resolve(false);
+                },
+                { once: true }
+            );
+
+            return;
+        }
+
         const script = document.createElement('script');
-        script.src = src;
-        script.onload = () => {
-            resolve(true);
-        };
+        script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+        script.async = true;
+
+        script.onload = () => resolve(true);
+
         script.onerror = () => {
-            console.error('error in loading razorpay');
+            razorpayLoadPromise = null;
             resolve(false);
         };
+
         document.body.appendChild(script);
     });
+
+    return razorpayLoadPromise;
+};
 
 export const ACTIONS = {
     ORDERS: 'orders',
@@ -34,7 +72,7 @@ function Razorpay({
     amount = 0,
     orderId = '',
     keyId = '',
-    handleSuccess = () => {}
+    handleSuccess = () => { }
 }) {
     const paymentId = useRef(null);
     const paymentMethod = useRef(null);
@@ -44,7 +82,7 @@ function Razorpay({
 
     // To load razorpay checkout modal script.
     const displayRazorpay = async (options) => {
-        const res = await loadScript('https://checkout.razorpay.com/v1/checkout.js');
+        const res = await loadRazorpayScript();
 
         if (!res) {
             toast.error('Razorpay SDK failed to load. Are you online ?');
