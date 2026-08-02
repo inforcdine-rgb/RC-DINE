@@ -182,42 +182,47 @@ const matchesRecipient = (subscription, recipient) =>
     (recipient.phoneNumber && normalizePhone(subscription.phoneNumber) === recipient.phoneNumber);
 
 const deliverToSubscription = async (subscription, payload) => {
-    if (isPushEndpointVisible(subscription.endpointHash)) {
-        const acknowledged = await emitToPushEndpoint(subscription.endpointHash, payload);
-        if (acknowledged) {
-            logger('info', 'Notification delivered through Socket.IO', {
-                event: 'notification_delivered',
-                channel: 'socket',
-                subscriptionId: subscription.id,
-                notificationId: payload.notificationId
-            });
-            return 'socket';
-        }
-
-        logger('warn', 'Visible presence did not acknowledge notification; using Web Push fallback', {
-            event: 'socket_delivery_fallback',
+    try {
+        // Always use Web Push as the primary channel. A page can remain connected to
+        // Socket.IO while it is minimized or being suspended; treating that socket as
+        // the delivery channel can prevent the OS notification from ever appearing.
+        const response = await webpush.sendNotification(
+            {
+                endpoint: subscription.endpoint,
+                expirationTime: subscription.expiration || null,
+                keys: { p256dh: subscription.p256dh, auth: subscription.auth }
+            },
+            JSON.stringify(payload),
+            { TTL: getPushTtl(payload), urgency: payload.urgency || 'high' }
+        );
+        logger('info', 'Web Push notification sent', {
+            event: 'notification_delivered',
+            channel: 'web_push',
             subscriptionId: subscription.id,
-            notificationId: payload.notificationId
+            notificationId: payload.notificationId,
+            statusCode: response?.statusCode
         });
+        return 'push';
+    } catch (pushError) {
+        // Keep the live socket only as a foreground fallback. Background and closed
+        // clients must never depend on it for notification delivery.
+        const invalidEndpoint = pushError?.statusCode === 404 || pushError?.statusCode === 410;
+        if (!invalidEndpoint && isPushEndpointVisible(subscription.endpointHash)) {
+            const acknowledged = await emitToPushEndpoint(subscription.endpointHash, payload);
+            if (acknowledged) {
+                logger('warn', 'Web Push failed; notification delivered through foreground Socket.IO fallback', {
+                    event: 'notification_delivered',
+                    channel: 'socket_fallback',
+                    subscriptionId: subscription.id,
+                    notificationId: payload.notificationId,
+                    pushStatusCode: pushError?.statusCode,
+                    pushMessage: pushError?.message
+                });
+                return 'socket';
+            }
+        }
+        throw pushError;
     }
-
-    const response = await webpush.sendNotification(
-        {
-            endpoint: subscription.endpoint,
-            expirationTime: subscription.expiration || null,
-            keys: { p256dh: subscription.p256dh, auth: subscription.auth }
-        },
-        JSON.stringify(payload),
-        { TTL: getPushTtl(payload), urgency: payload.urgency || 'high' }
-    );
-    logger('info', 'Web Push notification sent', {
-        event: 'notification_delivered',
-        channel: 'web_push',
-        subscriptionId: subscription.id,
-        notificationId: payload.notificationId,
-        statusCode: response?.statusCode
-    });
-    return 'push';
 };
 
 const sendNotification = async (userIds, data, customerId = undefined, options = {}) => {
@@ -265,7 +270,15 @@ const sendNotification = async (userIds, data, customerId = undefined, options =
                     notificationId: stored.notification.id,
                     type: getType(data),
                     category: getCategory(data),
-                    createdAt: stored.notification.createdAt
+                    createdAt: stored.notification.createdAt,
+                    silent: data.silent === true,
+                    requireInteraction:
+                        typeof data.requireInteraction === 'boolean'
+                            ? data.requireInteraction
+                            : getType(data) === 'NEW_ORDER',
+                    vibrate:
+                        data.vibrate ||
+                        (getType(data) === 'NEW_ORDER' ? [250, 100, 250, 100, 350] : [120, 60, 120])
                 };
 
                 try {

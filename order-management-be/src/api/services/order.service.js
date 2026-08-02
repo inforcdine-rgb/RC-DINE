@@ -494,11 +494,14 @@ const placeOrder = async (payload) => {
             .sendNotification(userIds, {
                 title: `Order Updates`,
                 message: `Table-${payload.tableNumber} order is placed / updated.`,
-                path: 'orders',
+                path: '/orders',
                 type: 'NEW_ORDER',
                 category: 'ORDERS',
                 entityId: orderId,
                 dedupeKey: `new-order:${orderId}`,
+                urgency: 'high',
+                requireInteraction: true,
+                silent: false,
                 meta: {
                     action: NOTIFICATION_ACTIONS.ORDER_PLACEMENT,
                     orderId,
@@ -616,6 +619,7 @@ const createWalkInOrder = async (payload) => {
     try {
         const customerId = uuidv4();
         const orderNumber = `ORD-${Date.now().toString().slice(-8)}`;
+        const orderId = `${customerId}-1`;
         const tableNumber = Number(payload.tableNumber) || 0;
 
         const hotel = await hotelRepo.find({
@@ -725,7 +729,14 @@ const createWalkInOrder = async (payload) => {
                 notificationService.sendNotification(userIds, {
                     title: 'New Walk-in Order',
                     message: `${payload.orderType || `Table-${tableNumber}`} order placed.`,
-                    path: 'orders',
+                    path: '/orders',
+                    type: 'NEW_ORDER',
+                    category: 'ORDERS',
+                    entityId: orderId,
+                    dedupeKey: `new-walk-in-order:${orderId}`,
+                    urgency: 'high',
+                    requireInteraction: true,
+                    silent: false,
                     meta: {
                         action: NOTIFICATION_ACTIONS.ORDER_PLACEMENT,
                         hotelId: payload.hotelId,

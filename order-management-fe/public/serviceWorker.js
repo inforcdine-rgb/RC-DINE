@@ -1,6 +1,6 @@
 /* global caches, clients */
 
-const CACHE_VERSION = 'v2';
+const CACHE_VERSION = 'v3';
 const APP_SHELL_CACHE = `rcdine-shell-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `rcdine-runtime-${CACHE_VERSION}`;
 const APP_SHELL = [
@@ -141,6 +141,7 @@ self.addEventListener('push', (event) => {
     }
 
     const payload = normalizePayload(raw);
+    const isNewOrder = payload.type === 'NEW_ORDER';
     const targetUrl = toSameOriginUrl(payload.path);
     const payloadActions = Array.isArray(payload.actions) ? payload.actions.slice(0, 2) : [];
     const actions = payloadActions.map(({ action, title, icon }) => ({ action, title, icon }));
@@ -173,9 +174,10 @@ self.addEventListener('push', (event) => {
                 badge: payload.badge || '/R-C DINE.png',
                 tag: payload.dedupeKey || payload.notificationId || payload.entityId || `rcdine-${payload.type}`,
                 renotify: true,
-                requireInteraction: Boolean(payload.requireInteraction),
-                silent: Boolean(payload.silent),
-                vibrate: payload.vibrate || [120, 60, 120],
+                requireInteraction:
+                    typeof payload.requireInteraction === 'boolean' ? payload.requireInteraction : isNewOrder,
+                silent: payload.silent === true,
+                vibrate: payload.vibrate || (isNewOrder ? [250, 100, 250, 100, 350] : [120, 60, 120]),
                 timestamp: payload.createdAt ? new Date(payload.createdAt).getTime() : Date.now(),
                 actions,
                 data: {
