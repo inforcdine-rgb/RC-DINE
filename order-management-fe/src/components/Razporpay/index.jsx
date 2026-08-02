@@ -17,16 +17,10 @@ const loadRazorpayScript = () => {
     }
 
     razorpayLoadPromise = new Promise((resolve) => {
-        const existingScript = document.querySelector(
-            'script[src="https://checkout.razorpay.com/v1/checkout.js"]'
-        );
+        const existingScript = document.querySelector('script[src="https://checkout.razorpay.com/v1/checkout.js"]');
 
         if (existingScript) {
-            existingScript.addEventListener(
-                'load',
-                () => resolve(true),
-                { once: true }
-            );
+            existingScript.addEventListener('load', () => resolve(true), { once: true });
 
             existingScript.addEventListener(
                 'error',
@@ -72,7 +66,7 @@ function Razorpay({
     amount = 0,
     orderId = '',
     keyId = '',
-    handleSuccess = () => { }
+    handleSuccess = () => {}
 }) {
     const paymentId = useRef(null);
     const paymentMethod = useRef(null);

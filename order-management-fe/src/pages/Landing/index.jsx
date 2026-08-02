@@ -960,17 +960,14 @@ function Landing() {
                         <button type="button" className="footer-link-button" onClick={() => navigate('/contact')}>
                             Contact
                         </button>
+                        <a href="/portfolio/">Portfolio</a>
                         <button type="button" className="footer-link-button" onClick={() => navigate('/privacy')}>
                             Privacy
                         </button>
                         <button type="button" className="footer-link-button" onClick={() => navigate('/terms')}>
                             Terms
                         </button>
-                        <button
-                            type="button"
-                            className="footer-link-button"
-                            onClick={() => navigate('/refund-policy')}
-                        >
+                        <button type="button" className="footer-link-button" onClick={() => navigate('/refund-policy')}>
                             Cancellation & Refunds
                         </button>
                         <button

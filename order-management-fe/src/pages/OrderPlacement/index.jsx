@@ -299,9 +299,7 @@ function OrderPlacement() {
     const handlePaymentSuccess = (payload) => {
         const menus = Array.isArray(orderPaymentData?.menus)
             ? orderPaymentData.menus
-            : Object.values(orderDetails || {}).filter(
-                (item) => item && item.menuId && Number(item.quantity) > 0
-            );
+            : Object.values(orderDetails || {}).filter((item) => item && item.menuId && Number(item.quantity) > 0);
 
         /* eslint-disable camelcase */
         dispatch(
@@ -318,7 +316,7 @@ function OrderPlacement() {
                 navigate
             })
         );
-    /* eslint-enable camelcase */
+        /* eslint-enable camelcase */
     };
 
     const downloadInvoicePdf = () => {
