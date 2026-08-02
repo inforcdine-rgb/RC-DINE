@@ -29,12 +29,39 @@ const createOrder = async (req, res) => {
             cur[item.id] = item;
             return cur;
         }, {});
-        menus.forEach((item) => {
-            const liveItem = liveMenuById[item.menuId];
-            if (!liveItem) throw CustomError(STATUS_CODE.NOT_FOUND, `${item.menuName || 'Menu item'} not found`);
-            if (liveItem.status === 'UNAVAILABLE') { throw CustomError(STATUS_CODE.BAD_REQUEST, `${liveItem.name} is unavailable`); }
-            item.price = liveItem.price;
-            item.menuName = liveItem.name;
+        const verifiedMenus = menus.map((item) => {
+            const liveItem = liveMenuById[String(item.menuId)];
+
+            if (!liveItem) {
+                throw CustomError(
+                    STATUS_CODE.NOT_FOUND,
+                    `${item.menuName || 'Menu item'} not found`
+                );
+            }
+
+            if (liveItem.status === 'UNAVAILABLE') {
+                throw CustomError(
+                    STATUS_CODE.BAD_REQUEST,
+                    `${liveItem.name} is unavailable`
+                );
+            }
+
+            const quantity = Number(item.quantity);
+
+            if (!Number.isInteger(quantity) || quantity <= 0) {
+                throw CustomError(
+                    STATUS_CODE.BAD_REQUEST,
+                    `Invalid quantity for ${liveItem.name}`
+                );
+            }
+
+            return {
+                ...item,
+                menuId: liveItem.id,
+                menuName: liveItem.name,
+                price: Number(liveItem.price),
+                quantity
+            };
         });
 
         const hotel = await hotelRepo.find({
