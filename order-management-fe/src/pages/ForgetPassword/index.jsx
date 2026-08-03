@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import CryptoJS from 'crypto-js';
 import { Form, Formik } from 'formik';
 import { useNavigate } from 'react-router-dom';
@@ -9,11 +9,12 @@ import CustomFormGroup from '../../components/CustomFormGroup';
 import CustomLink from '../../components/CustomLink';
 import RecoveryCodeField from '../../components/RecoveryCodeField';
 import env from '../../config/env';
-import { resetOwnerPassword } from '../../services/auth.service';
-import { ownerRecoveryResetSchema } from '../../validations/auth';
+import { forgotPasswordUser, resetOwnerPassword } from '../../services/auth.service';
+import { emailSchema, ownerRecoveryResetSchema } from '../../validations/auth';
 
 const ForgotPassword = () => {
     const navigate = useNavigate();
+    const [recoveryMethod, setRecoveryMethod] = useState('code');
     const initialValues = {
         email: '',
         recoveryCode: '',
@@ -42,29 +43,87 @@ const ForgotPassword = () => {
         navigate('/login');
     };
 
+    const handleSendResetLink = async (values, { setSubmitting }) => {
+        try {
+            const response = await forgotPasswordUser({ email: values.email.trim().toLowerCase() });
+            toast.success(response.message || 'Reset password link sent successfully.');
+            navigate('/login');
+        } catch (error) {
+            toast.error(error?.message || 'Unable to send password reset link.');
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
     return (
         <AuthContainer title={'Forgot Password'}>
-            <Formik initialValues={initialValues} validationSchema={ownerRecoveryResetSchema} onSubmit={handleSubmit}>
-                {({ isSubmitting, dirty, isValid }) => (
-                    <Form className="d-flex flex-column">
-                        <CustomFormGroup name="email" type="email" label="Registered Email" />
-                        <RecoveryCodeField name="recoveryCode" label="Recovery Code" />
-                        <CustomFormGroup name="newPassword" type="password" label="New Password" />
-                        <CustomFormGroup name="confirmNewPassword" type="password" label="Confirm New Password" />
-                        <CustomButton
-                            label={isSubmitting ? 'Resetting...' : 'Reset Password'}
-                            type="submit"
-                            disabled={isSubmitting || !isValid || !dirty}
-                            className="mx-auto my-4"
-                        />
-                        <div className="text-center">
-                            <p className="label-font m-0">
-                                Remember your password? <CustomLink onClick={handleOnClickLogin} text="Owner Login" />
+            <div className="btn-group w-100 mb-4" role="group" aria-label="Choose password recovery method">
+                <button
+                    type="button"
+                    className={`btn ${recoveryMethod === 'code' ? 'btn-success' : 'btn-outline-success'}`}
+                    onClick={() => setRecoveryMethod('code')}
+                >
+                    Use Recovery Code
+                </button>
+                <button
+                    type="button"
+                    className={`btn ${recoveryMethod === 'email' ? 'btn-success' : 'btn-outline-success'}`}
+                    onClick={() => setRecoveryMethod('email')}
+                >
+                    Send Reset Link
+                </button>
+            </div>
+
+            {recoveryMethod === 'code' ? (
+                <Formik
+                    initialValues={initialValues}
+                    validationSchema={ownerRecoveryResetSchema}
+                    onSubmit={handleSubmit}
+                >
+                    {({ isSubmitting, dirty, isValid }) => (
+                        <Form className="d-flex flex-column">
+                            <p className="text-muted small">Reset immediately using your private 4-digit code.</p>
+                            <CustomFormGroup name="email" type="email" label="Registered Email" />
+                            <RecoveryCodeField name="recoveryCode" label="Recovery Code" />
+                            <CustomFormGroup name="newPassword" type="password" label="New Password" />
+                            <CustomFormGroup name="confirmNewPassword" type="password" label="Confirm New Password" />
+                            <CustomButton
+                                label={isSubmitting ? 'Resetting...' : 'Reset Password'}
+                                type="submit"
+                                disabled={isSubmitting || !isValid || !dirty}
+                                className="mx-auto my-4"
+                            />
+                        </Form>
+                    )}
+                </Formik>
+            ) : (
+                <Formik
+                    initialValues={{ email: '' }}
+                    validationSchema={emailSchema}
+                    onSubmit={handleSendResetLink}
+                >
+                    {({ isSubmitting, dirty, isValid }) => (
+                        <Form className="d-flex flex-column">
+                            <p className="text-muted small">
+                                We will email a secure link that remains valid for one hour.
                             </p>
-                        </div>
-                    </Form>
-                )}
-            </Formik>
+                            <CustomFormGroup name="email" type="email" label="Registered Email" />
+                            <CustomButton
+                                label={isSubmitting ? 'Sending...' : 'Send Reset Link'}
+                                type="submit"
+                                disabled={isSubmitting || !isValid || !dirty}
+                                className="mx-auto my-4"
+                            />
+                        </Form>
+                    )}
+                </Formik>
+            )}
+
+            <div className="text-center">
+                <p className="label-font m-0">
+                    Remember your password? <CustomLink onClick={handleOnClickLogin} text="Owner Login" />
+                </p>
+            </div>
         </AuthContainer>
     );
 };

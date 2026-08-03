@@ -58,6 +58,17 @@ const extendSubscription = async (req, res) => {
     }
 };
 
+const sendOwnerPasswordResetLink = async (req, res) => {
+    try {
+        const result = await adminService.sendOwnerPasswordResetLink(req.params.id);
+        logger('info', `Admin sent password reset link for owner ${req.params.id}`);
+        return res.status(STATUS_CODE.OK).send(result);
+    } catch (error) {
+        logger('error', 'Error occurred while sending owner password reset link', { error });
+        return res.status(error.code || STATUS_CODE.INTERNAL_SERVER_ERROR).send({ message: error.message });
+    }
+};
+
 const revenue = async (req, res) => {
     try {
         const result = await adminService.revenue();
@@ -97,6 +108,7 @@ export default {
     ownerDetail,
     blockOwner,
     extendSubscription,
+    sendOwnerPasswordResetLink,
     revenue,
     getSettings,
     updateSettings

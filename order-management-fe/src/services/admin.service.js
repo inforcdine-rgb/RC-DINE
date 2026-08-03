@@ -46,6 +46,15 @@ export const extendSubscription = async (id, days) => {
     }
 };
 
+export const sendOwnerPasswordResetLink = async (id) => {
+    try {
+        return await api(method.POST, `/admin/owners/${id}/password-reset-link`);
+    } catch (error) {
+        console.error(`Error sending owner password reset link ${error}`);
+        throw error;
+    }
+};
+
 export const revenue = async () => {
     try {
         return await api(method.GET, '/admin/revenue');

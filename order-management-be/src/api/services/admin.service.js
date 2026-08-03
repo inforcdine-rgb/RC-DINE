@@ -8,6 +8,7 @@ import subscriptionPlanRepo from '../repositories/subscriptionPlan.repository.js
 import userRepo from '../repositories/user.repository.js';
 import { CustomError, STATUS_CODE } from '../utils/common.js';
 import { hashPassword } from '../utils/password.js';
+import userService from './user.service.js';
 
 const sanitizeOwner = (owner) => {
     const hotels = (owner.hotelUserRelations || []).map((relation) => relation.hotel).filter(Boolean);
@@ -178,6 +179,23 @@ const extendSubscription = async (ownerId, days) => {
     }
 };
 
+const sendOwnerPasswordResetLink = async (ownerId) => {
+    try {
+        const result = await userService.sendPasswordResetLink({
+            userId: ownerId,
+            role: USER_ROLES[0]
+        });
+        logger('info', `Password reset link sent for owner ${ownerId}`);
+        return result;
+    } catch (error) {
+        logger('error', 'Error sending owner password reset link', { ownerId, error });
+        if (error.message === 'Invalid Email') {
+            throw CustomError(STATUS_CODE.NOT_FOUND, 'Owner not found');
+        }
+        throw CustomError(error.code || 500, error.message);
+    }
+};
+
 const revenue = async () => {
     try {
         const owners = await db.users.findAll({
@@ -324,6 +342,7 @@ export default {
     getOwnerDetail,
     blockOwner,
     extendSubscription,
+    sendOwnerPasswordResetLink,
     revenue,
     getSettings,
     updateSettings

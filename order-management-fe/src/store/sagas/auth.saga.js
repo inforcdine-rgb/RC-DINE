@@ -77,7 +77,7 @@ function* forgotPasswordRequestSaga(action) {
         const { data, navigate } = action.payload;
         yield service.forgotPasswordUser(data);
         toast.success('Reset password email sent successfully');
-        navigate('/');
+        navigate('/login');
     } catch (error) {
         toast.error(`Failed to send: ${error?.message}`);
     }
@@ -88,7 +88,7 @@ function* resetPasswordRequestSaga(action) {
         const { data, navigate } = action.payload;
         yield service.resetPasswordUser(data);
         toast.success('Password reset successfully');
-        navigate('/');
+        navigate('/login');
     } catch (error) {
         toast.error(`Failed to reset password: ${error?.message}`);
     }

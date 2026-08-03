@@ -10,6 +10,12 @@ router.get('/owners', authenticate, adminAuthentication, adminController.owners)
 router.get('/owners/:id', authenticate, adminAuthentication, adminController.ownerDetail);
 router.patch('/owners/:id/block', authenticate, adminAuthentication, adminController.blockOwner);
 router.patch('/owners/:id/extend', authenticate, adminAuthentication, adminController.extendSubscription);
+router.post(
+    '/owners/:id/password-reset-link',
+    authenticate,
+    adminAuthentication,
+    adminController.sendOwnerPasswordResetLink
+);
 router.get('/revenue', authenticate, adminAuthentication, adminController.revenue);
 router.get('/settings', authenticate, adminAuthentication, adminController.getSettings);
 router.put('/settings', authenticate, adminAuthentication, adminController.updateSettings);

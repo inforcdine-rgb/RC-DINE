@@ -22,8 +22,45 @@ const isDev = env.app.isDevelopment;
 const OWNER_RECOVERY_ERROR = 'Email or recovery code is incorrect.';
 const OWNER_RECOVERY_LOCK_MINUTES = 30;
 const OWNER_RECOVERY_MAX_ATTEMPTS = 5;
+const PASSWORD_RESET_PURPOSE = 'PASSWORD_RESET';
+const PASSWORD_RESET_ERROR = 'Invalid or expired password reset link.';
 
 const encryptPassword = async (password) => hashPassword(password);
+
+const createPasswordResetToken = (user) =>
+    jwt.sign(
+        {
+            sub: user.id,
+            purpose: PASSWORD_RESET_PURPOSE,
+            tokenVersion: Number(user.tokenVersion || 0)
+        },
+        env.jwtSecret,
+        { expiresIn: '1h' }
+    );
+
+const sendPasswordResetLink = async ({ email, userId, role } = {}) => {
+    if (!email && !userId) {
+        throw CustomError(STATUS_CODE.BAD_REQUEST, 'Invalid password reset request.');
+    }
+
+    const where = {};
+    if (userId) where.id = userId;
+    if (email) where.email = String(email).trim().toLowerCase();
+    if (role) where.role = role;
+
+    const user = await userRepo.findOne({
+        where,
+        attributes: ['id', 'email', 'role', 'tokenVersion']
+    });
+
+    if (!user) {
+        throw CustomError(STATUS_CODE.BAD_REQUEST, 'Invalid Email');
+    }
+
+    const token = createPasswordResetToken(user);
+    await sendEmail({ token }, user.email, EMAIL_ACTIONS.FORGOT_PASSWORD);
+    return { message: 'Recover password link sent. Please check your email.' };
+};
 
 const sanitizeUser = (value) => {
     const source = typeof value?.toJSON === 'function' ? value.toJSON() : value?.dataValues || value || {};
@@ -295,33 +332,12 @@ const verify = async (payload) => {
 
 const forget = async (payload) => {
     try {
-        const { email } = payload;
+        const email = String(payload.email || '')
+            .trim()
+            .toLowerCase();
         logger('debug', `Initiating forgot password for email: ${email}`);
-
-        const user = await userRepo.findOne({ where: { email } });
-        if (!user) {
-            logger('error', 'User not found with the provided email.');
-            throw CustomError(STATUS_CODE.BAD_REQUEST, 'Invalid Email');
-        }
-
-        // Verification checks are removed.
-
-        if (isDev) {
-            logger('info', `Skipping forgot-password email in development for ${email}`);
-            return { message: 'Password recovery is disabled in development. Use your existing password to log in.' };
-        }
-
-        const verifyOptions = {
-            email: user.email,
-            expires: moment().add(1, 'hour').valueOf()
-        };
-
-        const token = CryptoJS.AES.encrypt(JSON.stringify(verifyOptions), env.cryptoSecret).toString();
-
         logger('info', 'Sending verification email for forgot password');
-        await sendEmail({ token: encodeURIComponent(token) }, user.email, EMAIL_ACTIONS.FORGOT_PASSWORD);
-
-        return { message: 'Recover password link sent. Please check your email.' };
+        return await sendPasswordResetLink({ email });
     } catch (error) {
         logger('error', `Error occurred during forgot password process: ${error.message}`);
         throw CustomError(error.code, error.message);
@@ -330,45 +346,39 @@ const forget = async (payload) => {
 
 const reset = async (payload) => {
     try {
-        const { email, newPassword, expires } = payload;
-        logger('debug', `Initiating password reset for email: ${email}`);
-
-        const user = await userRepo.findOne({ where: { email } });
-        if (!user) {
-            logger('error', 'User not found for password reset.');
-            throw CustomError(STATUS_CODE.BAD_REQUEST, 'Invalid request');
+        const { token, newPassword } = payload;
+        let resetClaims;
+        try {
+            resetClaims = jwt.verify(token, env.jwtSecret);
+        } catch (_error) {
+            throw CustomError(STATUS_CODE.BAD_REQUEST, PASSWORD_RESET_ERROR);
         }
 
-        // Verification checks are removed.
-
-        if (isDev) {
-            await userRepo.update(
-                { where: { id: user.id } },
-                { password: await encryptPassword(newPassword), status: USER_STATUS[0] }
-            );
-            return { message: 'Password reset successfully' };
+        if (resetClaims.purpose !== PASSWORD_RESET_PURPOSE || !resetClaims.sub) {
+            throw CustomError(STATUS_CODE.BAD_REQUEST, PASSWORD_RESET_ERROR);
         }
 
-        if (moment().valueOf() > expires) {
-            logger('info', 'Password reset link expired. Resending email for password reset.');
-            const options = {
-                email: user.email,
-                password: user.password,
-                expires: moment().add(1, 'hour').valueOf()
-            };
-            const token = CryptoJS.AES.encrypt(JSON.stringify(options), env.cryptoSecret).toString();
-            await sendEmail({ token: encodeURIComponent(token) }, user.email, EMAIL_ACTIONS.FORGOT_PASSWORD);
-            throw CustomError(
-                STATUS_CODE.GONE,
-                `Sorry, the link has expired. We've sent a new one to your email. Please check and try again.`
-            );
+        const user = await userRepo.findOne({
+            where: { id: resetClaims.sub },
+            attributes: ['id', 'tokenVersion']
+        });
+        if (!user || Number(user.tokenVersion || 0) !== Number(resetClaims.tokenVersion || 0)) {
+            throw CustomError(STATUS_CODE.BAD_REQUEST, PASSWORD_RESET_ERROR);
         }
 
-        await userRepo.update({ where: { id: user.id } }, { password: await encryptPassword(newPassword) });
-        return { message: 'Password reset successfully' };
+        await userRepo.update(
+            { where: { id: user.id } },
+            {
+                password: await encryptPassword(newPassword),
+                passwordChangedAt: new Date(),
+                tokenVersion: Number(user.tokenVersion || 0) + 1
+            }
+        );
+        return { message: 'Password reset successfully. Please login with your new password.' };
     } catch (error) {
         logger('error', `Error occurred during password reset process: ${error.message}`);
-        throw CustomError(error.code, error.message);
+        if (isCustomError(error)) throw error;
+        throw CustomError(STATUS_CODE.BAD_REQUEST, PASSWORD_RESET_ERROR);
     }
 };
 
@@ -688,6 +698,7 @@ export default {
     verify,
     forget,
     reset,
+    sendPasswordResetLink,
     resetOwnerPassword,
     setRecoveryCode,
     invite,

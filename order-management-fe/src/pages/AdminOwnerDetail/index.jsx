@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Card, Col, Row } from 'react-bootstrap';
 import { useNavigate, useParams } from 'react-router-dom';
+import { toast } from 'react-toastify';
 import CustomButton from '../../components/CustomButton';
 import Loader from '../../components/Loader';
 import * as adminService from '../../services/admin.service';
@@ -11,6 +12,7 @@ function AdminOwnerDetail() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [owner, setOwner] = useState(null);
+    const [sendingResetLink, setSendingResetLink] = useState(false);
 
     useEffect(() => {
         const loadOwner = async () => {
@@ -28,6 +30,21 @@ function AdminOwnerDetail() {
         }
     }, [id]);
 
+    const handleSendResetLink = async () => {
+        const confirmed = window.confirm(`Send a password reset link to ${owner.email}?`);
+        if (!confirmed) return;
+
+        setSendingResetLink(true);
+        try {
+            const response = await adminService.sendOwnerPasswordResetLink(id);
+            toast.success(response.message || 'Password reset link sent successfully.');
+        } catch (err) {
+            toast.error(err?.message || 'Unable to send password reset link.');
+        } finally {
+            setSendingResetLink(false);
+        }
+    };
+
     if (loading) {
         return <Loader />;
     }
@@ -38,7 +55,7 @@ function AdminOwnerDetail() {
                 <div className="alert alert-danger" role="alert">
                     {error}
                 </div>
-                <CustomButton label="Go Back" onClick={() => navigate('/admin/owners')} />
+                <CustomButton disabled={false} label="Go Back" onClick={() => navigate('/admin/owners')} />
             </div>
         );
     }
@@ -47,7 +64,7 @@ function AdminOwnerDetail() {
         <div className="m-4">
             <div className="d-flex justify-content-between align-items-center mb-4">
                 <h4 className="text-white pt-4 m-0">Owner Details</h4>
-                <CustomButton label="Back to Owners" onClick={() => navigate('/admin/owners')} />
+                <CustomButton disabled={false} label="Back to Owners" onClick={() => navigate('/admin/owners')} />
             </div>
             <Row className="g-3 mb-4">
                 <Col xs={12} md={6}>
@@ -68,6 +85,15 @@ function AdminOwnerDetail() {
                         <p className="my-2">
                             <strong>Assigned Managers Count:</strong> {owner.managerCount || 0}
                         </p>
+                        <hr />
+                        <p className="text-muted small mb-2">
+                            Send a secure one-hour password reset link to the owner&apos;s registered email.
+                        </p>
+                        <CustomButton
+                            disabled={sendingResetLink}
+                            label={sendingResetLink ? 'Sending Reset Link...' : 'Send Password Reset Link'}
+                            onClick={handleSendResetLink}
+                        />
                     </Card>
                 </Col>
                 <Col xs={12} md={6}>

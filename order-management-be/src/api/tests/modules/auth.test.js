@@ -1,5 +1,6 @@
 import { db } from '../../../config/database.js';
 import userController from '../../controllers/user.controllers';
+import { comparePassword } from '../../utils/password.js';
 import { register, login, verify, forget, reset } from '../utils/dummy.auth';
 // mock the database operations
 jest.mock('../../../config/database.js', () => {
@@ -300,8 +301,8 @@ describe('testing user cases', () => {
 
         resetPasswordData.db.save = jest.fn();
         db.users.findOne.mockResolvedValue(resetPasswordData.db);
-        db.users.update.mockImplementation(async (data, options) => {
-            resetPasswordData.db.password = resetPasswordData.body.newPassword;
+        db.users.update.mockImplementation(async (data) => {
+            resetPasswordData.db.password = data.password;
             return [1];
         });
         await userController.reset({ body: resetPasswordData.body }, res);
@@ -315,6 +316,6 @@ describe('testing user cases', () => {
         // compare the error message
         const data = res.send.mock.calls[0][0];
         expect(data).toEqual(resetPasswordData.res.data);
-        expect(resetPasswordData.db.password).toEqual(resetPasswordData.body.newPassword);
+        expect(await comparePassword('Test@1237', resetPasswordData.db.password)).toBe(true);
     });
 });

@@ -1,4 +1,5 @@
 import CryptoJS from 'crypto-js';
+import jwt from 'jsonwebtoken';
 import moment from 'moment';
 import { USER_STATUS } from '../../models/user.model.js';
 import { STATUS_CODE } from '../../utils/common.js';
@@ -219,6 +220,10 @@ export const forget = {
             email: 'valid-email@test.com'
         },
         db: {
+            id: 'forgot-user',
+            email: 'valid-email@test.com',
+            role: 'OWNER',
+            tokenVersion: 0,
             status: USER_STATUS[0]
         },
         res: {
@@ -231,16 +236,21 @@ export const forget = {
 export const reset = {
     resetPasswordData: {
         body: {
-            email: 'valid-email@test.com',
-            newPassword: encrypt('Test@1237'), // Test@1237
-            expires: moment().add(1, 'hour').valueOf()
+            token: jwt.sign(
+                { sub: 'reset-user', purpose: 'PASSWORD_RESET', tokenVersion: 0 },
+                'test-jwt-secret',
+                { expiresIn: '1h' }
+            ),
+            newPassword: encrypt('Test@1237') // Test@1237
         },
         db: {
+            id: 'reset-user',
+            tokenVersion: 0,
             password: ''
         },
         res: {
             code: STATUS_CODE.OK,
-            data: { message: 'Password reset successfully' }
+            data: { message: 'Password reset successfully. Please login with your new password.' }
         }
     }
 };

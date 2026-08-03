@@ -29,6 +29,14 @@ const CACHEABLE_PATHS = [
     /^\/order\/menu(?:\?|$)/,
     /^\/order\/[^/]+(?:\/status|\/details)?(?:\?|$)/
 ];
+const PUBLIC_AUTH_PATHS = new Set(['/user/login', '/user/register', '/user/forget', '/user/reset']);
+
+const getRequestPath = (config = {}) => String(config.url || '').replace(instance.defaults.baseURL || '', '').split('?')[0];
+
+const getBearerToken = (authorization = '') => {
+    const [scheme, token] = String(authorization).split(' ');
+    return scheme?.toLowerCase() === 'bearer' ? token || '' : '';
+};
 
 const isGetRequest = (config = {}) => String(config.method).toLowerCase() === 'get';
 const isCacheableRequest = (config = {}) => {
@@ -145,10 +153,12 @@ instance.interceptors.request.use(
         const customerToken = localStorage.getItem('rcCustomerToken') || localStorage.getItem('customerToken');
 
         const token = staffToken || customerToken;
+        const requestPath = getRequestPath(config);
 
-        if (token && !config.headers.Authorization) {
+        if (token && !PUBLIC_AUTH_PATHS.has(requestPath) && !config.headers.Authorization) {
             config.headers.Authorization = `Bearer ${token}`;
         }
+        config.__authToken = getBearerToken(config.headers.Authorization);
         // Let the browser generate the multipart boundary for FormData uploads.
         if (config.data instanceof FormData) {
             delete config.headers['Content-Type'];
@@ -187,6 +197,16 @@ instance.interceptors.response.use(
             }
         }
         if (error.response && ERROR_MESSAGE.includes(error.response.data?.message)) {
+            const failedToken = error.config?.__authToken || getBearerToken(error.config?.headers?.Authorization);
+            const currentStaffToken = localStorage.getItem('token');
+            const isCurrentStaffSession = Boolean(currentStaffToken && failedToken === currentStaffToken);
+
+            // A response from an older in-flight request must never clear a token
+            // that was issued by a newer successful login.
+            if (!isCurrentStaffSession) {
+                throw error;
+            }
+
             localStorage.removeItem('token');
             localStorage.removeItem('data');
             localStorage.removeItem('user');
