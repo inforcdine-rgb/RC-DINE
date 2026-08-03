@@ -41,6 +41,11 @@ const recipientWhere = ({ userId, customerId, phoneNumber }) => {
     throw CustomError(STATUS_CODE.BAD_REQUEST, 'Notification recipient is required');
 };
 
+const getPublicConfig = () => ({
+    enabled: isWebPushReady(),
+    vapidPublicKey: isWebPushReady() ? env.notification.publicKey : ''
+});
+
 const subscribe = async (payload) => {
     try {
         if (!isWebPushReady()) {
@@ -363,6 +368,7 @@ const restore = async (identity, notificationId) => {
 };
 
 export default {
+    getPublicConfig,
     subscribe,
     unsubscribe,
     sendNotification,

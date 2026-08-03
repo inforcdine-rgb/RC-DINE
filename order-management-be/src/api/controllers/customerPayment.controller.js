@@ -80,7 +80,7 @@ const createOrder = async (req, res) => {
         const gstEnabled = !!hotel?.gstEnabled;
         const gstPercent = gstEnabled ? Number(hotel?.gstPercent || 0) : 0;
 
-        const subtotal = menus.reduce((sum, item) => sum + item.price * item.quantity, 0);
+        const subtotal = verifiedMenus.reduce((sum, item) => sum + item.price * item.quantity, 0);
         const discountEnabled = !!hotel?.discountEnabled;
         const discountType = hotel?.discountType || null;
         const discountValue = Number(hotel?.discountValue || 0);
@@ -171,7 +171,7 @@ const createOrder = async (req, res) => {
             subtotal,
             taxableAmount,
             tipAmount: Number(tipAmount) || 0,
-            menus,
+            menus: verifiedMenus,
             customer: {
                 name: customer.name,
                 email: customer.email,

@@ -5,6 +5,10 @@ import customerNotificationAuth from '../middlewares/customerNotificationAuth.js
 
 const router = Router();
 
+// The public key is safe to expose. Keeping the backend authoritative avoids
+// stale/mismatched keys baked into an older frontend build.
+router.get('/public-config', notificationController.publicConfig);
+
 const addNotificationRoutes = (route, middleware) => {
     route.get('/', middleware, notificationController.fetch);
     route.put('/', middleware, notificationController.update);

@@ -8,6 +8,7 @@ const LAST_SYNC_KEY = 'rcdinePushLastSync';
 const SYNC_INTERVAL_MS = 5 * 60 * 1000;
 const NOTIFICATION_QUERY_KEY = 'rcNotification';
 let lifecycleInitialized = false;
+let vapidKeyPromise = null;
 const syncPromises = new Map();
 
 const logPushEvent = (event, details = {}) => {
@@ -32,6 +33,35 @@ const validateVapidKey = (value) => {
     const key = urlBase64ToUint8Array(value);
     if (key.length !== 65) throw new Error('REACT_APP_NOTIFICATION_KEY is not a valid Web Push public key');
     return key;
+};
+
+const getVapidPublicKey = async () => {
+    if (!vapidKeyPromise) {
+        vapidKeyPromise = instance
+            .get('/notification/public-config')
+            .then((response) => {
+                const config = response.data || {};
+                if (!config.enabled || !config.vapidPublicKey) {
+                    throw new Error(
+                        'Backend Web Push is not configured. Set WEB_PUSH_PUBLIC_KEY, WEB_PUSH_PRIVATE_KEY and WEB_PUSH_EMAIL.'
+                    );
+                }
+                const key = normalizeVapidKey(config.vapidPublicKey);
+                validateVapidKey(key);
+                return key;
+            })
+            .catch((error) => {
+                const fallbackKey = normalizeVapidKey(env.notificationKey);
+                if (fallbackKey) {
+                    validateVapidKey(fallbackKey);
+                    logPushEvent('vapid_key_fallback', { source: 'frontend_env' });
+                    return fallbackKey;
+                }
+                vapidKeyPromise = null;
+                throw error;
+            });
+    }
+    return vapidKeyPromise;
 };
 
 const arrayBufferToBase64Url = (buffer) => {
@@ -120,7 +150,7 @@ export const restoreCustomerNotification = (notificationId, token) =>
 
 const syncSubscription = async ({ audience, token }) => {
     const registration = await registerServiceWorker();
-    const configuredVapidKey = normalizeVapidKey(env.notificationKey);
+    const configuredVapidKey = await getVapidPublicKey();
     let subscription = await registration.pushManager.getSubscription();
     const subscribedVapidKey = arrayBufferToBase64Url(subscription?.options?.applicationServerKey);
 
@@ -181,11 +211,6 @@ export const enableWebPush = async ({ audience = 'manager', token, requestPermis
         logPushEvent('permission_checked', { permission: capability.permission, needsIosInstall: true });
         return { status: 'ios-install-required' };
     }
-    if (!env.notificationKey) {
-        logPushEvent('subscription_sync_failed', { message: 'REACT_APP_NOTIFICATION_KEY is missing' });
-        throw new Error('REACT_APP_NOTIFICATION_KEY is missing');
-    }
-
     let permission = Notification.permission;
     if (permission === 'default' && requestPermission) {
         permission = await Notification.requestPermission();

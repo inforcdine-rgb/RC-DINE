@@ -16,6 +16,8 @@ const handleError = (res, error, context) => {
     return res.status(error.code || STATUS_CODE.INTERNAL_SERVER_ERROR).send({ message: error.message });
 };
 
+const publicConfig = (_req, res) => res.status(STATUS_CODE.OK).send(notificationService.getPublicConfig());
+
 const subscribe = async (req, res) => {
     try {
         const validation = subscribeValidation(req.body);
@@ -93,4 +95,4 @@ const restore = async (req, res) => {
     }
 };
 
-export default { subscribe, unsubscribe, fetch, update, remove, clear, restore };
+export default { publicConfig, subscribe, unsubscribe, fetch, update, remove, clear, restore };
