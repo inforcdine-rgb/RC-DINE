@@ -147,6 +147,10 @@ export const deleteCustomerNotification = (notificationId, token) =>
 export const clearCustomerNotifications = (token) => customerApi('delete', '/', undefined, token);
 export const restoreCustomerNotification = (notificationId, token) =>
     customerApi('post', `/${notificationId}/restore`, undefined, token);
+export const testWebPush = ({ audience = 'manager', token } = {}) =>
+    audience === 'customer'
+        ? customerApi('post', '/test', {}, token)
+        : api(method.POST, '/notification/test', {});
 
 const syncSubscription = async ({ audience, token }) => {
     const registration = await registerServiceWorker();

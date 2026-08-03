@@ -320,6 +320,64 @@ const sendNotification = async (userIds, data, customerId = undefined, options =
     }
 };
 
+const testDelivery = async (identity) => {
+    const where = recipientWhere(identity);
+    const { count: subscriptionCount = 0 } = await pushSubscriptionRepo.find({
+        where,
+        attributes: ['id']
+    });
+
+    if (!isWebPushReady()) {
+        return {
+            enabled: false,
+            subscriptionCount,
+            successCount: 0,
+            failureCount: 0,
+            message: 'Backend Web Push is disabled. Check the deployed VAPID environment variables.'
+        };
+    }
+
+    if (!subscriptionCount) {
+        return {
+            enabled: true,
+            subscriptionCount: 0,
+            successCount: 0,
+            failureCount: 0,
+            message: 'This device subscription is not saved on the backend. Tap Enable/Sync and try again.'
+        };
+    }
+
+    const marker = Date.now();
+    const data = {
+        title: 'R&C Dine background test',
+        message: 'Backend-to-device Web Push is working. You can minimize or close the app.',
+        path: '/',
+        type: 'SYSTEM_TEST',
+        category: 'GENERAL',
+        dedupeKey: `system-test:${marker}`,
+        urgency: 'high',
+        silent: false,
+        requireInteraction: true,
+        vibrate: [200, 80, 200]
+    };
+
+    const delivery = identity.userId
+        ? await sendNotification([identity.userId], data)
+        : await sendNotification(undefined, data, identity.customerId, {
+            phoneNumbers: identity.customerId ? [] : [identity.phoneNumber]
+        });
+
+    return {
+        enabled: true,
+        subscriptionCount,
+        ...delivery,
+        message:
+            delivery.successCount > 0
+                ? 'Backend test notification sent successfully.'
+                : 'Backend found the device but Web Push delivery failed. Check backend push_failed logs.'
+    };
+};
+
 const fetch = async (identity, query = {}) => {
     try {
         const where = recipientWhere(identity);
@@ -372,6 +430,7 @@ export default {
     subscribe,
     unsubscribe,
     sendNotification,
+    testDelivery,
     fetch,
     update,
     remove,

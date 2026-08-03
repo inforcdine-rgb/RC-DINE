@@ -11,6 +11,7 @@ router.get('/public-config', notificationController.publicConfig);
 
 const addNotificationRoutes = (route, middleware) => {
     route.get('/', middleware, notificationController.fetch);
+    route.post('/test', middleware, notificationController.testDelivery);
     route.put('/', middleware, notificationController.update);
     route.put('/:notificationId/read', middleware, notificationController.update);
     route.delete('/', middleware, notificationController.clear);

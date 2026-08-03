@@ -15,7 +15,7 @@ import {
     remove,
     restore,
     restoreCustomerNotification,
-    showSystemNotificationTest,
+    testWebPush,
     update
 } from '../../services/notification.service';
 import { playManagerBell, playOrderCancelledSound, playOrderReadySound, playSound } from '../../utils/sound';
@@ -313,8 +313,11 @@ function NotificationCenter({ open, onClose, audience = 'manager', token, onUnre
             } else if (result.status === 'denied') {
                 setError('Notifications are blocked. Allow them from browser site settings.');
             } else if (result.status === 'enabled') {
-                await showSystemNotificationTest();
-                setError('Notifications are enabled. A test notification was sent to your system notification bar.');
+                const testResult = await testWebPush({ audience, token: resolvedToken });
+                if (!testResult.enabled || !testResult.subscriptionCount || !testResult.successCount) {
+                    throw new Error(testResult.message || 'Backend Web Push test failed');
+                }
+                setError('Background Web Push is working. Check your system notification bar for the test.');
             }
         } catch (enableError) {
             setError(enableError.message);

@@ -18,6 +18,15 @@ const handleError = (res, error, context) => {
 
 const publicConfig = (_req, res) => res.status(STATUS_CODE.OK).send(notificationService.getPublicConfig());
 
+const testDelivery = async (req, res) => {
+    try {
+        const result = await notificationService.testDelivery(getIdentity(req));
+        return res.status(STATUS_CODE.OK).send(result);
+    } catch (error) {
+        return handleError(res, error, 'Notification delivery test failed');
+    }
+};
+
 const subscribe = async (req, res) => {
     try {
         const validation = subscribeValidation(req.body);
@@ -95,4 +104,4 @@ const restore = async (req, res) => {
     }
 };
 
-export default { publicConfig, subscribe, unsubscribe, fetch, update, remove, clear, restore };
+export default { publicConfig, testDelivery, subscribe, unsubscribe, fetch, update, remove, clear, restore };
