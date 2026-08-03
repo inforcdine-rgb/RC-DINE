@@ -13,7 +13,9 @@ import AdminOwners from '../pages/AdminOwners';
 import AdminRevenue from '../pages/AdminRevenue';
 import AdminSettings from '../pages/AdminSettings';
 import Contact from '../pages/Contact';
+import CreateRecoveryCode from '../pages/CreateRecoveryCode';
 import Dashboard from '../pages/Dashboard';
+import EmailForgotPassword from '../pages/EmailForgotPassword';
 import ForgotPassword from '../pages/ForgetPassword';
 import Hotels from '../pages/Hotels';
 import Landing from '../pages/Landing';
@@ -45,6 +47,7 @@ export default function Routes() {
                     <Route path="login" element={<Login />} />
                     <Route path="signup" element={<Signup />} />
                     <Route path="forgot-password" element={<ForgotPassword />} />
+                    <Route path="email-forgot-password" element={<EmailForgotPassword />} />
                     <Route path="verify" element={<VerifyUser />} />
                     <Route path="reset" element={<ResetPassword />} />
                     <Route
@@ -75,6 +78,7 @@ export default function Routes() {
                     <Route path="revenue" element={<Revenue />} />
                     <Route path="menu" element={<Menu />} />
                     <Route path="settings" element={<Settings />} />
+                    <Route path="create-recovery-code" element={<CreateRecoveryCode />} />
                     <Route path="tables" element={<Tables />} />
                     <Route path="orders" element={<Orders />} />
                     <Route path="walkin-pos" element={<ManagerPOS />} />

@@ -25,6 +25,8 @@ function CustomFormGroup({
     setFormValues,
     required = false
 }) {
+    const [showPassword, setShowPassword] = React.useState(false);
+
     return (
         <FormGroup className={className} key={`${formKey}`}>
             {label && !['button', 'strong'].includes(type) && (
@@ -168,9 +170,35 @@ function CustomFormGroup({
                 </Field>
             ) : type === 'strong' ? (
                 <strong className={className}>{label}</strong>
+            ) : type === 'password' ? (
+                <Field name={name}>
+                    {({ field }) => (
+                        <div className="rc-password-field">
+                            <Form.Control
+                                {...field}
+                                id={name}
+                                data-testid={`${name}-input-${moment().valueOf()}`}
+                                type={showPassword ? 'text' : 'password'}
+                                disabled={disabled}
+                                autoComplete={name.toLowerCase().includes('new') ? 'new-password' : 'current-password'}
+                            />
+                            <button
+                                type="button"
+                                className="rc-password-toggle"
+                                aria-label={
+                                    showPassword ? `Hide ${label || 'password'}` : `Show ${label || 'password'}`
+                                }
+                                onClick={() => setShowPassword((visible) => !visible)}
+                            >
+                                {showPassword ? 'Hide' : 'Show'}
+                            </button>
+                        </div>
+                    )}
+                </Field>
             ) : (
                 <Field
                     data-testid={`${name}-input-${moment().valueOf()}`}
+                    id={name}
                     type={type}
                     name={name}
                     className="form-control"

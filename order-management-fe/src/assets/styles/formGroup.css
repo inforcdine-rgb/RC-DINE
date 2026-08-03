@@ -2,3 +2,56 @@
     width: 25px !important;
     height: 25px !important;
 }
+
+.rc-password-field {
+    position: relative;
+}
+
+.rc-password-field .form-control {
+    padding-right: 4.25rem !important;
+}
+
+.rc-password-toggle {
+    position: absolute;
+    top: 50%;
+    right: 0.75rem;
+    transform: translateY(-50%);
+    border: 0;
+    background: transparent;
+    color: #49ac60;
+    font-size: 0.78rem;
+    font-weight: 700;
+    padding: 0.25rem;
+}
+
+.rc-recovery-field {
+    display: flex;
+    align-items: stretch;
+}
+
+.rc-recovery-prefix {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 52px;
+    border: 1px solid #ced4da;
+    border-right: 0;
+    border-radius: 0.375rem 0 0 0.375rem;
+    background: #eef7f0;
+    color: #28783a;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+}
+
+.rc-recovery-input.form-control {
+    border-radius: 0 0.375rem 0.375rem 0 !important;
+    letter-spacing: 0.5em;
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+}
+
+.rc-auth-right .rc-recovery-prefix {
+    border-color: rgba(255, 255, 255, 0.22);
+    background: rgba(73, 172, 96, 0.2);
+    color: #9bf5ae;
+}

@@ -276,6 +276,26 @@ const initDb = async () => {
             {
                 name: 'isBlocked',
                 type: 'TINYINT(1) NOT NULL DEFAULT 0'
+            },
+            {
+                name: 'recoveryCodeHash',
+                type: 'VARCHAR(255) NULL'
+            },
+            {
+                name: 'recoveryCodeFailedAttempts',
+                type: 'INT UNSIGNED NOT NULL DEFAULT 0'
+            },
+            {
+                name: 'recoveryCodeLockedUntil',
+                type: 'DATETIME NULL'
+            },
+            {
+                name: 'passwordChangedAt',
+                type: 'DATETIME NULL'
+            },
+            {
+                name: 'tokenVersion',
+                type: 'INT UNSIGNED NOT NULL DEFAULT 0'
             }
         ];
 

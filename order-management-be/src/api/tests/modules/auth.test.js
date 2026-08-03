@@ -24,6 +24,16 @@ jest.mock('../../../config/database.js', () => {
     };
 });
 
+jest.mock('../../../config/env.js', () => ({
+    __esModule: true,
+    default: {
+        cryptoSecret: 'test-secret',
+        jwtSecret: 'test-jwt-secret',
+        app: { isDevelopment: false, env: 'test', appUrl: 'http://localhost:3000' },
+        email: { user: 'test@example.com', pass: 'test-password' }
+    }
+}));
+
 // mock the email sending functions
 jest.mock('../../../config/email.js', () => ({
     transporter: { sendMail: jest.fn() }

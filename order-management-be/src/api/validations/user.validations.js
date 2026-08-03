@@ -2,6 +2,19 @@ import Joi from 'joi';
 import logger from '../../config/logger.js';
 import { CustomError } from '../utils/common.js';
 
+const passwordSchema = Joi.string()
+    .pattern(/^(?=.*[a-zA-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/)
+    .messages({
+        'string.pattern.base':
+            'Password must contain at least 8 characters, one letter, one number, and one special character.'
+    });
+
+const recoveryCodeSchema = Joi.string()
+    .pattern(/^\d{4}$/)
+    .messages({
+        'string.pattern.base': 'Recovery code must be exactly 4 numeric digits.'
+    });
+
 export const registrationValidation = (payload) => {
     try {
         logger('debug', 'Validating registration payload');
@@ -20,12 +33,28 @@ export const registrationValidation = (payload) => {
                 .messages({
                     'alternatives.match': '"phoneNumber" must be a 10 digit number'
                 }),
-            email: Joi.string().email({
-                minDomainSegments: 2,
-                tlds: { allow: ['com', 'net'] }
+            email: Joi.string()
+                .trim()
+                .lowercase()
+                .email({
+                    minDomainSegments: 2,
+                    tlds: { allow: ['com', 'net'] }
+                })
+                .required(),
+            password: passwordSchema.required(),
+            invite: Joi.string().optional(),
+            recoveryCode: Joi.when('invite', {
+                is: Joi.exist(),
+                then: Joi.forbidden(),
+                otherwise: recoveryCodeSchema.required()
             }),
-            password: Joi.string().pattern(/^(?=.*[a-zA-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/),
-            invite: Joi.string().optional()
+            confirmRecoveryCode: Joi.when('invite', {
+                is: Joi.exist(),
+                then: Joi.forbidden(),
+                otherwise: recoveryCodeSchema.valid(Joi.ref('recoveryCode')).required().messages({
+                    'any.only': 'Recovery code and confirmation must match.'
+                })
+            })
         });
 
         return schema.validate(payload);
@@ -81,6 +110,51 @@ export const passValidation = (payload) => {
         return schema.validate(payload);
     } catch (error) {
         logger('error', `Error occurred during password validation: ${error}`);
+        throw CustomError(error.code, error.message);
+    }
+};
+
+export const ownerRecoveryResetValidation = (payload) => {
+    try {
+        logger('debug', 'Validating owner recovery password reset payload');
+        const schema = Joi.object({
+            email: Joi.string()
+                .trim()
+                .lowercase()
+                .email({
+                    minDomainSegments: 2,
+                    tlds: { allow: ['com', 'net'] }
+                })
+                .required(),
+            recoveryCode: recoveryCodeSchema.required(),
+            newPassword: passwordSchema.required(),
+            confirmNewPassword: passwordSchema.valid(Joi.ref('newPassword')).required().messages({
+                'any.only': 'New password and confirmation must match.'
+            })
+        });
+
+        return schema.validate(payload);
+    } catch (error) {
+        logger('error', `Error occurred during owner recovery reset validation: ${error}`);
+        throw CustomError(error.code, error.message);
+    }
+};
+
+export const recoveryCodeUpdateValidation = (payload) => {
+    try {
+        logger('debug', 'Validating owner recovery code update payload');
+        const schema = Joi.object({
+            currentPassword: Joi.string().min(1).required(),
+            recoveryCode: recoveryCodeSchema.required(),
+            confirmRecoveryCode: recoveryCodeSchema.valid(Joi.ref('recoveryCode')).required().messages({
+                'any.only': 'Recovery code and confirmation must match.'
+            }),
+            invalidateSessions: Joi.boolean().default(false)
+        });
+
+        return schema.validate(payload);
+    } catch (error) {
+        logger('error', `Error occurred during recovery code update validation: ${error}`);
         throw CustomError(error.code, error.message);
     }
 };

@@ -1,23 +1,29 @@
 import CryptoJS from 'crypto-js';
 import env from '../../config/env.js';
 import logger from '../../config/logger.js';
+import { clearOwnerRecoveryEmailRateLimit } from '../middlewares/ownerRecoveryRateLimit.js';
 import userService from '../services/user.service.js';
 import { STATUS_CODE } from '../utils/common.js';
 import {
     emailValidation,
     loginValidation,
+    ownerRecoveryResetValidation,
     passValidation,
+    recoveryCodeUpdateValidation,
     registrationValidation,
     updateValidation
 } from '../validations/user.validations.js';
+
+const decryptPassword = (value) =>
+    typeof value === 'string' ? CryptoJS.AES.decrypt(value, env.cryptoSecret).toString(CryptoJS.enc.Utf8) : '';
 
 const create = async (req, res) => {
     try {
         const { body } = req;
 
-        logger('debug', { message: 'Received request body', data: body });
+        logger('debug', 'Received user registration request');
         // decrypt and verify the password
-        const depass = CryptoJS.AES.decrypt(body.password, env.cryptoSecret).toString(CryptoJS.enc.Utf8);
+        const depass = decryptPassword(body.password);
         const valid = registrationValidation({ ...body, password: depass });
         if (valid.error) {
             logger('error', { message: 'Validation error', error: valid.error.message });
@@ -25,8 +31,8 @@ const create = async (req, res) => {
         }
 
         // register the user with details
-        const result = await userService.create({ ...body, password: depass });
-        logger('info', { message: 'User created successfully', data: result });
+        const result = await userService.create(valid.value);
+        logger('info', { message: 'User created successfully', userId: result.id });
 
         return res.status(STATUS_CODE.CREATED).send(result);
     } catch (error) {
@@ -38,17 +44,17 @@ const create = async (req, res) => {
 const login = async (req, res) => {
     try {
         const { body } = req;
-        logger('info', 'Received login request.', { data: body });
+        logger('info', 'Received login request.');
 
         // decrypt and verify the password
-        const depass = CryptoJS.AES.decrypt(body.password, env.cryptoSecret).toString(CryptoJS.enc.Utf8);
+        const depass = decryptPassword(body.password);
         const valid = loginValidation({ ...body, password: depass });
         if (valid.error) {
             logger('error', `Login validation failed: ${valid.error.message}`);
             return res.status(STATUS_CODE.BAD_REQUEST).send({ message: valid.error.message });
         }
 
-        const result = await userService.login({ ...body, password: depass });
+        const result = await userService.login(valid.value);
         logger('info', 'Login successful.');
 
         return res.status(STATUS_CODE.OK).send(result);
@@ -76,7 +82,7 @@ const verify = async (req, res) => {
 const forget = async (req, res) => {
     try {
         const { body } = req;
-        logger('debug', 'Received forgot password request with data:', { data: body });
+        logger('debug', 'Received forgot password request');
 
         const result = await userService.forget(body);
         logger('info', 'Forgot password successfully.');
@@ -91,9 +97,9 @@ const forget = async (req, res) => {
 const reset = async (req, res) => {
     try {
         const { body } = req;
-        logger('debug', 'Received password reset request with data:', { data: body });
+        logger('debug', 'Received password reset request');
 
-        const depass = CryptoJS.AES.decrypt(body.newPassword, env.cryptoSecret).toString(CryptoJS.enc.Utf8);
+        const depass = decryptPassword(body.newPassword);
         const valid = passValidation({ password: depass });
         if (valid.error) {
             logger('error', `Invalid new password provided: ${valid.error.message}`);
@@ -106,6 +112,50 @@ const reset = async (req, res) => {
         return res.status(STATUS_CODE.OK).send(result);
     } catch (error) {
         logger('error', `Error occurred during password reset: ${error.message}`);
+        return res.status(error.code || 500).send({ message: error.message });
+    }
+};
+
+const resetOwnerPassword = async (req, res) => {
+    try {
+        logger('info', 'Received owner recovery password reset request');
+        const payload = {
+            ...req.body,
+            newPassword: decryptPassword(req.body?.newPassword),
+            confirmNewPassword: decryptPassword(req.body?.confirmNewPassword)
+        };
+        const valid = ownerRecoveryResetValidation(payload);
+        if (valid.error) {
+            return res.status(STATUS_CODE.BAD_REQUEST).send({ message: valid.error.message });
+        }
+
+        const result = await userService.resetOwnerPassword(valid.value);
+        clearOwnerRecoveryEmailRateLimit(valid.value.email);
+        logger('info', 'Owner password reset successfully');
+        return res.status(STATUS_CODE.OK).send(result);
+    } catch (error) {
+        logger('warn', 'Owner recovery password reset rejected');
+        return res.status(error.code || 500).send({ message: error.message });
+    }
+};
+
+const setRecoveryCode = async (req, res) => {
+    try {
+        logger('info', 'Received owner recovery code update request', { ownerId: req.user.id });
+        const payload = {
+            ...req.body,
+            currentPassword: decryptPassword(req.body?.currentPassword)
+        };
+        const valid = recoveryCodeUpdateValidation(payload);
+        if (valid.error) {
+            return res.status(STATUS_CODE.BAD_REQUEST).send({ message: valid.error.message });
+        }
+
+        const result = await userService.setRecoveryCode(req.user.id, valid.value);
+        logger('info', 'Owner recovery code updated successfully', { ownerId: req.user.id });
+        return res.status(STATUS_CODE.OK).send(result);
+    } catch (error) {
+        logger('warn', 'Owner recovery code update rejected', { ownerId: req.user?.id });
         return res.status(error.code || 500).send({ message: error.message });
     }
 };
@@ -225,6 +275,8 @@ export default {
     verify,
     forget,
     reset,
+    resetOwnerPassword,
+    setRecoveryCode,
     invite,
     listInvites,
     removeInvite,

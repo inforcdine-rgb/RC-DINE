@@ -25,8 +25,17 @@ export const userRegistrationSchema = Yup.object().shape({
         .required('Password is required'),
     confirmPassword: Yup.string()
         .oneOf([Yup.ref('password'), null], 'Passwords must match')
-        .required('Confirm password is a required')
+        .required('Confirm password is required'),
+    recoveryCode: Yup.string()
+        .matches(/^\d{4}$/, 'Recovery code must be exactly 4 numeric digits')
+        .required('Recovery code is required'),
+    confirmRecoveryCode: Yup.string()
+        .matches(/^\d{4}$/, 'Recovery code must be exactly 4 numeric digits')
+        .oneOf([Yup.ref('recoveryCode'), null], 'Recovery codes must match')
+        .required('Confirm recovery code is required')
 });
+
+export const managerRegistrationSchema = userRegistrationSchema.omit(['recoveryCode', 'confirmRecoveryCode']);
 
 export const loginSchema = Yup.object().shape({
     email: Yup.string().matches(emailRegex, 'Invalid email').required('Email is required'),
@@ -53,6 +62,34 @@ export const passwordSchema = Yup.object().shape({
     confirmPassword: Yup.string()
         .oneOf([Yup.ref('password'), null], 'Passwords must match')
         .required()
+});
+
+export const ownerRecoveryResetSchema = Yup.object().shape({
+    email: Yup.string().trim().lowercase().matches(emailRegex, 'Invalid email').required('Email is required'),
+    recoveryCode: Yup.string()
+        .matches(/^\d{4}$/, 'Recovery code must be exactly 4 numeric digits')
+        .required('Recovery code is required'),
+    newPassword: Yup.string()
+        .matches(
+            /^(?=.*[a-zA-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/,
+            'Password must contain at least 8 characters, one letter, one number, and one special character'
+        )
+        .required('New password is required'),
+    confirmNewPassword: Yup.string()
+        .oneOf([Yup.ref('newPassword'), null], 'Passwords must match')
+        .required('Confirm new password is required')
+});
+
+export const recoveryCodeUpdateSchema = Yup.object().shape({
+    currentPassword: Yup.string().required('Current password is required'),
+    recoveryCode: Yup.string()
+        .matches(/^\d{4}$/, 'Recovery code must be exactly 4 numeric digits')
+        .required('Recovery code is required'),
+    confirmRecoveryCode: Yup.string()
+        .matches(/^\d{4}$/, 'Recovery code must be exactly 4 numeric digits')
+        .oneOf([Yup.ref('recoveryCode'), null], 'Recovery codes must match')
+        .required('Confirm recovery code is required'),
+    invalidateSessions: Yup.boolean()
 });
 
 export const settingsSchema = Yup.object().shape({

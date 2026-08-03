@@ -1,6 +1,9 @@
+import CryptoJS from 'crypto-js';
 import moment from 'moment';
 import { USER_STATUS } from '../../models/user.model.js';
 import { STATUS_CODE } from '../../utils/common.js';
+
+const encrypt = (password) => CryptoJS.AES.encrypt(password, 'test-secret').toString();
 
 export const register = {
     invalidEmailData: {
@@ -9,7 +12,9 @@ export const register = {
             lastName: 'test',
             phoneNumber: '1234567890',
             email: 'test$test.vi', // invalid email
-            password: 'U2FsdGVkX1+w73Hs6kiEx+jldPlKMnZ+wlDKkYyKoY0='
+            password: encrypt('Test@1234'),
+            recoveryCode: '4829',
+            confirmRecoveryCode: '4829'
         },
         res: {
             code: STATUS_CODE.BAD_REQUEST,
@@ -22,12 +27,15 @@ export const register = {
             lastName: 'test',
             phoneNumber: '1234567890',
             email: 'test@test.com',
-            password: 'U2FsdGVkX1/PbcvP3vZsvabHsM50meL3a8t5IgcC2bA=' // invalid password Test1234
+            password: encrypt('Test1234'), // invalid password Test1234
+            recoveryCode: '4829',
+            confirmRecoveryCode: '4829'
         },
         res: {
             code: STATUS_CODE.BAD_REQUEST,
             data: {
-                message: '"password" with value "Test1234" fails to match the required pattern'
+                message:
+                    'Password must contain at least 8 characters, one letter, one number, and one special character.'
             }
         }
     },
@@ -37,7 +45,9 @@ export const register = {
             lastName: 'test',
             phoneNumber: '123456789', // invalid phone with 9 digits
             email: 'test@test.com',
-            password: 'U2FsdGVkX1+w73Hs6kiEx+jldPlKMnZ+wlDKkYyKoY0='
+            password: encrypt('Test@1234'),
+            recoveryCode: '4829',
+            confirmRecoveryCode: '4829'
         },
         res: {
             code: STATUS_CODE.BAD_REQUEST,
@@ -50,7 +60,9 @@ export const register = {
         body: {
             phoneNumber: '1234567890',
             email: 'test@test.com',
-            password: 'U2FsdGVkX1+w73Hs6kiEx+jldPlKMnZ+wlDKkYyKoY0='
+            password: encrypt('Test@1234'),
+            recoveryCode: '4829',
+            confirmRecoveryCode: '4829'
         },
         res: {
             code: STATUS_CODE.BAD_REQUEST,
@@ -63,7 +75,9 @@ export const register = {
             lastName: 'test',
             phoneNumber: '1234567890',
             email: 'test@test.com',
-            password: 'U2FsdGVkX1+w73Hs6kiEx+jldPlKMnZ+wlDKkYyKoY0='
+            password: encrypt('Test@1234'),
+            recoveryCode: '4829',
+            confirmRecoveryCode: '4829'
         },
         db: {
             id: '60c688d6-5442-4569-9c8c-3f973b3ba554',
@@ -84,7 +98,7 @@ export const login = {
     unregisteredEmailData: {
         body: {
             email: 'unregistered-email@test.com',
-            password: 'U2FsdGVkX1+w73Hs6kiEx+jldPlKMnZ+wlDKkYyKoY0=', // Test@1234
+            password: encrypt('Test@1234'), // Test@1234
             role: 'OWNER'
         },
         res: {
@@ -95,12 +109,12 @@ export const login = {
     incorrectPasswordData: {
         body: {
             email: 'valid-email@test.com',
-            password: 'U2FsdGVkX1+w73Hs6kiEx+jldPlKMnZ+wlDKkYyKoY0=', // Test@1234
+            password: encrypt('Test@1234'), // Test@1234
             role: 'OWNER'
         },
         db: {
             email: 'valid-email@test.com',
-            password: 'U2FsdGVkX19mkLtgxmDHjbQ9jUN+TZQcPA4Y/2zoMvg=', // Test@1237
+            password: encrypt('Test@1237'), // Test@1237
             role: 'OWNER'
         },
         res: {
@@ -111,12 +125,12 @@ export const login = {
     inActiveData: {
         body: {
             email: 'valid-email@test.com',
-            password: 'U2FsdGVkX1+w73Hs6kiEx+jldPlKMnZ+wlDKkYyKoY0=', // Test@1234
+            password: encrypt('Test@1234'), // Test@1234
             role: 'OWNER'
         },
         db: {
             email: 'valid-email@test.com',
-            password: 'U2FsdGVkX1+w73Hs6kiEx+jldPlKMnZ+wlDKkYyKoY0=', // Test@1234
+            password: encrypt('Test@1234'), // Test@1234
             status: USER_STATUS[1],
             role: 'OWNER'
         },
@@ -128,12 +142,12 @@ export const login = {
     successLoginData: {
         body: {
             email: 'valid-email@test.com',
-            password: 'U2FsdGVkX1+w73Hs6kiEx+jldPlKMnZ+wlDKkYyKoY0=', // Test@1234
+            password: encrypt('Test@1234'), // Test@1234
             role: 'OWNER'
         },
         db: {
             email: 'valid-email@test.com',
-            password: 'U2FsdGVkX1+w73Hs6kiEx+jldPlKMnZ+wlDKkYyKoY0=', // Test@1234
+            password: encrypt('Test@1234'), // Test@1234
             status: USER_STATUS[0],
             role: 'OWNER'
         },
@@ -218,7 +232,7 @@ export const reset = {
     resetPasswordData: {
         body: {
             email: 'valid-email@test.com',
-            newPassword: 'U2FsdGVkX19mkLtgxmDHjbQ9jUN+TZQcPA4Y/2zoMvg=', // Test@1237
+            newPassword: encrypt('Test@1237'), // Test@1237
             expires: moment().add(1, 'hour').valueOf()
         },
         db: {

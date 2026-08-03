@@ -20,9 +20,9 @@ function Login() {
         navigate('/signup');
     };
 
-    const handleOnClickForgotPassword = (e) => {
+    const handleOnClickForgotPassword = (e, role) => {
         e.preventDefault();
-        navigate('/forgot-password');
+        navigate(role === 'MANAGER' ? '/email-forgot-password' : '/forgot-password');
     };
 
     const initialValues = {
@@ -78,7 +78,10 @@ function Login() {
                         <CustomFormGroup name="password" type="password" label="Password" />
 
                         <div className="rc-forgot text-end mt-2">
-                            <CustomLink text="Forgot password?" onClick={handleOnClickForgotPassword} />
+                            <CustomLink
+                                text="Forgot password?"
+                                onClick={(event) => handleOnClickForgotPassword(event, values.role)}
+                            />
                         </div>
 
                         <CustomButton

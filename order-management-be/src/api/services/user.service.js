@@ -15,11 +15,26 @@ import userRepo from '../repositories/user.repository.js';
 import { EMAIL_ACTIONS, CustomError, STATUS_CODE, isCustomError, mapSequelizeError } from '../utils/common.js';
 import { getAssignedHotelId } from '../utils/hotelAccess.js';
 import { comparePassword, hashPassword, isBcryptHash } from '../utils/password.js';
+import { compareRecoveryCode, hashRecoveryCode, safeDummyRecoveryCodeComparison } from '../utils/recoveryCode.js';
 import { sendEmail } from './email.service.js';
 
 const isDev = env.app.isDevelopment;
+const OWNER_RECOVERY_ERROR = 'Email or recovery code is incorrect.';
+const OWNER_RECOVERY_LOCK_MINUTES = 30;
+const OWNER_RECOVERY_MAX_ATTEMPTS = 5;
 
 const encryptPassword = async (password) => hashPassword(password);
+
+const sanitizeUser = (value) => {
+    const source = typeof value?.toJSON === 'function' ? value.toJSON() : value?.dataValues || value || {};
+    const result = { ...source };
+    delete result.password;
+    delete result.recoveryCodeHash;
+    delete result.recoveryCodeFailedAttempts;
+    delete result.recoveryCodeLockedUntil;
+    delete result.tokenVersion;
+    return result;
+};
 
 const activateUser = async (userId) => {
     await userRepo.update({ where: { id: userId } }, { status: USER_STATUS[0] });
@@ -101,6 +116,7 @@ const create = async (payload) => {
         };
 
         if (!payload.invite) {
+            user.recoveryCodeHash = await hashRecoveryCode(payload.recoveryCode);
             user.trialStartAt = moment().toISOString();
             user.trialEndAt = moment().add(2, 'minutes').toISOString();
             user.subscriptionStatus = 'TRIAL';
@@ -109,7 +125,7 @@ const create = async (payload) => {
         transaction = await db.users.sequelize.transaction();
 
         const data = await userRepo.save(user, { transaction });
-        logger('info', 'User details saved successfully:', data);
+        logger('info', 'User details saved successfully', { userId: user.id, role: user.role });
 
         if (payload.invite) {
             logger('debug', `Updating invite status for invite ID: ${payload.invite}`);
@@ -124,7 +140,7 @@ const create = async (payload) => {
             orders: ORDER_PREFERENCE[1]
         };
         await preferencesRepo.save(preferences, { transaction });
-        logger('info', 'User preferences saved successfully:', data);
+        logger('info', 'User preferences saved successfully', { userId: user.id });
 
         await transaction.commit();
         transaction = null;
@@ -132,7 +148,8 @@ const create = async (payload) => {
         // Email verification is disabled; accounts are active instantly.
         logger('info', `Skipping email verification for ${user.email}`);
 
-        return isDev ? { ...data, status: USER_STATUS[0] } : data;
+        const response = sanitizeUser(data);
+        return isDev ? { ...response, status: USER_STATUS[0] } : response;
     } catch (error) {
         if (transaction) {
             await transaction.rollback();
@@ -148,7 +165,10 @@ const create = async (payload) => {
 
 const login = async (payload) => {
     try {
-        const { email, password, role } = payload;
+        const { password, role } = payload;
+        const email = String(payload.email || '')
+            .trim()
+            .toLowerCase();
 
         logger('debug', `Login request received for email: ${email}`);
         const user = await userRepo.findOne({ where: { email } });
@@ -200,7 +220,8 @@ const login = async (payload) => {
             lastName,
             status: user.status,
             phoneNumber,
-            role: user.role
+            role: user.role,
+            tokenVersion: Number(user.tokenVersion || 0)
         };
         if (managerHotelId) {
             tokenPayload.hotelId = managerHotelId;
@@ -258,7 +279,8 @@ const verify = async (payload) => {
                 lastName,
                 status: user.status,
                 phoneNumber,
-                role: user.role
+                role: user.role,
+                tokenVersion: Number(user.tokenVersion || 0)
             },
             env.jwtSecret,
             { expiresIn: '12h' }
@@ -346,6 +368,126 @@ const reset = async (payload) => {
         return { message: 'Password reset successfully' };
     } catch (error) {
         logger('error', `Error occurred during password reset process: ${error.message}`);
+        throw CustomError(error.code, error.message);
+    }
+};
+
+const resetOwnerPassword = async (payload) => {
+    let transaction;
+
+    try {
+        const email = String(payload.email || '')
+            .trim()
+            .toLowerCase();
+        transaction = await db.users.sequelize.transaction();
+        const user = await db.users.findOne({
+            where: {
+                email,
+                role: USER_ROLES[0],
+                status: USER_STATUS[0],
+                isBlocked: false
+            },
+            attributes: [
+                'id',
+                'recoveryCodeHash',
+                'recoveryCodeFailedAttempts',
+                'recoveryCodeLockedUntil',
+                'tokenVersion'
+            ],
+            transaction,
+            lock: transaction.LOCK?.UPDATE
+        });
+
+        if (!user) {
+            await safeDummyRecoveryCodeComparison(payload.recoveryCode);
+            await transaction.commit();
+            transaction = null;
+            throw CustomError(STATUS_CODE.UNAUTHORIZED, OWNER_RECOVERY_ERROR);
+        }
+
+        const now = new Date();
+        if (user.recoveryCodeLockedUntil && new Date(user.recoveryCodeLockedUntil) > now) {
+            await safeDummyRecoveryCodeComparison(payload.recoveryCode);
+            await transaction.commit();
+            transaction = null;
+            throw CustomError(STATUS_CODE.TOO_MANY_REQUEST, OWNER_RECOVERY_ERROR);
+        }
+
+        const isValidCode = await compareRecoveryCode(payload.recoveryCode, user.recoveryCodeHash);
+        if (!isValidCode || !user.recoveryCodeHash) {
+            const lockExpired =
+                user.recoveryCodeLockedUntil && new Date(user.recoveryCodeLockedUntil).getTime() <= now.getTime();
+            const previousAttempts = lockExpired ? 0 : Number(user.recoveryCodeFailedAttempts || 0);
+            const failedAttempts = previousAttempts + 1;
+            const recoveryCodeLockedUntil =
+                failedAttempts >= OWNER_RECOVERY_MAX_ATTEMPTS
+                    ? moment(now).add(OWNER_RECOVERY_LOCK_MINUTES, 'minutes').toDate()
+                    : null;
+
+            await db.users.update(
+                {
+                    recoveryCodeFailedAttempts: failedAttempts,
+                    recoveryCodeLockedUntil
+                },
+                { where: { id: user.id }, transaction }
+            );
+            await transaction.commit();
+            transaction = null;
+            throw CustomError(STATUS_CODE.UNAUTHORIZED, OWNER_RECOVERY_ERROR);
+        }
+
+        await db.users.update(
+            {
+                password: await encryptPassword(payload.newPassword),
+                passwordChangedAt: now,
+                tokenVersion: Number(user.tokenVersion || 0) + 1,
+                recoveryCodeFailedAttempts: 0,
+                recoveryCodeLockedUntil: null
+            },
+            { where: { id: user.id }, transaction }
+        );
+
+        await transaction.commit();
+        transaction = null;
+        return { message: 'Password reset successfully. Please login with your new password.' };
+    } catch (error) {
+        if (transaction) await transaction.rollback();
+        if (isCustomError(error)) throw error;
+        throw CustomError(STATUS_CODE.INTERNAL_SERVER_ERROR, 'Unable to reset password. Please try again.');
+    }
+};
+
+const setRecoveryCode = async (ownerId, payload) => {
+    try {
+        const user = await db.users.findOne({
+            where: { id: ownerId, role: USER_ROLES[0], status: USER_STATUS[0] },
+            attributes: ['id', 'password', 'recoveryCodeHash', 'tokenVersion']
+        });
+
+        if (!user) throw CustomError(STATUS_CODE.NOT_FOUND, 'Owner account not found.');
+
+        const validPassword = await comparePassword(payload.currentPassword, user.password);
+        if (!validPassword) throw CustomError(STATUS_CODE.UNAUTHORIZED, 'Current password is incorrect.');
+
+        const wasConfigured = Boolean(user.recoveryCodeHash);
+        const updateData = {
+            recoveryCodeHash: await hashRecoveryCode(payload.recoveryCode),
+            recoveryCodeFailedAttempts: 0,
+            recoveryCodeLockedUntil: null
+        };
+
+        if (payload.invalidateSessions) {
+            updateData.tokenVersion = Number(user.tokenVersion || 0) + 1;
+        }
+
+        await db.users.update(updateData, { where: { id: user.id } });
+        return {
+            message: wasConfigured ? 'Recovery code changed successfully.' : 'Recovery code created successfully.',
+            recoveryCodeConfigured: true,
+            sessionsInvalidated: Boolean(payload.invalidateSessions)
+        };
+    } catch (error) {
+        if (isCustomError(error)) throw error;
         throw CustomError(error.code, error.message);
     }
 };
@@ -488,6 +630,11 @@ const getUser = async (user) => {
             ]
         };
         const result = await userRepo.findOne(fetchOptions);
+        const recoveryState =
+            result.role === USER_ROLES[0]
+                ? await db.users.findOne({ where: { id }, attributes: ['recoveryCodeHash'] })
+                : null;
+        result.recoveryCodeConfigured = result.role === USER_ROLES[0] ? Boolean(recoveryState?.recoveryCodeHash) : true;
         result.hotelId = null;
         if (result.role === USER_ROLES[1]) {
             result.hotelId = await getAssignedHotelId(id);
@@ -541,6 +688,8 @@ export default {
     verify,
     forget,
     reset,
+    resetOwnerPassword,
+    setRecoveryCode,
     invite,
     listInvites,
     removeInvite,

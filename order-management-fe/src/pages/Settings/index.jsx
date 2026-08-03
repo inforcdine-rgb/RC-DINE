@@ -8,6 +8,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import '../../assets/styles/settings.css';
 import CustomButton from '../../components/CustomButton';
 import OMTModal from '../../components/Modal';
+import RecoveryCodeSecurityForm from '../../components/RecoveryCodeSecurityForm';
 import env from '../../config/env';
 import { getPaymentSettings, testPaymentSettings, updatePaymentSettings } from '../../services/hotel.service';
 import {
@@ -15,7 +16,13 @@ import {
     readPrinterSettings,
     savePrinterSettings as saveSecurePrinterSettings
 } from '../../services/printerSettings.service';
-import { setPaymentActivate, setSettingsFormData, setUpdateModalOptions, updateUserRequest } from '../../store/slice';
+import {
+    getUserSuccess,
+    setPaymentActivate,
+    setSettingsFormData,
+    setUpdateModalOptions,
+    updateUserRequest
+} from '../../store/slice';
 import { NOTIFICATION_PREFERENCE, PAYMENT_PREFERENCE, USER_ROLES } from '../../utils/constants';
 import { settingsSchema } from '../../validations/auth';
 import PaymentActivation from '../PaymentActivation';
@@ -584,6 +591,33 @@ const Settings = () => {
                     </Row>
                 </Card.Body>
             </Card>
+
+            {data.role === USER_ROLES[0] && (
+                <>
+                    <div className="settings-section-label">Owner Security</div>
+                    <Card className="user-details mx-auto my-3 p-0 p-sm-4 shadow custom-shadow">
+                        <Card.Body>
+                            {!data.recoveryCodeConfigured && (
+                                <div className="alert alert-warning" role="alert">
+                                    Recovery code setup pending. Forgot Password protection ke liye abhi code create
+                                    karein.
+                                </div>
+                            )}
+                            <h5 className="fw-bold text-success mb-2">
+                                {data.recoveryCodeConfigured ? 'Change Recovery Code' : 'Create Recovery Code'}
+                            </h5>
+                            <RecoveryCodeSecurityForm
+                                configured={Boolean(data.recoveryCodeConfigured)}
+                                onSuccess={(response) => {
+                                    if (!response.sessionsInvalidated) {
+                                        dispatch(getUserSuccess({ ...data, recoveryCodeConfigured: true }));
+                                    }
+                                }}
+                            />
+                        </Card.Body>
+                    </Card>
+                </>
+            )}
 
             {hotelId && (
                 <>

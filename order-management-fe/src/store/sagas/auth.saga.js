@@ -125,6 +125,11 @@ function* getUserRequestSaga(action) {
         }
 
         if (navigate) {
+            if (res.role.toUpperCase() === USER_ROLES[0] && res.recoveryCodeConfigured === false) {
+                navigate('/create-recovery-code');
+                return;
+            }
+
             const viewData = JSON.parse(
                 CryptoJS.AES.decrypt(localStorage.getItem('data'), env.cryptoSecret).toString(CryptoJS.enc.Utf8)
             );

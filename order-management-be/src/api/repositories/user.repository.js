@@ -57,7 +57,7 @@ const remove = async (options) => {
 
 const update = async (options, data) => {
     try {
-        logger('debug', 'Updating user data with options:', { options }, 'and data:', { data });
+        logger('debug', 'Updating user data', { fields: Object.keys(data || {}) });
         return await db.users.update(data, options);
     } catch (error) {
         const err = error?.errors ? error?.errors[0]?.message : undefined;

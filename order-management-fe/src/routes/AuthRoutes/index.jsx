@@ -27,6 +27,13 @@ function AuthRoutes() {
     }
 
     if (user.role === 'OWNER') {
+        if (
+            user.recoveryCodeConfigured === false &&
+            !['/create-recovery-code', '/settings'].includes(location.pathname)
+        ) {
+            return <Navigate to="/create-recovery-code" replace />;
+        }
+
         const isExpired =
             user.subscriptionStatus === 'EXPIRED' ||
             (user.subscriptionStatus === 'ACTIVE' &&

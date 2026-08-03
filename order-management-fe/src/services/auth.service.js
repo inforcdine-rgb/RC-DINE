@@ -53,6 +53,10 @@ export const resetPasswordUser = async (payload) => {
     }
 };
 
+export const resetOwnerPassword = async (payload) => api(method.POST, '/user/owner/recovery/reset', payload);
+
+export const updateOwnerRecoveryCode = async (payload) => api(method.PUT, '/user/owner/recovery-code', payload);
+
 export const getUser = async () => {
     try {
         return await api(method.GET, '/user');

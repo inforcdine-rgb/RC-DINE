@@ -4,8 +4,8 @@ import { TABLES } from '../utils/common.js';
 export const USER_STATUS = ['ACTIVE', 'INACTIVE'];
 export const USER_ROLES = ['OWNER', 'MANAGER', 'ADMIN'];
 
-const userModel = (sequelize) =>
-    sequelize.define(
+const userModel = (sequelize) => {
+    const User = sequelize.define(
         TABLES.USERS,
         {
             id: {
@@ -33,6 +33,28 @@ const userModel = (sequelize) =>
             password: {
                 type: DataTypes.STRING,
                 allowNull: true
+            },
+            recoveryCodeHash: {
+                type: DataTypes.STRING,
+                allowNull: true
+            },
+            recoveryCodeFailedAttempts: {
+                type: DataTypes.INTEGER.UNSIGNED,
+                allowNull: false,
+                defaultValue: 0
+            },
+            recoveryCodeLockedUntil: {
+                type: DataTypes.DATE,
+                allowNull: true
+            },
+            passwordChangedAt: {
+                type: DataTypes.DATE,
+                allowNull: true
+            },
+            tokenVersion: {
+                type: DataTypes.INTEGER.UNSIGNED,
+                allowNull: false,
+                defaultValue: 0
             },
             status: {
                 type: DataTypes.ENUM,
@@ -91,5 +113,19 @@ const userModel = (sequelize) =>
             paranoid: true
         }
     );
+
+    // Recovery credentials are internal-only. This protects every API that
+    // serializes a Sequelize user instance, including admin responses.
+    User.prototype.toJSON = function () {
+        const values = { ...this.get() };
+        delete values.recoveryCodeHash;
+        delete values.recoveryCodeFailedAttempts;
+        delete values.recoveryCodeLockedUntil;
+        delete values.tokenVersion;
+        return values;
+    };
+
+    return User;
+};
 
 export default userModel;

@@ -2,6 +2,23 @@ import { db } from '../../../config/database.js';
 import userController from '../../controllers/user.controllers';
 import { create, list, remove } from '../utils/dummy.invite';
 
+jest.mock('../../../config/env.js', () => ({
+    __esModule: true,
+    default: {
+        cryptoSecret: 'test-secret',
+        jwtSecret: 'test-jwt-secret',
+        app: {
+            isDevelopment: false,
+            env: 'test',
+            appUrl: 'http://localhost:3000'
+        },
+        email: {
+            user: 'test@example.com',
+            pass: 'test-password'
+        }
+    }
+}));
+
 // mock the database operations
 jest.mock('../../../config/database.js', () => ({
     db: {

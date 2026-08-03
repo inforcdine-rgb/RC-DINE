@@ -2,17 +2,17 @@ import React, { useEffect, useState } from 'react';
 import CryptoJS from 'crypto-js';
 import { Formik, Form } from 'formik';
 import { Col, Row } from 'react-bootstrap';
-import { useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import AuthContainer from '../../components/AuthContainer';
 import CustomButton from '../../components/CustomButton';
 import CustomFormGroup from '../../components/CustomFormGroup';
 import CustomLink from '../../components/CustomLink';
+import RecoveryCodeField from '../../components/RecoveryCodeField';
 import env from '../../config/env';
-import { registerRequest } from '../../store/slice';
+import { registerUser } from '../../services/auth.service';
 import { getSelectedPlan, saveSelectedPlan, setPageSeo } from '../../utils/seo';
-import { userRegistrationSchema } from '../../validations/auth';
+import { managerRegistrationSchema, userRegistrationSchema } from '../../validations/auth';
 
 function Signup() {
     const [initialValues, setInitialValues] = useState({
@@ -21,12 +21,12 @@ function Signup() {
         phoneNumber: '',
         email: '',
         password: '',
-        confirmPassword: ''
+        confirmPassword: '',
+        recoveryCode: '',
+        confirmRecoveryCode: ''
     });
 
     const navigate = useNavigate();
-    const dispatch = useDispatch();
-
     const [invite, setInvite] = useState({ status: false, email: '', id: '' });
 
     useEffect(() => {
@@ -69,31 +69,40 @@ function Signup() {
         })();
     }, []);
 
-    const handleSubmit = (values, { setSubmitting }) => {
-        setSubmitting(true);
+    const handleSubmit = async (values, { setSubmitting }) => {
+        try {
+            const data = {
+                ...values,
+                password: CryptoJS.AES.encrypt(values.password, env.cryptoSecret).toString()
+            };
+            delete data.confirmPassword;
 
-        const enpass = CryptoJS.AES.encrypt(values.password, env.cryptoSecret).toString();
-        const data = { ...values, password: enpass };
-        delete data.confirmPassword;
+            if (invite.status) {
+                data.invite = invite.id;
+                delete data.recoveryCode;
+                delete data.confirmRecoveryCode;
+            }
 
-        if (invite.status) {
-            data.invite = invite.id;
+            await registerUser(data);
+            toast.success('User registered successfully. You can now log in.');
+            navigate('/login');
+        } catch (error) {
+            toast.error(`Failed to register user: ${error?.message}`);
+        } finally {
+            setSubmitting(false);
         }
-
-        dispatch(registerRequest({ data, navigate }));
-        setSubmitting(false);
     };
 
     const handleOnClickLogin = (e) => {
         e.preventDefault();
-        navigate('/');
+        navigate('/login');
     };
 
     return (
         <AuthContainer title={'Registration'}>
             <Formik
                 initialValues={initialValues}
-                validationSchema={userRegistrationSchema}
+                validationSchema={invite.status ? managerRegistrationSchema : userRegistrationSchema}
                 onSubmit={handleSubmit}
                 enableReinitialize={true}
             >
@@ -107,6 +116,17 @@ function Signup() {
                                 <CustomFormGroup name="lastName" type="text" label="Last Name" />
                             </Col>
                         </Row>
+
+                        {!invite.status && (
+                            <Row className="mt-2">
+                                <Col className="col-12 col-md-6">
+                                    <RecoveryCodeField name="recoveryCode" label="Recovery Code" />
+                                </Col>
+                                <Col className="col-12 col-md-6">
+                                    <RecoveryCodeField name="confirmRecoveryCode" label="Confirm Recovery Code" />
+                                </Col>
+                            </Row>
+                        )}
 
                         <Row className="mt-2">
                             <Col className="col-12 col-md-6">
