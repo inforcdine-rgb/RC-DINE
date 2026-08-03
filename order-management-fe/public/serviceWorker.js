@@ -1,6 +1,6 @@
 /* global caches, clients */
 
-const CACHE_VERSION = 'v3';
+const CACHE_VERSION = 'v4';
 const APP_SHELL_CACHE = `rcdine-shell-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `rcdine-runtime-${CACHE_VERSION}`;
 const APP_SHELL = [
@@ -155,19 +155,10 @@ self.addEventListener('push', (event) => {
     event.waitUntil(
         (async () => {
             const clientList = await getWindowClients();
-            const hasVisibleClient = clientList.some(
-                (client) => client.visibilityState === 'visible' && client.focused
-            );
-
             await postToClients(payload, clientList);
-            if (hasVisibleClient) {
-                logPushEvent('browser_notification_suppressed', {
-                    notificationId: payload.notificationId,
-                    reason: 'visible_client'
-                });
-                return;
-            }
-
+            // Always create an operating-system notification. This puts the
+            // notification in Android's notification shade and the desktop
+            // notification center whether the PWA is open, minimized or closed.
             await self.registration.showNotification(payload.title, {
                 body: payload.body,
                 icon: payload.icon || '/R-C DINE.png',

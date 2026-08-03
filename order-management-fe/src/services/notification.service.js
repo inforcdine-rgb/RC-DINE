@@ -242,6 +242,29 @@ export const initializeWebPush = async ({ audience = 'manager', token } = {}) =>
     return { status: Notification.permission };
 };
 
+export const showSystemNotificationTest = async () => {
+    if (!('Notification' in window) || Notification.permission !== 'granted') {
+        throw new Error('Allow notifications from browser site settings first');
+    }
+
+    const registration = await registerServiceWorker();
+    await registration.showNotification('R&C Dine notifications enabled', {
+        body: 'Background notifications will appear here when the app is minimized or closed.',
+        icon: '/R-C DINE.png',
+        badge: '/R-C DINE.png',
+        tag: `rcdine-system-test-${Date.now()}`,
+        renotify: true,
+        silent: false,
+        vibrate: [180, 80, 180],
+        data: {
+            url: window.location.href,
+            type: 'SYSTEM_TEST',
+            category: 'GENERAL'
+        }
+    });
+    logPushEvent('system_notification_test_shown');
+};
+
 export const unregisterCurrentDevice = async ({ audience = 'manager', token } = {}) => {
     if (!('serviceWorker' in navigator)) return;
     const registration = await navigator.serviceWorker.getRegistration('/');

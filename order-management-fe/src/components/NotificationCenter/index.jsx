@@ -15,6 +15,7 @@ import {
     remove,
     restore,
     restoreCustomerNotification,
+    showSystemNotificationTest,
     update
 } from '../../services/notification.service';
 import { playManagerBell, playOrderCancelledSound, playOrderReadySound, playSound } from '../../utils/sound';
@@ -312,7 +313,8 @@ function NotificationCenter({ open, onClose, audience = 'manager', token, onUnre
             } else if (result.status === 'denied') {
                 setError('Notifications are blocked. Allow them from browser site settings.');
             } else if (result.status === 'enabled') {
-                setError('Notifications are enabled and synchronized.');
+                await showSystemNotificationTest();
+                setError('Notifications are enabled. A test notification was sent to your system notification bar.');
             }
         } catch (enableError) {
             setError(enableError.message);
