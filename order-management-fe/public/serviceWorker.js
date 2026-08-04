@@ -1,6 +1,6 @@
 /* global caches, clients */
 
-const CACHE_VERSION = 'v5';
+const CACHE_VERSION = 'v6';
 const APP_SHELL_CACHE = `rcdine-shell-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `rcdine-runtime-${CACHE_VERSION}`;
 const APP_SHELL = [
@@ -69,8 +69,12 @@ const logPushEvent = (event, details = {}) => {
 };
 
 self.addEventListener('install', (event) => {
-    event.waitUntil(caches.open(APP_SHELL_CACHE).then((cache) => cache.addAll(APP_SHELL)));
-    self.skipWaiting();
+    event.waitUntil(
+        caches
+            .open(APP_SHELL_CACHE)
+            .then((cache) => Promise.allSettled(APP_SHELL.map((url) => cache.add(url))))
+            .then(() => self.skipWaiting())
+    );
 });
 
 self.addEventListener('activate', (event) => {
@@ -259,5 +263,5 @@ self.addEventListener('pushsubscriptionchange', (event) => {
 });
 
 self.addEventListener('message', (event) => {
-    if (event.data?.type === 'SKIP_WAITING') self.skipWaiting();
+    if (event.data?.type === 'SKIP_WAITING') sself.skipWaiting();
 });

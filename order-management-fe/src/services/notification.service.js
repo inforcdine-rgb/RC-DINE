@@ -150,13 +150,28 @@ export const getPushCapability = () => {
 
 export const registerServiceWorker = async () => {
     if (!('serviceWorker' in navigator)) return null;
-    const registration = await navigator.serviceWorker.register('/serviceWorker.js', { scope: '/' });
+
+    const registration = await navigator.serviceWorker.register('/serviceWorker.js', {
+        scope: '/',
+        updateViaCache: 'none'
+    });
+
+    if (registration.waiting) {
+        registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+    }
+
     const readyRegistration = await navigator.serviceWorker.ready;
-    registration.update().catch(() => { });
-    logPushEvent('service_worker_ready', { scope: readyRegistration.scope });
+
+    if (!readyRegistration.active) {
+        throw new Error('Service Worker activation failed');
+    }
+
+    logPushEvent('service_worker_ready', {
+        scope: readyRegistration.scope
+    });
+
     return readyRegistration;
 };
-
 export const subscribe = async (payload) => api(method.POST, '/notification/subscribe', payload);
 export const unsubscribe = async (payload) => api(method.POST, '/notification/unsubscribe', payload);
 export const fetch = async (query = '') => api(method.GET, `/notification${query}`);
