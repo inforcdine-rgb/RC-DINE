@@ -17,6 +17,15 @@ export const loginUser = async (payload) => {
     }
 };
 
+export const googleLoginUser = async (payload) => {
+    try {
+        return await api(method.POST, '/user/google-login', payload);
+    } catch (error) {
+        console.error(`Error during Google login ${error}`);
+        throw error;
+    }
+};
+
 export const verifyUser = async (payload) => {
     try {
         return await api(method.POST, '/user/verify', payload);

@@ -6,6 +6,7 @@ import userService from '../services/user.service.js';
 import { STATUS_CODE } from '../utils/common.js';
 import {
     emailValidation,
+    googleLoginValidation,
     loginValidation,
     ownerRecoveryResetValidation,
     passValidation,
@@ -60,6 +61,23 @@ const login = async (req, res) => {
         return res.status(STATUS_CODE.OK).send(result);
     } catch (error) {
         logger('error', `Error occurred during login: ${error.message}`);
+        return res.status(error.code || 500).send({ message: error.message });
+    }
+};
+
+const googleLogin = async (req, res) => {
+    try {
+        logger('info', 'Received Google login request.');
+        const valid = googleLoginValidation(req.body);
+        if (valid.error) {
+            return res.status(STATUS_CODE.BAD_REQUEST).send({ message: valid.error.message });
+        }
+
+        const result = await userService.googleLogin(valid.value);
+        logger('info', 'Google login successful.');
+        return res.status(STATUS_CODE.OK).send(result);
+    } catch (error) {
+        logger('warn', `Google login rejected: ${error.message}`);
         return res.status(error.code || 500).send({ message: error.message });
     }
 };
@@ -272,6 +290,7 @@ const update = async (req, res) => {
 export default {
     create,
     login,
+    googleLogin,
     verify,
     forget,
     reset,

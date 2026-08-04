@@ -7,8 +7,9 @@ import AuthContainer from '../../components/AuthContainer';
 import CustomButton from '../../components/CustomButton';
 import CustomFormGroup from '../../components/CustomFormGroup';
 import CustomLink from '../../components/CustomLink';
+import OwnerGoogleSignIn from '../../components/OwnerGoogleSignIn';
 import env from '../../config/env';
-import { loginRequest } from '../../store/slice';
+import { googleLoginRequest, loginRequest } from '../../store/slice';
 import { loginSchema } from '../../validations/auth';
 
 function Login() {
@@ -38,6 +39,13 @@ function Login() {
         dispatch(loginRequest({ data, navigate }));
         setSubmitting(false);
     };
+
+    const handleGoogleCredential = React.useCallback(
+        (credential) => {
+            dispatch(googleLoginRequest({ data: { credential }, navigate }));
+        },
+        [dispatch, navigate]
+    );
 
     return (
         <AuthContainer title={'Login'}>
@@ -90,6 +98,16 @@ function Login() {
                             type="submit"
                             className="mx-auto"
                         />
+
+                        <OwnerGoogleSignIn
+                            clientId={env.google.clientId}
+                            onCredential={handleGoogleCredential}
+                            visible={values.role === 'OWNER'}
+                        />
+
+                        {values.role === 'MANAGER' && (
+                            <p className="rc-manager-login-note">Managers can sign in with email and password only.</p>
+                        )}
 
                         <div className="text-center mt-3">
                             <p className="label-font m-0">

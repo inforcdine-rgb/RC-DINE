@@ -18,6 +18,7 @@ const addNotificationRoutes = (route, middleware) => {
     route.delete('/:notificationId', middleware, notificationController.remove);
     route.post('/:notificationId/restore', middleware, notificationController.restore);
     route.post('/subscribe', middleware, notificationController.subscribe);
+    route.post('/fcm/subscribe', middleware, notificationController.subscribeFcm);
     route.post('/unsubscribe', middleware, notificationController.unsubscribe);
 };
 

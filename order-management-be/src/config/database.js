@@ -520,7 +520,9 @@ const initDb = async () => {
             { name: 'deviceId', type: 'VARCHAR(255) NULL' },
             { name: 'endpointHash', type: 'VARCHAR(64) NULL' },
             { name: 'platform', type: 'VARCHAR(50) NULL' },
-            { name: 'lastSeenAt', type: 'DATETIME NULL' }
+            { name: 'lastSeenAt', type: 'DATETIME NULL' },
+            { name: 'provider', type: 'VARCHAR(20) NOT NULL DEFAULT \'WEB_PUSH\'' },
+            { name: 'fcmToken', type: 'TEXT NULL' }
         ];
 
         for (const column of pushSubscriptionColumns) {

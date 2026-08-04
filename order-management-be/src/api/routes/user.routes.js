@@ -9,6 +9,7 @@ const router = Router();
 // owner apis
 router.post('/register', userController.create);
 router.post('/login', userController.login);
+router.post('/google-login', userController.googleLogin);
 router.post('/verify', userController.verify);
 router.post('/forget', userController.forget);
 router.post('/reset', userController.reset);

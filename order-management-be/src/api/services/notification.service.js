@@ -6,8 +6,9 @@ import webpush from 'web-push';
 
 import { db } from '../../config/database.js';
 import env from '../../config/env.js';
+import { getFirebaseMessaging, isFirebaseReady } from '../../config/firebase.js';
 import logger from '../../config/logger.js';
-import { isWebPushReady } from '../../config/notification.js';
+import { isAnyPushProviderReady, isWebPushReady } from '../../config/notification.js';
 import { emitToPushEndpoint, isPushEndpointVisible } from '../../config/socket.js';
 import { NOTIFICATION_STATUS } from '../models/notification.model.js';
 import { NOTIFICATION_PREFERENCE } from '../models/preferences.model.js';
@@ -42,7 +43,11 @@ const recipientWhere = ({ userId, customerId, phoneNumber }) => {
 };
 
 const getPublicConfig = () => ({
-    enabled: isWebPushReady(),
+    enabled: isAnyPushProviderReady(),
+    providers: {
+        fcm: isFirebaseReady(),
+        webPush: isWebPushReady()
+    },
     vapidPublicKey: isWebPushReady() ? env.notification.publicKey : ''
 });
 
@@ -96,6 +101,66 @@ const subscribe = async (payload) => {
         };
     } catch (error) {
         logger('error', 'Error while subscribing notification', {
+            message: error?.message,
+            code: error?.code
+        });
+        throw CustomError(error.code || STATUS_CODE.INTERNAL_SERVER_ERROR, error.message);
+    }
+};
+
+const subscribeFcm = async (payload) => {
+    try {
+        if (!isFirebaseReady()) {
+            throw CustomError(
+                STATUS_CODE.SERVICE_UNAVAILABLE,
+                'Firebase Cloud Messaging is not configured on the backend.'
+            );
+        }
+
+        const hash = endpointHash(payload.token);
+        const data = {
+            id: uuidv4(),
+            userId: payload.userId || null,
+            customerId: payload.customerId || null,
+            phoneNumber: normalizePhone(payload.phoneNumber),
+            deviceId: payload.deviceId || hash.slice(0, 32),
+            endpoint: `fcm:${hash}`,
+            endpointHash: hash,
+            provider: 'FCM',
+            fcmToken: payload.token,
+            expiration: null,
+            p256dh: '',
+            auth: '',
+            platform: String(payload.platform || '').slice(0, 50) || null,
+            lastSeenAt: new Date()
+        };
+
+        const subscription = await pushSubscriptionRepo.upsert(data);
+        const removedDuplicates = await pushSubscriptionRepo.remove({
+            where: {
+                deviceId: data.deviceId,
+                endpointHash: { [Op.ne]: hash }
+            }
+        });
+        const presenceToken = jwt.sign({ type: 'PUSH_PRESENCE', endpointHash: hash }, env.jwtSecret, {
+            expiresIn: '30d'
+        });
+
+        logger('info', 'FCM notification subscription synchronized', {
+            userId: data.userId,
+            customerId: data.customerId,
+            deviceId: data.deviceId,
+            duplicateSubscriptionsRemoved: removedDuplicates
+        });
+
+        return {
+            id: subscription.id,
+            deviceId: subscription.deviceId,
+            provider: 'FCM',
+            presenceToken
+        };
+    } catch (error) {
+        logger('error', 'Error while subscribing FCM notification', {
             message: error?.message,
             code: error?.code
         });
@@ -186,7 +251,60 @@ const matchesRecipient = (subscription, recipient) =>
     (recipient.customerId && subscription.customerId === recipient.customerId) ||
     (recipient.phoneNumber && normalizePhone(subscription.phoneNumber) === recipient.phoneNumber);
 
+const toFcmData = (payload) => {
+    const data = {
+        title: payload.title || 'R&C Dine',
+        message: payload.message || payload.body || 'New update received',
+        path: payload.path || '/',
+        notificationId: payload.notificationId || '',
+        entityId: payload.entityId || payload.orderId || payload.meta?.orderId || '',
+        type: getType(payload),
+        category: getCategory(payload),
+        createdAt: payload.createdAt ? new Date(payload.createdAt).toISOString() : new Date().toISOString(),
+        dedupeKey: payload.dedupeKey || payload.notificationId || '',
+        silent: String(payload.silent === true),
+        requireInteraction: String(payload.requireInteraction === true),
+        vibrate: JSON.stringify(payload.vibrate || []),
+        meta: JSON.stringify(payload.meta || {})
+    };
+
+    if (Array.isArray(payload.actions)) data.actions = JSON.stringify(payload.actions.slice(0, 2));
+    return Object.fromEntries(Object.entries(data).map(([key, value]) => [key, String(value)]));
+};
+
+const invalidFcmToken = (error) =>
+    ['messaging/registration-token-not-registered', 'messaging/invalid-registration-token'].includes(error?.code);
+
+const deliverToFcm = async (subscription, payload) => {
+    if (!subscription.fcmToken) throw new Error('FCM subscription token is missing');
+
+    const messageId = await getFirebaseMessaging().send({
+        token: subscription.fcmToken,
+        data: toFcmData(payload),
+        webpush: {
+            headers: {
+                TTL: String(getPushTtl(payload)),
+                Urgency: payload.urgency || 'high'
+            }
+        }
+    });
+
+    logger('info', 'FCM notification sent', {
+        event: 'notification_delivered',
+        channel: 'fcm',
+        subscriptionId: subscription.id,
+        notificationId: payload.notificationId,
+        messageId
+    });
+    return 'fcm';
+};
+
 const deliverToSubscription = async (subscription, payload) => {
+    if (subscription.provider === 'FCM') {
+        if (!isFirebaseReady()) throw new Error('Firebase Cloud Messaging is not configured');
+        return deliverToFcm(subscription, payload);
+    }
+
     try {
         // Always use Web Push as the primary channel. A page can remain connected to
         // Socket.IO while it is minimized or being suspended; treating that socket as
@@ -256,7 +374,11 @@ const sendNotification = async (userIds, data, customerId = undefined, options =
                 if (!stored) return;
                 if (!(await isManagerNotificationEnabled(subscription.userId, preferenceCache))) return;
 
-                if (subscription.expiration && new Date(subscription.expiration).getTime() <= Date.now()) {
+                if (
+                    subscription.provider !== 'FCM' &&
+                    subscription.expiration &&
+                    new Date(subscription.expiration).getTime() <= Date.now()
+                ) {
                     failureCount += 1;
                     await pushSubscriptionRepo.remove({ where: { id: subscription.id } });
                     logger('info', 'Expired Web Push subscription removed', {
@@ -292,17 +414,18 @@ const sendNotification = async (userIds, data, customerId = undefined, options =
                     await subscription.update({ lastSeenAt: new Date() });
                 } catch (error) {
                     failureCount += 1;
-                    logger('error', 'Web Push delivery failed', {
+                    logger('error', 'Background push delivery failed', {
                         event: 'push_failed',
+                        provider: subscription.provider || 'WEB_PUSH',
                         subscriptionId: subscription.id,
-                        statusCode: error?.statusCode,
+                        statusCode: error?.statusCode || error?.code,
                         message: error?.message
                     });
-                    if (error?.statusCode === 404 || error?.statusCode === 410) {
+                    if (error?.statusCode === 404 || error?.statusCode === 410 || invalidFcmToken(error)) {
                         await pushSubscriptionRepo.remove({ where: { id: subscription.id } });
                         logger('info', 'Invalid Web Push subscription removed', {
                             event: 'subscription_removed',
-                            reason: `push_${error.statusCode}`,
+                            reason: invalidFcmToken(error) ? error.code : `push_${error.statusCode}`,
                             subscriptionId: subscription.id
                         });
                     }
@@ -327,13 +450,13 @@ const testDelivery = async (identity) => {
         attributes: ['id']
     });
 
-    if (!isWebPushReady()) {
+    if (!isAnyPushProviderReady()) {
         return {
             enabled: false,
             subscriptionCount,
             successCount: 0,
             failureCount: 0,
-            message: 'Backend Web Push is disabled. Check the deployed VAPID environment variables.'
+            message: 'Background push is disabled. Configure Firebase or Web Push environment variables.'
         };
     }
 
@@ -350,7 +473,7 @@ const testDelivery = async (identity) => {
     const marker = Date.now();
     const data = {
         title: 'R&C Dine background test',
-        message: 'Backend-to-device Web Push is working. You can minimize or close the app.',
+        message: 'Backend-to-device FCM/background push is working. You can minimize or close the app.',
         path: '/',
         type: 'SYSTEM_TEST',
         category: 'GENERAL',
@@ -374,7 +497,7 @@ const testDelivery = async (identity) => {
         message:
             delivery.successCount > 0
                 ? 'Backend test notification sent successfully.'
-                : 'Backend found the device but Web Push delivery failed. Check backend push_failed logs.'
+                : 'Backend found the device but background push delivery failed. Check backend push_failed logs.'
     };
 };
 
@@ -428,6 +551,7 @@ const restore = async (identity, notificationId) => {
 export default {
     getPublicConfig,
     subscribe,
+    subscribeFcm,
     unsubscribe,
     sendNotification,
     testDelivery,

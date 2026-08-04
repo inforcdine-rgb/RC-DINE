@@ -1,6 +1,6 @@
 /* global caches, clients */
 
-const CACHE_VERSION = 'v4';
+const CACHE_VERSION = 'v5';
 const APP_SHELL_CACHE = `rcdine-shell-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `rcdine-runtime-${CACHE_VERSION}`;
 const APP_SHELL = [
@@ -28,9 +28,18 @@ const addNotificationContext = (value, notificationId) => {
     return url.href;
 };
 
+const parseJsonValue = (value, fallback) => {
+    if (typeof value !== 'string') return value ?? fallback;
+    try {
+        return JSON.parse(value);
+    } catch (_error) {
+        return fallback;
+    }
+};
+
 const normalizePayload = (raw = {}) => {
     const data = raw.data || raw;
-    const meta = data.meta || {};
+    const meta = parseJsonValue(data.meta, {}) || {};
     return {
         ...data,
         title: data.title || 'R&C Dine',
@@ -40,6 +49,10 @@ const normalizePayload = (raw = {}) => {
         entityId: data.entityId || data.orderId || meta.orderId || meta.requestId || '',
         type: data.type || meta.action || 'UPDATE',
         category: data.category || meta.category || 'GENERAL',
+        silent: data.silent === true || data.silent === 'true',
+        requireInteraction: data.requireInteraction === true || data.requireInteraction === 'true',
+        vibrate: parseJsonValue(data.vibrate, undefined),
+        actions: parseJsonValue(data.actions, undefined),
         meta
     };
 };

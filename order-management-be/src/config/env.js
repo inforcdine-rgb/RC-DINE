@@ -31,6 +31,9 @@ const env = {
         clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
         privateKey: (process.env.FIREBASE_PRIVATE_KEY || '').replace(/\\n/g, '\n')
     },
+    google: {
+        clientId: process.env.GOOGLE_CLIENT_ID
+    },
     razorpay: {
         keyId: process.env.RAZORPAY_KEY_ID || process.env.RAZORPAY_KEY,
         // support older env name RAZORPAY_SECRET as fallback

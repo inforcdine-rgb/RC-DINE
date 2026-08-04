@@ -29,3 +29,10 @@ export const unsubscribeValidation = (payload) =>
     })
         .or('endpoint', 'deviceId', 'allDevices')
         .validate(payload);
+
+export const fcmSubscribeValidation = (payload) =>
+    Joi.object({
+        token: Joi.string().min(20).max(4096).required(),
+        deviceId: Joi.string().max(255).required(),
+        platform: Joi.string().valid('ios', 'android', 'desktop').allow('', null)
+    }).validate(payload);

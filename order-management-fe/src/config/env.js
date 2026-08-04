@@ -12,6 +12,9 @@ const env = {
         appId: process.env.REACT_APP_FIREBASE_APP_ID,
         vapidKey: process.env.REACT_APP_FIREBASE_VAPID_KEY
     },
+    google: {
+        clientId: process.env.REACT_APP_GOOGLE_CLIENT_ID
+    },
     razorpay: {
         id: process.env.REACT_APP_RAZORPAY_KEY_ID
     }

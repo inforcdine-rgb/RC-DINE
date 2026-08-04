@@ -5,6 +5,7 @@ import { Op } from 'sequelize';
 import { v4 as uuidv4 } from 'uuid';
 import { db } from '../../config/database.js';
 import env from '../../config/env.js';
+import googleAuthClient from '../../config/googleAuth.js';
 import logger from '../../config/logger.js';
 import { INVITE_STATUS } from '../models/invite.model.js';
 import { NOTIFICATION_PREFERENCE, ORDER_PREFERENCE, PAYMENT_PREFERENCE } from '../models/preferences.model.js';
@@ -76,6 +77,36 @@ const sanitizeUser = (value) => {
 
 const activateUser = async (userId) => {
     await userRepo.update({ where: { id: userId } }, { status: USER_STATUS[0] });
+};
+
+const createLoginSession = async (user) => {
+    const { id, firstName, lastName, phoneNumber } = user;
+    let managerHotelId = null;
+    if (user.role === USER_ROLES[1]) {
+        managerHotelId = await getAssignedHotelId(id);
+        if (!managerHotelId) {
+            logger('error', `Manager ${id} has no assigned hotel`);
+            throw CustomError(STATUS_CODE.FORBIDDEN, 'Manager is not assigned to any cafe');
+        }
+    }
+
+    const sessionPayload = { role: user.role };
+    if (managerHotelId) sessionPayload.hotelId = managerHotelId;
+    const data = CryptoJS.AES.encrypt(JSON.stringify(sessionPayload), env.cryptoSecret).toString();
+
+    const tokenPayload = {
+        id,
+        firstName,
+        lastName,
+        status: user.status,
+        phoneNumber,
+        role: user.role,
+        tokenVersion: Number(user.tokenVersion || 0)
+    };
+    if (managerHotelId) tokenPayload.hotelId = managerHotelId;
+
+    const token = jwt.sign(tokenPayload, env.jwtSecret, { expiresIn: '18h' });
+    return { token, data };
 };
 
 const sendVerificationEmail = async (user) => {
@@ -238,41 +269,43 @@ const login = async (payload) => {
 
         // Verification checks are removed; users can login immediately.
 
-        const { id, firstName, lastName, phoneNumber } = user;
-        let managerHotelId = null;
-        if (user.role === USER_ROLES[1]) {
-            managerHotelId = await getAssignedHotelId(id);
-            if (!managerHotelId) {
-                logger('error', `Manager ${id} has no assigned hotel`);
-                throw CustomError(STATUS_CODE.FORBIDDEN, 'Manager is not assigned to any cafe');
-            }
-        }
-
-        const sessionPayload = { role: user.role };
-        if (managerHotelId) {
-            sessionPayload.hotelId = managerHotelId;
-        }
-        const data = CryptoJS.AES.encrypt(JSON.stringify(sessionPayload), env.cryptoSecret).toString();
-
-        const tokenPayload = {
-            id,
-            firstName,
-            lastName,
-            status: user.status,
-            phoneNumber,
-            role: user.role,
-            tokenVersion: Number(user.tokenVersion || 0)
-        };
-        if (managerHotelId) {
-            tokenPayload.hotelId = managerHotelId;
-        }
-        const token = jwt.sign(tokenPayload, env.jwtSecret, { expiresIn: '18h' });
-
-        return { token, data };
+        return await createLoginSession(user);
     } catch (error) {
         logger('error', `Error occurred during login: ${error.message}`);
         throw CustomError(error.code, error.message);
     }
+};
+
+const googleLogin = async ({ credential }) => {
+    if (!env.google.clientId) {
+        throw CustomError(STATUS_CODE.SERVICE_UNAVAILABLE, 'Google sign-in is not configured.');
+    }
+
+    let googleProfile;
+    try {
+        const ticket = await googleAuthClient.verifyIdToken({
+            idToken: credential,
+            audience: env.google.clientId
+        });
+        googleProfile = ticket.getPayload();
+    } catch (_error) {
+        throw CustomError(STATUS_CODE.UNAUTHORIZED, 'Google sign-in failed. Please try again.');
+    }
+
+    if (!googleProfile?.sub || !googleProfile.email || googleProfile.email_verified !== true) {
+        throw CustomError(STATUS_CODE.UNAUTHORIZED, 'Google account email is not verified.');
+    }
+
+    const email = String(googleProfile.email).trim().toLowerCase();
+    const user = await userRepo.findOne({ where: { email }, raw: true });
+    if (!user) {
+        throw CustomError(STATUS_CODE.NOT_FOUND, 'This Google account is not registered in RC-DINE.');
+    }
+    if (String(user.role).toUpperCase() !== USER_ROLES[0]) {
+        throw CustomError(STATUS_CODE.FORBIDDEN, 'Google sign-in is available for owners only.');
+    }
+
+    return await createLoginSession(user);
 };
 
 const verify = async (payload) => {
@@ -699,6 +732,7 @@ const update = async (id, payload) => {
 export default {
     create,
     login,
+    googleLogin,
     verify,
     forget,
     reset,

@@ -1,3 +1,5 @@
+import { getApp, getApps, initializeApp } from 'firebase/app';
+import { deleteToken, getMessaging, getToken, isSupported as isFirebaseMessagingSupported } from 'firebase/messaging';
 import { api, instance, method } from '../api/apiClient';
 import env from '../config/env';
 import { bindNotificationPresence, clearNotificationPresence } from './socket.service';
@@ -5,11 +7,13 @@ import { bindNotificationPresence, clearNotificationPresence } from './socket.se
 const DEVICE_ID_KEY = 'rcdinePushDeviceId';
 const PRESENCE_TOKEN_KEY = 'rcdinePushPresenceToken';
 const LAST_SYNC_KEY = 'rcdinePushLastSync';
+const FCM_TOKEN_KEY = 'rcdineFcmToken';
 const SYNC_INTERVAL_MS = 5 * 60 * 1000;
 const NOTIFICATION_QUERY_KEY = 'rcNotification';
 let lifecycleInitialized = false;
 let vapidKeyPromise = null;
 const syncPromises = new Map();
+let firebaseMessagingPromise = null;
 
 const logPushEvent = (event, details = {}) => {
     console.info('[RCDINE_PUSH]', { event, ...details, timestamp: new Date().toISOString() });
@@ -98,6 +102,40 @@ const getPlatform = () => {
     return 'desktop';
 };
 
+const hasFirebaseConfig = () =>
+    Boolean(
+        env.firebase.apiKey &&
+        env.firebase.authDomain &&
+        env.firebase.projectId &&
+        env.firebase.messagingSenderId &&
+        env.firebase.appId &&
+        env.firebase.vapidKey
+    );
+
+const getFirebaseMessagingInstance = async () => {
+    if (!hasFirebaseConfig()) return null;
+    if (!firebaseMessagingPromise) {
+        firebaseMessagingPromise = (async () => {
+            if (!(await isFirebaseMessagingSupported())) return null;
+            const app = getApps().length
+                ? getApp()
+                : initializeApp({
+                    apiKey: env.firebase.apiKey,
+                    authDomain: env.firebase.authDomain,
+                    projectId: env.firebase.projectId,
+                    storageBucket: env.firebase.storageBucket,
+                    messagingSenderId: env.firebase.messagingSenderId,
+                    appId: env.firebase.appId
+                });
+            return getMessaging(app);
+        })().catch((error) => {
+            firebaseMessagingPromise = null;
+            throw error;
+        });
+    }
+    return firebaseMessagingPromise;
+};
+
 export const getPushCapability = () => {
     const supported = 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
     const ios = /iPad|iPhone|iPod/.test(navigator.userAgent || '');
@@ -114,7 +152,7 @@ export const registerServiceWorker = async () => {
     if (!('serviceWorker' in navigator)) return null;
     const registration = await navigator.serviceWorker.register('/serviceWorker.js', { scope: '/' });
     const readyRegistration = await navigator.serviceWorker.ready;
-    registration.update().catch(() => {});
+    registration.update().catch(() => { });
     logPushEvent('service_worker_ready', { scope: readyRegistration.scope });
     return readyRegistration;
 };
@@ -205,6 +243,34 @@ const syncSubscription = async ({ audience, token }) => {
     return { subscription, ...result, status: 'enabled' };
 };
 
+const syncFcmSubscription = async ({ audience, token }) => {
+    const registration = await registerServiceWorker();
+    const messaging = await getFirebaseMessagingInstance();
+    if (!messaging) throw new Error('Firebase Messaging is not supported on this browser');
+
+    const fcmToken = await getToken(messaging, {
+        vapidKey: env.firebase.vapidKey,
+        serviceWorkerRegistration: registration
+    });
+    if (!fcmToken) throw new Error('Firebase did not return a notification token');
+
+    const deviceId = getDeviceId();
+    const payload = { token: fcmToken, deviceId, platform: getPlatform() };
+    const result =
+        audience === 'customer'
+            ? await customerApi('post', '/fcm/subscribe', payload, token)
+            : await api(method.POST, '/notification/fcm/subscribe', payload);
+
+    localStorage.setItem(FCM_TOKEN_KEY, fcmToken);
+    if (result?.presenceToken) {
+        localStorage.setItem(PRESENCE_TOKEN_KEY, result.presenceToken);
+        bindNotificationPresence(result.presenceToken);
+    }
+    localStorage.setItem(LAST_SYNC_KEY, String(Date.now()));
+    logPushEvent('fcm_subscription_synchronized', { audience, deviceId });
+    return { ...result, status: 'enabled', provider: 'FCM' };
+};
+
 export const enableWebPush = async ({ audience = 'manager', token, requestPermission = true } = {}) => {
     const capability = getPushCapability();
     if (!capability.supported) {
@@ -224,7 +290,18 @@ export const enableWebPush = async ({ audience = 'manager', token, requestPermis
 
     const syncKey = `${audience}:${token || 'authenticated-manager'}`;
     if (!syncPromises.has(syncKey)) {
-        const promise = syncSubscription({ audience, token }).finally(() => {
+        const promise = (async () => {
+            if (hasFirebaseConfig()) {
+                try {
+                    return await syncFcmSubscription({ audience, token });
+                } catch (error) {
+                    logPushEvent('fcm_subscription_failed_using_web_push_fallback', {
+                        message: error?.message || String(error)
+                    });
+                }
+            }
+            return syncSubscription({ audience, token });
+        })().finally(() => {
             syncPromises.delete(syncKey);
         });
         syncPromises.set(syncKey, promise);
@@ -282,10 +359,20 @@ export const unregisterCurrentDevice = async ({ audience = 'manager', token } = 
         if (audience === 'customer') await customerApi('post', '/unsubscribe', payload, token);
         else await unsubscribe(payload);
     } finally {
+        const savedFcmToken = localStorage.getItem(FCM_TOKEN_KEY);
+        if (savedFcmToken) {
+            try {
+                const messaging = await getFirebaseMessagingInstance();
+                if (messaging) await deleteToken(messaging);
+            } catch (error) {
+                logPushEvent('fcm_token_delete_failed', { message: error?.message || String(error) });
+            }
+        }
         await subscription?.unsubscribe();
         clearNotificationPresence();
         localStorage.removeItem(PRESENCE_TOKEN_KEY);
         localStorage.removeItem(LAST_SYNC_KEY);
+        localStorage.removeItem(FCM_TOKEN_KEY);
         logPushEvent('subscription_removed', { audience, hadSubscription: Boolean(subscription) });
     }
 };

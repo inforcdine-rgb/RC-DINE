@@ -41,6 +41,15 @@ const pushSubscriptionsModel = (sequelize) =>
                 type: DataTypes.STRING(64),
                 allowNull: false
             },
+            provider: {
+                type: DataTypes.STRING(20),
+                allowNull: false,
+                defaultValue: 'WEB_PUSH'
+            },
+            fcmToken: {
+                type: DataTypes.TEXT,
+                allowNull: true
+            },
             expiration: {
                 type: DataTypes.DATE,
                 allowNull: true

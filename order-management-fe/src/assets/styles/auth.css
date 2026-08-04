@@ -705,3 +705,55 @@
     margin-top: 8px !important;
     margin-bottom: 2px;
 }
+
+.rc-owner-google {
+    width: 100%;
+    margin-top: 18px;
+}
+
+.rc-auth-divider {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: rgba(255, 255, 255, 0.62);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    margin-bottom: 14px;
+}
+
+.rc-auth-divider::before,
+.rc-auth-divider::after {
+    content: '';
+    height: 1px;
+    flex: 1;
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.rc-google-button {
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.rc-google-help,
+.rc-manager-login-note,
+.rc-google-error {
+    text-align: center;
+    font-size: 12px;
+    margin: 8px 0 0;
+}
+
+.rc-google-help,
+.rc-manager-login-note {
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.rc-manager-login-note {
+    margin-top: 14px;
+}
+
+.rc-google-error {
+    color: #ffb4b4;
+}

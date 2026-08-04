@@ -18,6 +18,7 @@ import {
     FORGOT_PASSWORD_REQUEST,
     GET_NOTIFICATION_REQUEST,
     GET_USER_REQUEST,
+    GOOGLE_LOGIN_USER_REQUEST,
     LOGIN_USER_REQUEST,
     LOGOUT_USER_REQUEST,
     REGISTER_USER_REQUEST,
@@ -27,19 +28,32 @@ import {
     VERIFY_USER_REQUEST
 } from '../types';
 
+function* completeLogin(res, navigate) {
+    localStorage.setItem('token', res.token);
+    localStorage.setItem('data', res.data);
+
+    toast.success('Login successfully');
+    yield put(getUserRequest({ navigate }));
+}
+
 function* loginUserRequestSaga(action) {
     try {
         const { data, navigate } = action.payload;
         const res = yield service.loginUser(data);
-
-        localStorage.setItem('token', res.token);
-        localStorage.setItem('data', res.data);
-
-        toast.success('Login successfully');
-        yield put(getUserRequest({ navigate }));
+        yield * completeLogin(res, navigate);
     } catch (error) {
         // Show backend-provided message (e.g. role mismatch) directly
         toast.error(error?.message || 'Failed to login');
+    }
+}
+
+function* googleLoginUserRequestSaga(action) {
+    try {
+        const { data, navigate } = action.payload;
+        const res = yield service.googleLoginUser(data);
+        yield * completeLogin(res, navigate);
+    } catch (error) {
+        toast.error(error?.message || 'Google sign-in failed');
     }
 }
 
@@ -225,6 +239,7 @@ function* updateNotificationRequestSaga() {
 export default function* authSaga() {
     yield all([
         takeLatest(LOGIN_USER_REQUEST, loginUserRequestSaga),
+        takeLatest(GOOGLE_LOGIN_USER_REQUEST, googleLoginUserRequestSaga),
         takeLatest(LOGOUT_USER_REQUEST, logoutUserRequestSaga),
         takeLatest(REGISTER_USER_REQUEST, registerUserRequestSaga),
         takeLatest(VERIFY_USER_REQUEST, verifyUserRequestSaga),

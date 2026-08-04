@@ -23,6 +23,7 @@ const authSlice = createSlice({
     },
     reducers: {
         loginRequest() {},
+        googleLoginRequest() {},
         logoutRequest(state) {
             state.data = {};
             state.notificationsData = { count: 0, data: [], open: false };
@@ -56,6 +57,7 @@ const authSlice = createSlice({
 
 export const {
     loginRequest,
+    googleLoginRequest,
     logoutRequest,
     registerRequest,
     verifyRequest,

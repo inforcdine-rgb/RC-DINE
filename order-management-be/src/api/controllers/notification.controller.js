@@ -1,7 +1,11 @@
 import logger from '../../config/logger.js';
 import notificationService from '../services/notification.service.js';
 import { STATUS_CODE } from '../utils/common.js';
-import { subscribeValidation, unsubscribeValidation } from '../validations/notification.validation.js';
+import {
+    fcmSubscribeValidation,
+    subscribeValidation,
+    unsubscribeValidation
+} from '../validations/notification.validation.js';
 
 const getIdentity = (req) =>
     req.user?.id
@@ -59,6 +63,22 @@ const unsubscribe = async (req, res) => {
     }
 };
 
+const subscribeFcm = async (req, res) => {
+    try {
+        const validation = fcmSubscribeValidation(req.body);
+        if (validation.error) {
+            return res.status(STATUS_CODE.BAD_REQUEST).send({ message: validation.error.message });
+        }
+        const result = await notificationService.subscribeFcm({
+            ...getIdentity(req),
+            ...validation.value
+        });
+        return res.status(STATUS_CODE.OK).send(result);
+    } catch (error) {
+        return handleError(res, error, 'FCM notification subscription failed');
+    }
+};
+
 const fetch = async (req, res) => {
     try {
         const result = await notificationService.fetch(getIdentity(req), req.query);
@@ -104,4 +124,15 @@ const restore = async (req, res) => {
     }
 };
 
-export default { publicConfig, testDelivery, subscribe, unsubscribe, fetch, update, remove, clear, restore };
+export default {
+    publicConfig,
+    testDelivery,
+    subscribe,
+    subscribeFcm,
+    unsubscribe,
+    fetch,
+    update,
+    remove,
+    clear,
+    restore
+};

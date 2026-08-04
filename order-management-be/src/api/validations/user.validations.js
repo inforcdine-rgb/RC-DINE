@@ -83,6 +83,20 @@ export const loginValidation = (payload) => {
     }
 };
 
+export const googleLoginValidation = (payload) => {
+    try {
+        logger('debug', 'Validating Google login payload');
+        const schema = Joi.object({
+            credential: Joi.string().min(100).required()
+        });
+
+        return schema.validate(payload);
+    } catch (error) {
+        logger('error', `Error occurred during Google login validation: ${error}`);
+        throw CustomError(error.code, error.message);
+    }
+};
+
 export const emailValidation = (payload) => {
     try {
         logger('debug', 'Validating email payload');

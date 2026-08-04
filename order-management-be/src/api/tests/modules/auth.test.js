@@ -1,4 +1,6 @@
+import jwt from 'jsonwebtoken';
 import { db } from '../../../config/database.js';
+import googleAuthClient from '../../../config/googleAuth.js';
 import userController from '../../controllers/user.controllers';
 import { comparePassword } from '../../utils/password.js';
 import { register, login, verify, forget, reset } from '../utils/dummy.auth';
@@ -31,8 +33,14 @@ jest.mock('../../../config/env.js', () => ({
         cryptoSecret: 'test-secret',
         jwtSecret: 'test-jwt-secret',
         app: { isDevelopment: false, env: 'test', appUrl: 'http://localhost:3000' },
-        email: { user: 'test@example.com', pass: 'test-password' }
+        email: { user: 'test@example.com', pass: 'test-password' },
+        google: { clientId: 'test-google-client-id.apps.googleusercontent.com' }
     }
+}));
+
+jest.mock('../../../config/googleAuth.js', () => ({
+    __esModule: true,
+    default: { verifyIdToken: jest.fn() }
 }));
 
 // mock the email sending functions
@@ -204,6 +212,71 @@ describe('testing user cases', () => {
         const data = res.send.mock.calls[0][0];
         expect(data).toHaveProperty('token');
         expect(data).toHaveProperty('data');
+        expect(db.users.findOne).toHaveBeenCalledWith({
+            where: { email: successLoginData.body.email },
+            raw: true
+        });
+        expect(jwt.verify(data.token, 'test-jwt-secret').tokenVersion).toBe(successLoginData.db.tokenVersion);
+    });
+
+    test('test successful Google login for an existing owner', async () => {
+        const credential = 'g'.repeat(120);
+        const verifiedEmailClaim = 'email_verified';
+        googleAuthClient.verifyIdToken.mockResolvedValue({
+            getPayload: () => ({
+                sub: 'google-owner-id',
+                email: 'owner@gmail.com',
+                [verifiedEmailClaim]: true
+            })
+        });
+        db.users.findOne.mockResolvedValue({
+            id: 'owner-id',
+            firstName: 'Rachi',
+            lastName: 'Owner',
+            phoneNumber: '9999999999',
+            email: 'owner@gmail.com',
+            status: 'ACTIVE',
+            role: 'OWNER',
+            tokenVersion: 2
+        });
+
+        await userController.googleLogin({ body: { credential } }, res);
+
+        expect(res.status).toHaveBeenCalledWith(200);
+        const data = res.send.mock.calls[0][0];
+        expect(jwt.verify(data.token, 'test-jwt-secret')).toMatchObject({
+            id: 'owner-id',
+            role: 'OWNER',
+            tokenVersion: 2
+        });
+        expect(googleAuthClient.verifyIdToken).toHaveBeenCalledWith({
+            idToken: credential,
+            audience: 'test-google-client-id.apps.googleusercontent.com'
+        });
+    });
+
+    test('test Google login is rejected for a manager', async () => {
+        const credential = 'g'.repeat(120);
+        const verifiedEmailClaim = 'email_verified';
+        googleAuthClient.verifyIdToken.mockResolvedValue({
+            getPayload: () => ({
+                sub: 'google-manager-id',
+                email: 'manager@gmail.com',
+                [verifiedEmailClaim]: true
+            })
+        });
+        db.users.findOne.mockResolvedValue({
+            id: 'manager-id',
+            email: 'manager@gmail.com',
+            status: 'ACTIVE',
+            role: 'MANAGER',
+            tokenVersion: 0
+        });
+
+        await userController.googleLogin({ body: { credential } }, res);
+
+        expect(res.status).toHaveBeenCalledWith(403);
+        expect(res.send).toHaveBeenCalledWith({ message: 'Google sign-in is available for owners only.' });
     });
 
     // verify test cases

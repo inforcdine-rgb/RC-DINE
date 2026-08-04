@@ -1,6 +1,7 @@
 import crypto from 'crypto';
 import webpush from 'web-push';
 import env from './env.js';
+import { initFirebaseNotifications, isFirebaseReady } from './firebase.js';
 import logger from './logger.js';
 
 let webPushReady = false;
@@ -34,6 +35,7 @@ const vapidKeysMatch = (publicKey, privateKey) => {
 
 export const initNotifications = async () => {
     webPushReady = false;
+    const firebaseReady = initFirebaseNotifications();
     const publicKeyValid = decodeKey(env.notification.publicKey).length === 65;
     const privateKeyValid = decodeKey(env.notification.privateKey).length === 32;
     const emailValid = Boolean(String(env.notification.email || '').trim());
@@ -45,9 +47,11 @@ export const initNotifications = async () => {
             'Web Push disabled: invalid or mismatched WEB_PUSH_PUBLIC_KEY/WEB_PUSH_PRIVATE_KEY, or invalid WEB_PUSH_EMAIL. ' +
             'Generate matching keys with: npx web-push generate-vapid-keys';
 
-        if (env.app.env === 'production') throw new Error(message);
         logger('warn', message);
-        return false;
+        if (!firebaseReady && env.app.env === 'production') {
+            logger('error', 'No background push provider is configured');
+        }
+        return firebaseReady;
     }
 
     const subject = String(env.notification.email).startsWith('mailto:')
@@ -62,3 +66,4 @@ export const initNotifications = async () => {
 };
 
 export const isWebPushReady = () => webPushReady;
+export const isAnyPushProviderReady = () => webPushReady || isFirebaseReady();
