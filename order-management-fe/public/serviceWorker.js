@@ -1,6 +1,6 @@
 /* global caches, clients */
 
-const CACHE_VERSION = 'v6';
+const CACHE_VERSION = 'v7';
 const APP_SHELL_CACHE = `rcdine-shell-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `rcdine-runtime-${CACHE_VERSION}`;
 const APP_SHELL = [
@@ -223,8 +223,7 @@ self.addEventListener('notificationclick', (event) => {
             for (const client of orderedClients) {
                 if (new URL(client.url).origin !== self.location.origin) continue;
 
-                const currentUrl = addNotificationContext(client.url, data.notificationId);
-                const destination = data.preservePath ? currentUrl : targetUrl;
+                const destination = targetUrl;
                 if ('navigate' in client && client.url !== destination) {
                     await client.navigate(destination);
                 }
@@ -263,5 +262,5 @@ self.addEventListener('pushsubscriptionchange', (event) => {
 });
 
 self.addEventListener('message', (event) => {
-    if (event.data?.type === 'SKIP_WAITING') sself.skipWaiting();
+    if (event.data?.type === 'SKIP_WAITING') self.skipWaiting();
 });

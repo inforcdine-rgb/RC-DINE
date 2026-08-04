@@ -110,7 +110,8 @@ function NotificationCenter({ open, onClose, audience = 'manager', token, onUnre
     const [permissionBusy, setPermissionBusy] = useState(false);
     const observerTarget = useRef(null);
     const undoTimer = useRef(null);
-    const touchStart = useRef(new Map());
+    const gestureStart = useRef(new Map());
+    const suppressedClicks = useRef(new Set());
     const resolvedToken = token || getCustomerNotificationToken();
 
     const loadNotifications = useCallback(async () => {
@@ -245,7 +246,13 @@ function NotificationCenter({ open, onClose, audience = 'manager', token, onUnre
         });
     };
 
-    const openNotification = async (item) => {
+    const openNotification = async (event, item) => {
+        if (suppressedClicks.current.delete(item.id)) {
+            event?.preventDefault();
+            event?.stopPropagation();
+            return;
+        }
+
         if (!item.isRead) {
             if (audience === 'customer') {
                 if (!item.localOnly) await readCustomerNotification(item.id, resolvedToken);
@@ -260,7 +267,7 @@ function NotificationCenter({ open, onClose, audience = 'manager', token, onUnre
         }
         onClose?.();
         window.dispatchEvent(new CustomEvent('rcdine:notification-clicked', { detail: item }));
-        if (item.path && !item.preservePath) {
+        if (item.path) {
             navigate(item.path.startsWith('/') ? item.path : `/${item.path}`);
         }
     };
@@ -326,21 +333,72 @@ function NotificationCenter({ open, onClose, audience = 'manager', token, onUnre
         }
     };
 
-    const toggleSound = () => {
-        setSoundEnabled((current) => {
-            localStorage.setItem(SOUND_SETTING_KEY, current ? 'off' : 'on');
-            return !current;
+    const toggleSound = async () => {
+        const nextEnabled = !soundEnabled;
+
+        localStorage.setItem(SOUND_SETTING_KEY, nextEnabled ? 'on' : 'off');
+        setSoundEnabled(nextEnabled);
+
+        if (nextEnabled) {
+            await playSound('bell', {
+                dedupeKey: `sound-test-${Date.now()}`,
+                cooldownMs: 0,
+                volume: 1
+            });
+        }
+    };
+
+    const rememberGesture = (item, clientX, clientY) => {
+        gestureStart.current.set(item.id, {
+            clientX,
+            clientY,
+            startedAt: Date.now()
         });
     };
 
+    const finishGesture = (event, item, clientX, clientY) => {
+        const start = gestureStart.current.get(item.id);
+        gestureStart.current.delete(item.id);
+        if (!start) return;
+
+        const deltaX = clientX - start.clientX;
+        const deltaY = clientY - start.clientY;
+        const duration = Date.now() - start.startedAt;
+        const horizontalSwipe = Math.abs(deltaX) >= 75 && Math.abs(deltaX) > Math.abs(deltaY) * 1.1;
+        const upwardSwipe =
+            deltaY <= -100 && Math.abs(deltaY) > Math.abs(deltaX) * 1.2 && duration <= 700;
+
+        if (!horizontalSwipe && !upwardSwipe) return;
+
+        suppressedClicks.current.add(item.id);
+        event.preventDefault();
+        event.stopPropagation();
+        deleteNotification(item);
+        window.setTimeout(() => suppressedClicks.current.delete(item.id), 700);
+    };
+
     const handlePointerDown = (event, item) => {
-        touchStart.current.set(item.id, event.clientX);
+        if (event.pointerType === 'touch') return;
+        rememberGesture(item, event.clientX, event.clientY);
     };
 
     const handlePointerUp = (event, item) => {
-        const start = touchStart.current.get(item.id);
-        touchStart.current.delete(item.id);
-        if (typeof start === 'number' && start - event.clientX > 75) deleteNotification(item);
+        if (event.pointerType === 'touch') return;
+        finishGesture(event, item, event.clientX, event.clientY);
+    };
+
+    const handleTouchStart = (event, item) => {
+        const touch = event.touches[0];
+        if (touch) rememberGesture(item, touch.clientX, touch.clientY);
+    };
+
+    const handleTouchEnd = (event, item) => {
+        const touch = event.changedTouches[0];
+        if (touch) finishGesture(event, item, touch.clientX, touch.clientY);
+    };
+
+    const cancelGesture = (item) => {
+        gestureStart.current.delete(item.id);
     };
 
     if (!open) return null;
@@ -462,11 +520,15 @@ function NotificationCenter({ open, onClose, audience = 'manager', token, onUnre
                                         className={`notification-card ${item.isRead ? 'is-read' : 'is-unread'} category-${item.category.toLowerCase()}`}
                                         onPointerDown={(event) => handlePointerDown(event, item)}
                                         onPointerUp={(event) => handlePointerUp(event, item)}
+                                        onPointerCancel={() => cancelGesture(item)}
+                                        onTouchStart={(event) => handleTouchStart(event, item)}
+                                        onTouchEnd={(event) => handleTouchEnd(event, item)}
+                                        onTouchCancel={() => cancelGesture(item)}
                                     >
                                         <button
                                             className="notification-card-main"
                                             type="button"
-                                            onClick={() => openNotification(item)}
+                                            onClick={(event) => openNotification(event, item)}
                                         >
                                             <span className="notification-card-icon">
                                                 {getCategoryIcon(item.category, item.type)}

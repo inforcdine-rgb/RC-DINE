@@ -19,6 +19,18 @@ const canPlay = (key, cooldownMs) => {
     return true;
 };
 
+const audioCache = new Map();
+
+const getAudio = (soundName, src) => {
+    if (!audioCache.has(soundName)) {
+        const audio = new Audio(src);
+        audio.preload = 'auto';
+        audioCache.set(soundName, audio);
+    }
+
+    return audioCache.get(soundName);
+};
+
 export const playSound = async (soundName, options = {}) => {
     if (localStorage.getItem('rcdineNotificationSound') === 'off') return false;
     const { dedupeKey = soundName, cooldownMs = 1500, volume = 1 } = options;
@@ -30,8 +42,9 @@ export const playSound = async (soundName, options = {}) => {
     }
 
     try {
-        const audio = new Audio(src);
-        audio.preload = 'auto';
+        const audio = getAudio(soundName, src);
+        audio.pause();
+        audio.currentTime = 0;
         audio.volume = Math.max(0, Math.min(1, Number(volume) || 1));
         await audio.play();
         return true;
