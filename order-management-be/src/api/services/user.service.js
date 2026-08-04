@@ -50,7 +50,8 @@ const sendPasswordResetLink = async ({ email, userId, role } = {}) => {
 
     const user = await userRepo.findOne({
         where,
-        attributes: ['id', 'email', 'role', 'tokenVersion']
+        attributes: ['id', 'email', 'role', 'tokenVersion'],
+        raw: true
     });
 
     if (!user) {
@@ -208,7 +209,9 @@ const login = async (payload) => {
             .toLowerCase();
 
         logger('debug', `Login request received for email: ${email}`);
-        const user = await userRepo.findOne({ where: { email } });
+        // tokenVersion is intentionally hidden by User.toJSON(). Use a raw
+        // internal record so the newly issued session matches the live user.
+        const user = await userRepo.findOne({ where: { email }, raw: true });
 
         if (!user) {
             logger('error', `Email ${email} not registered.`);
@@ -277,7 +280,7 @@ const verify = async (payload) => {
         const { email, expires } = payload;
         logger('debug', `Verifying user with email: ${email}`);
 
-        const user = await userRepo.findOne({ where: { email } });
+        const user = await userRepo.findOne({ where: { email }, raw: true });
         if (!user) {
             logger('error', 'User not found for verification.');
             throw CustomError(STATUS_CODE.NOT_FOUND, 'Invalid request');
@@ -360,7 +363,8 @@ const reset = async (payload) => {
 
         const user = await userRepo.findOne({
             where: { id: resetClaims.sub },
-            attributes: ['id', 'tokenVersion']
+            attributes: ['id', 'tokenVersion'],
+            raw: true
         });
         if (!user || Number(user.tokenVersion || 0) !== Number(resetClaims.tokenVersion || 0)) {
             throw CustomError(STATUS_CODE.BAD_REQUEST, PASSWORD_RESET_ERROR);
