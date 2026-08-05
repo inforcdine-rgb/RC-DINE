@@ -65,7 +65,7 @@ const register = async (payload) => {
         notificationService.sendNotification(userIds, {
             title: `Table-${payload.tableNumber} Booked`,
             message: `Table-${payload.tableNumber} is booked. Please assist the customer accordingly.`,
-            path: 'orders',
+            path: '/orders',
             meta: {
                 action: NOTIFICATION_ACTIONS.CUSTOMER_REGISTERATION,
                 hotelId: payload.hotelId
@@ -1720,7 +1720,7 @@ const cancelOrder = async (orderId, authenticatedCustomerId) => {
             notificationService.sendNotification(undefined, cancellationNotification, customerId),
             notificationService.sendNotification(userIds, {
                 ...cancellationNotification,
-                path: 'orders',
+                path: '/orders',
                 message: `${order.orderNumber || 'Order'} was cancelled by the customer.`
             })
         ]);

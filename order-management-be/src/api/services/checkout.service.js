@@ -340,7 +340,7 @@ const payment = async ({ customerId, hotelId, manual }) => {
             await notificationService.sendNotification(userIds, {
                 title: 'Payment Request',
                 message: `Payment request for Table-${customer.table.tableNumber} of amount ${totalPrice}. Please approve once the payment is done.`,
-                path: 'orders',
+                path: '/orders',
                 meta: {
                     action: NOTIFICATION_ACTIONS.PAYMENT_REQUEST,
                     tableId: customer.table.id,

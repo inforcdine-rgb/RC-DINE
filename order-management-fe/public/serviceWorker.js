@@ -1,6 +1,6 @@
 /* global caches, clients */
 
-const CACHE_VERSION = 'v7';
+const CACHE_VERSION = 'v8';
 const APP_SHELL_CACHE = `rcdine-shell-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `rcdine-runtime-${CACHE_VERSION}`;
 const APP_SHELL = [
@@ -207,34 +207,80 @@ self.addEventListener('push', (event) => {
     );
 });
 
-self.addEventListener('notificationclick', (event) => {
+sself.addEventListener('notificationclick', (event) => {
     event.notification.close();
+
     if (event.action === 'dismiss') return;
 
     const data = event.notification?.data || {};
-    const requestedUrl = data.actionUrls?.[event.action] || data.url || '/';
-    const targetUrl = addNotificationContext(requestedUrl, data.notificationId);
+
+    const requestedUrl =
+        data.actionUrls?.[event.action] ||
+        data.url ||
+        '/orders';
+
+    const targetUrl = addNotificationContext(
+        requestedUrl,
+        data.notificationId
+    );
 
     event.waitUntil(
-        getWindowClients().then(async (clientList) => {
-            const orderedClients = [...clientList].sort(
-                (first, second) => Number(second.focused) - Number(first.focused)
-            );
-            for (const client of orderedClients) {
-                if (new URL(client.url).origin !== self.location.origin) continue;
+        (async () => {
+            const clientList = await clients.matchAll({
+                type: 'window',
+                includeUncontrolled: true
+            });
 
-                const destination = targetUrl;
-                if ('navigate' in client && client.url !== destination) {
-                    await client.navigate(destination);
+            for (const client of clientList) {
+                try {
+                    const clientUrl = new URL(client.url);
+
+                    if (clientUrl.origin !== self.location.origin) {
+                        continue;
+                    }
+
+                    let targetClient = client;
+
+                    // Pehle required route par navigate karo
+                    if ('navigate' in client) {
+                        const navigatedClient = await client.navigate(targetUrl);
+
+                        if (navigatedClient) {
+                            targetClient = navigatedClient;
+                        }
+                    }
+
+                    // Phir app ko foreground me lao
+                    if ('focus' in targetClient) {
+                        await targetClient.focus();
+                    }
+
+                    targetClient.postMessage({
+                        type: 'NOTIFICATION_CLICKED',
+                        payload: {
+                            ...data,
+                            url: targetUrl
+                        }
+                    });
+
+                    return;
+                } catch (error) {
+                    console.error(
+                        '[RCDINE_PUSH_SW] Existing window navigation failed',
+                        error
+                    );
                 }
-                client.postMessage({
-                    type: 'NOTIFICATION_CLICKED',
-                    payload: { ...data, url: destination }
-                });
-                if ('focus' in client) return client.focus();
             }
-            return clients.openWindow ? clients.openWindow(targetUrl) : null;
-        })
+
+            // App completely closed ho to nayi PWA/window kholo
+            if (clients.openWindow) {
+                const openedClient = await clients.openWindow(targetUrl);
+
+                if (openedClient && 'focus' in openedClient) {
+                    await openedClient.focus();
+                }
+            }
+        })()
     );
 });
 
