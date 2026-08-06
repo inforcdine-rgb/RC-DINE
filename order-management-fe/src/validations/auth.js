@@ -1,6 +1,6 @@
 import * as Yup from 'yup';
 
-export const emailRegex = /^[^\s@]+@(?:[^\s@]+\.(?:com|net))$/;
+export const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 export const userRegistrationSchema = Yup.object().shape({
     firstName: Yup.string()
         .matches(/^[A-Za-z]+$/, 'First name must only contain alphabetic characters')
@@ -91,6 +91,25 @@ export const recoveryCodeUpdateSchema = Yup.object().shape({
         .required('Confirm recovery code is required'),
     invalidateSessions: Yup.boolean()
 });
+
+export const getChangeEmailSchema = (currentEmail = '') =>
+    Yup.object().shape({
+        currentPassword: Yup.string().required('Current password is required.'),
+        newEmail: Yup.string()
+            .trim()
+            .lowercase()
+            .matches(emailRegex, 'Please enter a valid email address.')
+            .notOneOf(
+                [String(currentEmail).trim().toLowerCase()],
+                'New email must be different from your current email.'
+            )
+            .required('New email is required.'),
+        confirmEmail: Yup.string()
+            .trim()
+            .lowercase()
+            .oneOf([Yup.ref('newEmail'), null], 'New email and confirmation must match.')
+            .required('Confirm new email is required.')
+    });
 
 export const settingsSchema = Yup.object().shape({
     firstName: Yup.string()

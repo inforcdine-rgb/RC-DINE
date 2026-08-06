@@ -66,6 +66,8 @@ export const resetOwnerPassword = async (payload) => api(method.POST, '/user/own
 
 export const updateOwnerRecoveryCode = async (payload) => api(method.PUT, '/user/owner/recovery-code', payload);
 
+export const changeOwnerEmail = async (payload) => api(method.PATCH, '/owner/account/email', payload);
+
 export const getUser = async () => {
     try {
         return await api(method.GET, '/user');

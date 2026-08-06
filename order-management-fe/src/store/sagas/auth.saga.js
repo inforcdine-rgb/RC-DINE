@@ -189,23 +189,30 @@ function* updateUserRequestSaga(action) {
     }
 }
 
-function* logoutUserRequestSaga() {
+function* logoutUserRequestSaga(action) {
     try {
         yield put(clearGlobalHotelId());
-        try {
-            yield notificationService.unregisterCurrentDevice({ audience: 'manager' });
-        } catch (e) {
-            console.warn('Unsubscribe failed during logout:', e);
+        if (!action.payload?.skipUnregister) {
+            try {
+                yield notificationService.unregisterCurrentDevice({ audience: 'manager' });
+            } catch (e) {
+                console.warn('Unsubscribe failed during logout:', e);
+            }
         }
 
         localStorage.clear();
         sessionStorage.clear();
-        window.location.replace('/');
+        const redirectTo = action.payload?.redirectTo || '/';
+        if (action.payload?.reload === false && action.payload?.navigate) {
+            action.payload.navigate(redirectTo, { replace: true });
+            return;
+        }
+        window.location.replace(redirectTo);
     } catch (error) {
         console.error(`Failed to logout user: ${error?.message}`);
         localStorage.clear();
         sessionStorage.clear();
-        window.location.replace('/');
+        window.location.replace(action.payload?.redirectTo || '/');
     }
 }
 

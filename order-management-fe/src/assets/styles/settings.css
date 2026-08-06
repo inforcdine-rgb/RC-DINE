@@ -27,6 +27,102 @@
     width: 60%;
 }
 
+.account-settings-card {
+    overflow: hidden;
+}
+
+.account-settings-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 18px;
+}
+
+.account-settings-heading h5 {
+    color: #243247;
+    font-weight: 800;
+    margin: 0 0 4px;
+}
+
+.account-settings-heading span,
+.account-email-copy small {
+    color: #6b7280;
+    font-size: 13px;
+}
+
+.account-email-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+    padding: 16px;
+    border: 1px solid #e6eee8;
+    border-radius: 14px;
+    background: #f8fff9;
+}
+
+.account-email-copy {
+    min-width: 0;
+}
+
+.account-email-copy small,
+.account-email-copy strong {
+    display: block;
+}
+
+.account-email-copy strong {
+    color: #1f2937;
+    margin-top: 4px;
+    overflow-wrap: anywhere;
+}
+
+.account-change-email-btn {
+    flex: 0 0 auto;
+}
+
+.change-email-form {
+    padding: 2px 4px 4px;
+}
+
+.change-email-password-field {
+    position: relative;
+}
+
+.change-email-password-field .form-control {
+    padding-right: 46px;
+}
+
+.change-email-password-toggle {
+    position: absolute;
+    top: 50%;
+    right: 12px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    color: #52606d;
+    background: transparent;
+    border: 0;
+    border-radius: 50%;
+    transform: translateY(-50%);
+}
+
+.change-email-password-toggle:hover,
+.change-email-password-toggle:focus-visible {
+    color: #21813a;
+    background: #eaf8ee;
+    outline: none;
+}
+
+.change-email-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 22px;
+}
+
 @media (max-width: 380px) {
     .user-details {
         width: 90%;
@@ -112,6 +208,21 @@
 }
 
 @media (max-width: 576px) {
+    .account-email-row {
+        align-items: stretch;
+        flex-direction: column;
+        padding: 14px;
+    }
+
+    .account-change-email-btn,
+    .change-email-actions .btn {
+        width: 100%;
+    }
+
+    .change-email-actions {
+        flex-direction: column-reverse;
+    }
+
     .payment-lock-box {
         padding: 22px 16px;
     }

@@ -16,6 +16,9 @@ const emailKey = (email) =>
 
 const rateLimitHandler = (_req, res) => res.status(429).json({ message: GENERIC_MESSAGE });
 
+const accountRateLimitHandler = (_req, res) =>
+    res.status(429).json({ success: false, message: 'Too many attempts. Please try again later.' });
+
 export const ownerRecoveryIpLimiter = rateLimit({
     windowMs: WINDOW_MS,
     max: 20,
@@ -33,6 +36,15 @@ export const ownerRecoveryEmailLimiter = rateLimit({
     skipSuccessfulRequests: true,
     keyGenerator: (req) => emailKey(req.body?.email),
     handler: rateLimitHandler
+});
+
+export const ownerAccountLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 5,
+    standardHeaders: true,
+    legacyHeaders: false,
+    skipSuccessfulRequests: true,
+    handler: accountRateLimitHandler
 });
 
 export const clearOwnerRecoveryEmailRateLimit = (email) => ownerRecoveryEmailLimiter.resetKey(emailKey(email));

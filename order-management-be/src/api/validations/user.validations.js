@@ -37,8 +37,7 @@ export const registrationValidation = (payload) => {
                 .trim()
                 .lowercase()
                 .email({
-                    minDomainSegments: 2,
-                    tlds: { allow: ['com', 'net'] }
+                    minDomainSegments: 2
                 })
                 .required(),
             password: passwordSchema.required(),
@@ -68,10 +67,7 @@ export const loginValidation = (payload) => {
     try {
         logger('debug', 'Validating login payload');
         const schema = Joi.object({
-            email: Joi.string().email({
-                minDomainSegments: 2,
-                tlds: { allow: ['com', 'net'] }
-            }),
+            email: Joi.string().email({ minDomainSegments: 2 }),
             password: Joi.string().pattern(/^(?=.*[a-zA-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/),
             role: Joi.string().valid('OWNER', 'MANAGER', 'ADMIN').required()
         });
@@ -101,10 +97,7 @@ export const emailValidation = (payload) => {
     try {
         logger('debug', 'Validating email payload');
         const schema = Joi.object({
-            email: Joi.string().email({
-                minDomainSegments: 2,
-                tlds: { allow: ['com', 'net'] }
-            })
+            email: Joi.string().email({ minDomainSegments: 2 })
         });
 
         return schema.validate(payload);
@@ -136,8 +129,7 @@ export const ownerRecoveryResetValidation = (payload) => {
                 .trim()
                 .lowercase()
                 .email({
-                    minDomainSegments: 2,
-                    tlds: { allow: ['com', 'net'] }
+                    minDomainSegments: 2
                 })
                 .required(),
             recoveryCode: recoveryCodeSchema.required(),

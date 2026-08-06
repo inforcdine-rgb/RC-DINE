@@ -6,6 +6,7 @@ import { FaUserEdit } from 'react-icons/fa';
 import { useDispatch, useSelector } from 'react-redux';
 
 import '../../assets/styles/settings.css';
+import ChangeEmailModal from '../../components/ChangeEmailModal';
 import CustomButton from '../../components/CustomButton';
 import OMTModal from '../../components/Modal';
 import RecoveryCodeSecurityForm from '../../components/RecoveryCodeSecurityForm';
@@ -60,6 +61,7 @@ const Settings = () => {
     const [printerWidth, setPrinterWidth] = React.useState('58');
     const [receiptShowLogo, setReceiptShowLogo] = React.useState(true);
     const [printerSaved, setPrinterSaved] = React.useState(false);
+    const [changeEmailModal, setChangeEmailModal] = React.useState(false);
 
     const [loading, setLoading] = React.useState(false);
     const [testing, setTesting] = React.useState(false);
@@ -594,6 +596,35 @@ const Settings = () => {
 
             {data.role === USER_ROLES[0] && (
                 <>
+                    <div className="settings-section-label">Account</div>
+                    <Card className="user-details mx-auto my-3 p-0 shadow custom-shadow account-settings-card">
+                        <Card.Body>
+                            <div className="account-settings-heading">
+                                <div>
+                                    <h5>Account</h5>
+                                    <span>Keep your owner sign-in details secure.</span>
+                                </div>
+                            </div>
+                            <div className="account-email-row">
+                                <div className="account-email-copy">
+                                    <small>Email Address</small>
+                                    <strong>{data.email}</strong>
+                                </div>
+                                <button
+                                    type="button"
+                                    className="btn gst-activate-btn account-change-email-btn"
+                                    onClick={() => setChangeEmailModal(true)}
+                                >
+                                    Change Email
+                                </button>
+                            </div>
+                        </Card.Body>
+                    </Card>
+                </>
+            )}
+
+            {data.role === USER_ROLES[0] && (
+                <>
                     <div className="settings-section-label">Owner Security</div>
                     <Card className="user-details mx-auto my-3 p-0 p-sm-4 shadow custom-shadow">
                         <Card.Body>
@@ -948,6 +979,13 @@ const Settings = () => {
                     dispatch(setPaymentActivate(false));
                 }}
             />
+            {changeEmailModal && (
+                <ChangeEmailModal
+                    show={changeEmailModal}
+                    currentEmail={data.email}
+                    onClose={() => setChangeEmailModal(false)}
+                />
+            )}
         </>
     );
 };
