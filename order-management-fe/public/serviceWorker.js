@@ -207,7 +207,7 @@ self.addEventListener('push', (event) => {
     );
 });
 
-sself.addEventListener('notificationclick', (event) => {
+self.addEventListener('notificationclick', (event) => {
     event.notification.close();
 
     if (event.action === 'dismiss') return;

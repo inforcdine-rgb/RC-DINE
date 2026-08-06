@@ -393,7 +393,7 @@ function Landing() {
                         <button type="button" className="landing-btn ghost" onClick={goToLogin}>
                             Sign In
                         </button>
-                        <button type="button" className="landing-btn primary" onClick={goToSignup}>
+                        <button type="button" className="landing-btn primary mobile-hide" onClick={goToSignup}>
                             Start Free
                         </button>
                         <button

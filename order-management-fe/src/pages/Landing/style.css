@@ -1191,7 +1191,7 @@
     }
 
     .landing-nav-actions > .ghost {
-        display: none;
+        display: inline-flex;
     }
 
     .landing-hero {
@@ -2490,7 +2490,7 @@
     }
 
     .landing-nav-actions > .ghost {
-        display: none;
+        display: inline-flex;
     }
 
     .landing-hero {
