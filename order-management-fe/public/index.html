@@ -1,90 +1,98 @@
-<head>
-    <meta charset="utf-8" />
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
 
-    <link rel="icon" href="%PUBLIC_URL%/fevicon.ico" />
+        <link rel="icon" href="%PUBLIC_URL%/fevicon.ico" />
 
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="theme-color" content="#ff6b2c" />
 
-    <meta name="theme-color" content="#ff6b2c" />
+        <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        <meta name="apple-mobile-web-app-title" content="R&C Dine" />
+        <meta name="format-detection" content="telephone=no" />
 
-    <meta name="mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-    <meta name="apple-mobile-web-app-title" content="R&C Dine" />
-    <meta name="format-detection" content="telephone=no" />
+        <title>RC Dine – QR Restaurant Ordering & Management</title>
 
-    <title>RC Dine – QR Restaurant Ordering & Management</title>
+        <meta
+            name="description"
+            content="RC Dine is a QR restaurant ordering, manager POS, billing and analytics platform."
+        />
 
-    <meta
-        name="description"
-        content="RC Dine is a QR restaurant ordering, manager POS, billing and analytics platform."
-    />
+        <meta
+            name="keywords"
+            content="RC Dine, QR Menu, Restaurant Ordering, Restaurant POS, Digital Menu, Restaurant Management, Online Food Ordering, QR Ordering"
+        />
 
-    <meta
-        name="keywords"
-        content="RC Dine, QR Menu, Restaurant Ordering, Restaurant POS, Digital Menu, Restaurant Management, Online Food Ordering, QR Ordering"
-    />
+        <meta name="robots" content="index, follow" />
 
-    <meta name="robots" content="index, follow" />
+        <link rel="canonical" href="https://rc-dine.vercel.app/" />
 
-    <link rel="canonical" href="https:///rc-dine.vercel.app/" />
+        <!-- Open Graph -->
+        <meta property="og:locale" content="en_IN" />
+        <meta property="og:type" content="website" />
+        <meta
+            property="og:title"
+            content="RC Dine – QR Restaurant Ordering & Management"
+        />
+        <meta
+            property="og:description"
+            content="QR ordering, manager POS, live kitchen updates, billing and analytics in one platform."
+        />
+        <meta property="og:url" content="https://rc-dine.vercel.app/" />
+        <meta property="og:site_name" content="RC Dine" />
+        <meta
+            property="og:image"
+            content="https://rc-dine.vercel.app/icons/icon-512.png"
+        />
 
-    <!-- Open Graph -->
-    <meta property="og:locale" content="en_IN" />
-    <meta property="og:type" content="website" />
-    <meta
-        property="og:title"
-        content="RC Dine – QR Restaurant Ordering & Management"
-    />
-    <meta
-        property="og:description"
-        content="QR ordering, manager POS, live kitchen updates, billing and analytics in one platform."
-    />
-    <meta property="og:url" content="https:///rc-dine.vercel.app/" />
-    <meta property="og:site_name" content="RC Dine" />
-    <meta
-        property="og:image"
-        content="https:///rc-dine.vercel.app/icons/icon-512.png"
-    />
+        <!-- Twitter -->
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta
+            name="twitter:title"
+            content="RC Dine – QR Restaurant Ordering & Management"
+        />
+        <meta
+            name="twitter:description"
+            content="QR ordering, manager POS, billing and analytics in one platform."
+        />
+        <meta
+            name="twitter:image"
+            content="https://rc-dine.vercel.app/icons/icon-512.png"
+        />
 
-    <!-- Twitter -->
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta
-        name="twitter:title"
-        content="RC Dine – QR Restaurant Ordering & Management"
-    />
-    <meta
-        name="twitter:description"
-        content="QR ordering, manager POS, billing and analytics in one platform."
-    />
-    <meta
-        name="twitter:image"
-        content="https:///rc-dine.vercel.app/icons/icon-512.png"
-    />
+        <!-- Structured Data -->
+        <script type="application/ld+json">
+            {
+                "@context": "https://schema.org",
+                "@type": "SoftwareApplication",
+                "name": "RC Dine",
+                "applicationCategory": "BusinessApplication",
+                "operatingSystem": "Web",
+                "url": "https://rc-dine.vercel.app/",
+                "description": "QR Restaurant Ordering, Manager POS, Billing and Analytics Platform"
+            }
+        </script>
 
-    <!-- SEO Schema -->
-    <script type="application/ld+json">
-    {
-      "@context":"https://schema.org",
-      "@type":"SoftwareApplication",
-      "name":"RC Dine",
-      "applicationCategory":"BusinessApplication",
-      "operatingSystem":"Web",
-      "url":"https:///rc-dine.vercel.app/",
-      "description":"QR Restaurant Ordering, Manager POS, Billing and Analytics Platform"
-    }
-    </script>
+        <link
+            rel="apple-touch-icon"
+            sizes="180x180"
+            href="%PUBLIC_URL%/icons/apple-touch-icon.png"
+        />
 
-    <link
-        rel="apple-touch-icon"
-        sizes="180x180"
-        href="%PUBLIC_URL%/icons/apple-touch-icon.png"
-    />
+        <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
 
-    <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
+        <link rel="preconnect" href="https://checkout.razorpay.com" />
+        <link rel="dns-prefetch" href="https://checkout.razorpay.com" />
 
-    <link rel="preconnect" href="https://checkout.razorpay.com" />
-    <link rel="dns-prefetch" href="https://checkout.razorpay.com" />
+        <script src="https://checkout.razorpay.com/v1/checkout.js" async></script>
+    </head>
 
-    <script src="https://checkout.razorpay.com/v1/checkout.js" async></script>
-</head>
+    <body>
+        <noscript>You need to enable JavaScript to run this app.</noscript>
+
+        <div id="root"></div>
+    </body>
+</html>
