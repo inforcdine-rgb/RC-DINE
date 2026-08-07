@@ -1049,7 +1049,8 @@ const completed = async (hotelId, filters) => {
                     include: [
                         {
                             model: db.menu,
-                            attributes: ['name']
+                            attributes: ['name'],
+                            required: false
                         },
                         {
                             model: db.tables,
@@ -1175,7 +1176,7 @@ const completed = async (hotelId, filters) => {
                 let storedFinalAmount = null;
                 versionOrders.forEach((menuItem) => {
                     obj.menu.push({
-                        name: menuItem.menu.name,
+                        name: menuItem.menu?.name || 'Deleted Menu Item',
                         price: menuItem.price,
                         quantity: menuItem.quantity,
                         description: menuItem.description || ''
