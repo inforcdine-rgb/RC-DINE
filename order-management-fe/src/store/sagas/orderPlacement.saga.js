@@ -248,6 +248,9 @@ function* verifyCustomerPaymentRequestSaga(action) {
         }
     } catch (error) {
         console.error('Failed to verify customer payment', error);
+        if (typeof action.payload?.onFailure === 'function') {
+            action.payload.onFailure();
+        }
         toast.error(`Failed to verify payment: ${error.message}`);
     }
 }
