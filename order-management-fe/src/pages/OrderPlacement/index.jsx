@@ -11,7 +11,6 @@ import OMTModal from '../../components/Modal';
 import Rating from '../../components/Rating';
 import Razorpay, { ACTIONS } from '../../components/Razporpay';
 import env from '../../config/env';
-import './style.css';
 import {
     getMenuDetailsRequest,
     getCustomerOrderDetailsRequest,
@@ -51,8 +50,6 @@ function OrderPlacement() {
     const updateRefs = useRef({});
     const refreshSnapshotRef = useRef('');
     const [tipAmount, setTipAmount] = useState(0);
-    const [paymentConfirmationStep, setPaymentConfirmationStep] = useState(0);
-    const paymentProgressTimersRef = useRef([]);
     const gstEnabled = Boolean(tableDetails?.hotel?.gstEnabled);
     refreshSnapshotRef.current = JSON.stringify({
         table: tableDetails?.status,
@@ -316,31 +313,7 @@ function OrderPlacement() {
         );
     };
 
-
-    useEffect(
-        () => () => {
-            paymentProgressTimersRef.current.forEach((timer) => window.clearTimeout(timer));
-        },
-        []
-    );
-
-    const stopPaymentProgress = () => {
-        paymentProgressTimersRef.current.forEach((timer) => window.clearTimeout(timer));
-        paymentProgressTimersRef.current = [];
-        setPaymentConfirmationStep(0);
-    };
-
-    const startPaymentProgress = () => {
-        paymentProgressTimersRef.current.forEach((timer) => window.clearTimeout(timer));
-        setPaymentConfirmationStep(1);
-        paymentProgressTimersRef.current = [
-            window.setTimeout(() => setPaymentConfirmationStep(2), 650),
-            window.setTimeout(() => setPaymentConfirmationStep(3), 2200)
-        ];
-    };
-
     const handlePaymentSuccess = (payload) => {
-        startPaymentProgress();
         const menus = Array.isArray(orderPaymentData?.menus)
             ? orderPaymentData.menus
             : Object.values(orderDetails || {}).filter((item) => item && item.menuId && Number(item.quantity) > 0);
@@ -357,8 +330,7 @@ function OrderPlacement() {
                 tableNumber: tableDetails.tableNumber,
                 menus,
                 tipAmount: Number(orderPaymentData?.tipAmount || tipAmount || 0),
-                navigate,
-                onFailure: stopPaymentProgress
+                navigate
             })
         );
         /* eslint-enable camelcase */
@@ -495,46 +467,6 @@ function OrderPlacement() {
         <Loader />
     ) : (
         <>
-
-            {paymentConfirmationStep > 0 && (
-                <div className="payment-confirmation-overlay" role="status" aria-live="polite">
-                    <div className="payment-confirmation-panel">
-                        <div className="payment-success-mark" aria-hidden="true">✓</div>
-                        <h1>Payment received <span aria-hidden="true">✓</span></h1>
-                        <p className="payment-confirmation-lead">Confirming your order...</p>
-                        <p className="payment-confirmation-warning">Please do not close this screen.</p>
-
-                        <div className="payment-progress-card">
-                            <div className="payment-progress-row complete">
-                                <span className="payment-progress-icon">✓</span>
-                                <div>
-                                    <strong>1. Payment verified</strong>
-                                    <small>Your payment has been successfully verified.</small>
-                                </div>
-                            </div>
-                            <div className={`payment-progress-row ${paymentConfirmationStep >= 2 ? 'active' : ''}`}>
-                                <span className="payment-progress-icon">
-                                    {paymentConfirmationStep > 2 ? '✓' : paymentConfirmationStep === 2 ? '' : '2'}
-                                </span>
-                                <div>
-                                    <strong>2. Creating order...</strong>
-                                    <small>We are creating your order.</small>
-                                </div>
-                                {paymentConfirmationStep === 2 && <span className="payment-progress-spinner" />}
-                            </div>
-                            <div className={`payment-progress-row ${paymentConfirmationStep >= 3 ? 'active' : ''}`}>
-                                <span className="payment-progress-icon">3</span>
-                                <div>
-                                    <strong>3. Opening tracking...</strong>
-                                    <small>You will be redirected automatically.</small>
-                                </div>
-                                {paymentConfirmationStep >= 3 && <span className="payment-progress-spinner" />}
-                            </div>
-                        </div>
-                        <p className="payment-secure-note">Your payment is safe. Please keep this screen open.</p>
-                    </div>
-                </div>
-            )}
             <MenuCard
                 name={menuCard.name}
                 tableNumber={tableDetails.tableNumber}
