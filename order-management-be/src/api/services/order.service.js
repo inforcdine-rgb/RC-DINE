@@ -492,8 +492,8 @@ const placeOrder = async (payload) => {
         const orderId = `${customerId}-${edited}`;
         notificationService
             .sendNotification(userIds, {
-                title: `Order Updates`,
-                message: `Table-${payload.tableNumber} order is placed / updated.`,
+                title: `New QR Order • Table ${payload.tableNumber}`,
+                message: `Order ${orderNumber} • ₹${Number(totalPrice).toFixed(2)}`,
                 path: '/orders',
                 type: 'NEW_ORDER',
                 category: 'ORDERS',
