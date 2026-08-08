@@ -487,6 +487,10 @@ const placeOrder = async (payload) => {
             }
         );
         logger('info', 'order operations successful', res);
+
+        const firstMenuWithImage = menus.find((item) => item.image);
+        const notificationImage = firstMenuWithImage?.image || null;        
+
         const userIds = await getNotificationUserIds(hotelId);
 
         const orderId = `${customerId}-${edited}`;
@@ -494,6 +498,7 @@ const placeOrder = async (payload) => {
             .sendNotification(userIds, {
                 title: `New QR Order • Table ${payload.tableNumber}`,
                 message: `Order ${orderNumber} • ₹${Number(totalPrice).toFixed(2)}`,
+                image: notificationImage,
                 path: '/orders',
                 type: 'NEW_ORDER',
                 category: 'ORDERS',
