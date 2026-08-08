@@ -488,8 +488,23 @@ const placeOrder = async (payload) => {
         );
         logger('info', 'order operations successful', res);
 
-        const firstMenuWithImage = menus.find((item) => item.image);
-        const notificationImage = firstMenuWithImage?.image || null;        
+        const firstOrderedMenu = menus.find(
+            (item) => item.menuId && Number(item.quantity) > 0
+        );
+
+        let notificationImage = '';
+
+        if (firstOrderedMenu?.menuId) {
+            const notificationMenu = await db.menu.findOne({
+                where: {
+                    id: firstOrderedMenu.menuId,
+                    hotelId
+                },
+                attributes: ['image']
+            });
+
+            notificationImage = notificationMenu?.image || '';
+        }
 
         const userIds = await getNotificationUserIds(hotelId);
 
