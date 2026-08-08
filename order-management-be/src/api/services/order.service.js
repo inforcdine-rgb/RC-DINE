@@ -507,7 +507,14 @@ const placeOrder = async (payload) => {
                 (item) => item.image && String(item.image).trim()
             );
 
-            notificationImage = menuWithImage?.image || '';
+            const rawNotificationImage = menuWithImage?.image || '';
+
+            notificationImage = rawNotificationImage
+                ? rawNotificationImage.replace(
+                    '/upload/',
+                    '/upload/f_jpg,q_auto,c_fill,w_720,h_360/'
+                )
+                : '';
         }
 
         logger('info', 'QR notification image resolved', {

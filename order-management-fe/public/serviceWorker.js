@@ -1,6 +1,6 @@
 /* global caches, clients */
 
-const CACHE_VERSION = 'v8';
+const CACHE_VERSION = 'v9';
 const APP_SHELL_CACHE = `rcdine-shell-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `rcdine-runtime-${CACHE_VERSION}`;
 const APP_SHELL = [
@@ -181,8 +181,8 @@ self.addEventListener('push', (event) => {
             // notification center whether the PWA is open, minimized or closed.
             await self.registration.showNotification(payload.title, {
                 body: payload.body,
-                icon: payload.icon || '/icons/icon-192.png',
-                badge: payload.badge || '/icons/icon-192.png',
+                icon: '/icons/icon-192.png',
+                badge: '/icons/icon-192.png',
                 image: payload.image || undefined,
                 tag: payload.dedupeKey || payload.notificationId || payload.entityId || `rcdine-${payload.type}`,
                 renotify: true,
