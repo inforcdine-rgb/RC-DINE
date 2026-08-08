@@ -31,7 +31,10 @@ const CACHEABLE_PATHS = [
 ];
 const PUBLIC_AUTH_PATHS = new Set(['/user/login', '/user/register', '/user/forget', '/user/reset']);
 
-const getRequestPath = (config = {}) => String(config.url || '').replace(instance.defaults.baseURL || '', '').split('?')[0];
+const getRequestPath = (config = {}) =>
+    String(config.url || '')
+        .replace(instance.defaults.baseURL || '', '')
+        .split('?')[0];
 
 const getBearerToken = (authorization = '') => {
     const [scheme, token] = String(authorization).split(' ');

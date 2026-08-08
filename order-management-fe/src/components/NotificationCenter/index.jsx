@@ -365,8 +365,7 @@ function NotificationCenter({ open, onClose, audience = 'manager', token, onUnre
         const deltaY = clientY - start.clientY;
         const duration = Date.now() - start.startedAt;
         const horizontalSwipe = Math.abs(deltaX) >= 75 && Math.abs(deltaX) > Math.abs(deltaY) * 1.1;
-        const upwardSwipe =
-            deltaY <= -100 && Math.abs(deltaY) > Math.abs(deltaX) * 1.2 && duration <= 700;
+        const upwardSwipe = deltaY <= -100 && Math.abs(deltaY) > Math.abs(deltaX) * 1.2 && duration <= 700;
 
         if (!horizontalSwipe && !upwardSwipe) return;
 

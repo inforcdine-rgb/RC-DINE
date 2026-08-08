@@ -97,11 +97,7 @@ const ForgotPassword = () => {
                     )}
                 </Formik>
             ) : (
-                <Formik
-                    initialValues={{ email: '' }}
-                    validationSchema={emailSchema}
-                    onSubmit={handleSendResetLink}
-                >
+                <Formik initialValues={{ email: '' }} validationSchema={emailSchema} onSubmit={handleSendResetLink}>
                     {({ isSubmitting, dirty, isValid }) => (
                         <Form className="d-flex flex-column">
                             <p className="text-muted small">

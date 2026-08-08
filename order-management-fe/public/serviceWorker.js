@@ -182,7 +182,8 @@ self.addEventListener('push', (event) => {
             await self.registration.showNotification(payload.title, {
                 body: payload.body,
                 icon: '/icons/icon-192.png',
-                badge: '/icons/notification-badge.png',                image: payload.image || undefined,
+                badge: '/icons/notification-badge.png',
+                image: payload.image || undefined,
                 tag: payload.dedupeKey || payload.notificationId || payload.entityId || `rcdine-${payload.type}`,
                 renotify: true,
                 requireInteraction:
@@ -217,15 +218,9 @@ self.addEventListener('notificationclick', (event) => {
 
     const data = event.notification?.data || {};
 
-    const requestedUrl =
-        data.actionUrls?.[event.action] ||
-        data.url ||
-        '/orders';
+    const requestedUrl = data.actionUrls?.[event.action] || data.url || '/orders';
 
-    const targetUrl = addNotificationContext(
-        requestedUrl,
-        data.notificationId
-    );
+    const targetUrl = addNotificationContext(requestedUrl, data.notificationId);
 
     event.waitUntil(
         (async () => {
@@ -268,10 +263,7 @@ self.addEventListener('notificationclick', (event) => {
 
                     return;
                 } catch (error) {
-                    console.error(
-                        '[RCDINE_PUSH_SW] Existing window navigation failed',
-                        error
-                    );
+                    console.error('[RCDINE_PUSH_SW] Existing window navigation failed', error);
                 }
             }
 

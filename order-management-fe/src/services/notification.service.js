@@ -201,9 +201,7 @@ export const clearCustomerNotifications = (token) => customerApi('delete', '/', 
 export const restoreCustomerNotification = (notificationId, token) =>
     customerApi('post', `/${notificationId}/restore`, undefined, token);
 export const testWebPush = ({ audience = 'manager', token } = {}) =>
-    audience === 'customer'
-        ? customerApi('post', '/test', {}, token)
-        : api(method.POST, '/notification/test', {});
+    audience === 'customer' ? customerApi('post', '/test', {}, token) : api(method.POST, '/notification/test', {});
 
 const syncSubscription = async ({ audience, token }) => {
     const registration = await registerServiceWorker();
@@ -419,9 +417,7 @@ export const initializeNotificationLifecycle = () => {
                 const customerToken = getCustomerNotificationToken();
                 if (customerToken) await readCustomerNotification(notificationId, customerToken);
             }
-            window.dispatchEvent(
-                new CustomEvent('rcdine:notification-read', { detail: { notificationId } })
-            );
+            window.dispatchEvent(new CustomEvent('rcdine:notification-read', { detail: { notificationId } }));
         } catch (error) {
             logPushEvent('notification_read_failed', {
                 notificationId,

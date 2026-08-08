@@ -94,10 +94,18 @@ const ChangeEmailModal = ({ show, currentEmail, onClose }) => {
                                         disabled={isSubmitting}
                                         onClick={() => setShowPassword((visible) => !visible)}
                                     >
-                                        {showPassword ? <FaEyeSlash aria-hidden="true" /> : <FaEye aria-hidden="true" />}
+                                        {showPassword ? (
+                                            <FaEyeSlash aria-hidden="true" />
+                                        ) : (
+                                            <FaEye aria-hidden="true" />
+                                        )}
                                     </button>
                                 </div>
-                                <ErrorMessage name="currentPassword" component="div" className="text-danger error-message" />
+                                <ErrorMessage
+                                    name="currentPassword"
+                                    component="div"
+                                    className="text-danger error-message"
+                                />
                             </BootstrapForm.Group>
 
                             <CustomFormGroup

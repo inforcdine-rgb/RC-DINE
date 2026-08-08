@@ -76,9 +76,7 @@ describe('ChangeEmailModal', () => {
             'Strong@123'
         );
         expect(onClose).toHaveBeenCalledTimes(1);
-        expect(toast.success).toHaveBeenCalledWith(
-            'Email updated successfully. Please sign in with your new email.'
-        );
+        expect(toast.success).toHaveBeenCalledWith('Email updated successfully. Please sign in with your new email.');
         expect(mockDispatch).toHaveBeenCalledWith(
             expect.objectContaining({
                 type: 'USER/logoutRequest',

@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://rc-dine.vercel.app/sitemap.xml
+Sitemap: https://rc-dine.in/sitemap.xml
