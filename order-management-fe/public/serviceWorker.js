@@ -182,8 +182,7 @@ self.addEventListener('push', (event) => {
             await self.registration.showNotification(payload.title, {
                 body: payload.body,
                 icon: '/icons/icon-192.png',
-                badge: '/icons/icon-192.png',
-                image: payload.image || undefined,
+                badge: '/icons/notification-badge.png',                image: payload.image || undefined,
                 tag: payload.dedupeKey || payload.notificationId || payload.entityId || `rcdine-${payload.type}`,
                 renotify: true,
                 requireInteraction:
