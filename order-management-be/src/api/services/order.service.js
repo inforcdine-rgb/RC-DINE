@@ -488,24 +488,32 @@ const placeOrder = async (payload) => {
         );
         logger('info', 'order operations successful', res);
 
-        const firstOrderedMenu = menus.find(
-            (item) => item.menuId && Number(item.quantity) > 0
-        );
+        const orderedMenuIds = menus
+            .filter((item) => item.menuId && Number(item.quantity) > 0)
+            .map((item) => item.menuId);
 
         let notificationImage = '';
 
-        if (firstOrderedMenu?.menuId) {
-            const notificationMenu = await db.menu.findOne({
+        if (orderedMenuIds.length > 0) {
+            const notificationMenus = await db.menu.findAll({
                 where: {
-                    id: firstOrderedMenu.menuId,
+                    id: orderedMenuIds,
                     hotelId
                 },
-                attributes: ['image']
+                attributes: ['id', 'image']
             });
 
-            notificationImage = notificationMenu?.image || '';
+            const menuWithImage = notificationMenus.find(
+                (item) => item.image && String(item.image).trim()
+            );
+
+            notificationImage = menuWithImage?.image || '';
         }
 
+        logger('info', 'QR notification image resolved', {
+            orderedMenuIds,
+            notificationImage
+        });
         const userIds = await getNotificationUserIds(hotelId);
 
         const orderId = `${customerId}-${edited}`;

@@ -181,7 +181,7 @@ self.addEventListener('push', (event) => {
             // notification center whether the PWA is open, minimized or closed.
             await self.registration.showNotification(payload.title, {
                 body: payload.body,
-                icon: payload.image || payload.icon || '/icons/icon-192.png',
+                icon: payload.icon || '/icons/icon-192.png',
                 badge: payload.badge || '/icons/icon-192.png',
                 image: payload.image || undefined,
                 tag: payload.dedupeKey || payload.notificationId || payload.entityId || `rcdine-${payload.type}`,
