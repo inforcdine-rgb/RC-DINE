@@ -1,5 +1,5 @@
 import { toast } from 'react-toastify';
-import { all, put, takeLatest } from 'redux-saga/effects';
+import { all, put, select, takeLatest } from 'redux-saga/effects';
 import * as service from '../../services/menu.service';
 import {
     getCategoryRequest,
@@ -21,11 +21,24 @@ import {
 
 function* getCategoryRequestSaga(action) {
     try {
-        const hotelId = action.payload;
+        const request =
+            typeof action.payload === 'object'
+                ? action.payload
+                : { hotelId: action.payload, preferredCategoryId: null };
+        const { hotelId, preferredCategoryId } = request;
         const res = yield service.getCategories(hotelId);
-        yield put(getCategorySucess(res));
-        if (res.rows.length) {
-            yield put(getMenuItemsRequest({ categoryId: res.rows[0].id }));
+        yield put(getCategorySucess({ result: res, preferredCategoryId }));
+        const selectedCategoryId = yield select((state) => state.menu.selectedCategory?.value);
+        if (selectedCategoryId) {
+            yield put(
+                getMenuItemsRequest({
+                    categoryId: selectedCategoryId,
+                    skip: 0,
+                    limit: 10,
+                    sortKey: 'createdAt',
+                    sortOrder: 'desc'
+                })
+            );
         }
     } catch (error) {
         console.error('Failed to fetch categories ', error);
@@ -37,11 +50,16 @@ function* createCategoryRequestSaga(action) {
     try {
         const payload = action.payload;
 
-        yield service.createCategories(payload);
+        const createdCategories = yield service.createCategories(payload);
         toast.success('Category added successfully');
 
         yield put(setMenuModalData(false));
-        yield put(getCategoryRequest(payload.hotelId));
+        yield put(
+            getCategoryRequest({
+                hotelId: payload.hotelId,
+                preferredCategoryId: createdCategories?.[0]?.id || null
+            })
+        );
     } catch (error) {
         toast.error(`Failed to create category ${error.message}`);
         yield put(setMenuModalData(false));
@@ -94,7 +112,15 @@ function* createMenuItemRequestSaga(action) {
         toast.success('Menu items create successfully');
 
         yield put(setMenuModalData(false));
-        yield put(getMenuItemsRequest({ categoryId: payload.categoryId }));
+        yield put(
+            getMenuItemsRequest({
+                categoryId: payload.categoryId,
+                skip: 0,
+                limit: 10,
+                sortKey: 'createdAt',
+                sortOrder: 'desc'
+            })
+        );
     } catch (error) {
         toast.error(`Failed to store menu items ${error.message}`);
         yield put(setMenuModalData(false));

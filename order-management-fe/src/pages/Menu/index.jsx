@@ -4,6 +4,7 @@ import { IoCloseSharp } from 'react-icons/io5';
 import { MdDeleteForever, MdModeEditOutline } from 'react-icons/md';
 import { TiPlus } from 'react-icons/ti';
 import { useDispatch, useSelector } from 'react-redux';
+import { toast } from 'react-toastify';
 import { instance } from '../../api/apiClient';
 import ActionDropdown from '../../components/ActionDropdown';
 import CustomSelect from '../../components/CustomSelect';
@@ -129,10 +130,11 @@ function ImageUploadModal({ item, hotelId, onClose, onSuccess }) {
 }
 
 // ── Create Menu Items with optional image ─────────────────────────────────────
-function CreateMenuWithImageModal({ categoryId, hotelId, onClose, onSuccess }) {
+function CreateMenuWithImageModal({ categoryId, categoryName, categoriesOptions, hotelId, onClose, onSuccess }) {
     const [rows, setRows] = useState([
         {
             id: Date.now(),
+            categoryId,
             name: '',
             description: '',
             price: '',
@@ -151,6 +153,7 @@ function CreateMenuWithImageModal({ categoryId, hotelId, onClose, onSuccess }) {
             ...prev,
             {
                 id: Date.now(),
+                categoryId,
                 name: '',
                 description: '',
                 price: '',
@@ -193,6 +196,7 @@ function CreateMenuWithImageModal({ categoryId, hotelId, onClose, onSuccess }) {
     const validate = () => {
         const errs = {};
         rows.forEach((r) => {
+            if (!r.categoryId) errs[`${r.id}-categoryId`] = 'Category required';
             if (!r.name.trim()) errs[`${r.id}-name`] = 'Name required';
             if (!r.price || isNaN(Number(r.price)) || Number(r.price) <= 0) {
                 errs[`${r.id}-price`] = 'Valid price required';
@@ -207,21 +211,43 @@ function CreateMenuWithImageModal({ categoryId, hotelId, onClose, onSuccess }) {
         if (!validate()) return;
         setLoading(true);
         try {
-            const data = rows.map((r) => ({
-                name: r.name.trim(),
-                description: r.description.trim(),
-                price: Number(r.price),
-                foodType: r.foodType,
-                isCartSuggestion: Boolean(r.isCartSuggestion)
-            }));
-            const res = await instance.post('/menu', { categoryId, hotelId, data });
-
-            const created = Array.isArray(res.data) ? res.data : [];
+            const groupedRows = rows.reduce((groups, row) => {
+                if (!groups[row.categoryId]) groups[row.categoryId] = [];
+                groups[row.categoryId].push(row);
+                return groups;
+            }, {});
+            const createResults = await Promise.allSettled(
+                Object.entries(groupedRows).map(async ([targetCategoryId, categoryRows]) => {
+                    const data = categoryRows.map((row) => ({
+                        name: row.name.trim(),
+                        description: row.description.trim(),
+                        price: Number(row.price),
+                        foodType: row.foodType,
+                        isCartSuggestion: Boolean(row.isCartSuggestion)
+                    }));
+                    const response = await instance.post('/menu', { categoryId: targetCategoryId, hotelId, data });
+                    return { categoryRows, created: Array.isArray(response.data) ? response.data : [] };
+                })
+            );
+            const failedCategoryGroups = createResults.filter((result) => result.status === 'rejected');
+            const createdByRowId = new Map();
+            createResults.forEach((result) => {
+                if (result.status !== 'fulfilled') return;
+                result.value.categoryRows.forEach((row, index) => {
+                    const createdItem = result.value.created[index];
+                    if (createdItem?.id) createdByRowId.set(row.id, createdItem);
+                });
+            });
+            if (!createdByRowId.size && failedCategoryGroups.length) {
+                const error = failedCategoryGroups[0].reason;
+                setErrors({ _global: error?.response?.data?.message || 'Failed to create menu items.' });
+                return;
+            }
             const imageUploads = rows
-                .map((r, i) => ({ file: r.file, item: created[i] }))
+                .map((row) => ({ file: row.file, item: createdByRowId.get(row.id) }))
                 .filter((x) => x.file && x.item?.id);
 
-            await Promise.all(
+            const uploadResults = await Promise.allSettled(
                 imageUploads.map(async ({ file, item }) => {
                     const fd = new FormData();
                     fd.append('image', file);
@@ -231,8 +257,14 @@ function CreateMenuWithImageModal({ categoryId, hotelId, onClose, onSuccess }) {
                     });
                 })
             );
+            const failedImageUploads = uploadResults.filter((result) => result.status === 'rejected').length;
 
-            onSuccess();
+            onSuccess({
+                createdCount: createdByRowId.size,
+                categoryCount: Object.keys(groupedRows).length - failedCategoryGroups.length,
+                failedCategoryGroups: failedCategoryGroups.length,
+                failedImageUploads
+            });
         } catch (err) {
             setErrors({ _global: err?.response?.data?.message || 'Failed to create menu items.' });
         } finally {
@@ -250,6 +282,10 @@ function CreateMenuWithImageModal({ categoryId, hotelId, onClose, onSuccess }) {
                     </button>
                 </div>
                 <div className="img-modal-body create-menu-body">
+                    <div className="create-menu-category-banner">
+                        Default category: <strong>{categoryName || 'Selected category'}</strong>. You can change it for
+                        each item below.
+                    </div>
                     {rows.map((row) => (
                         <div key={row.id} className="create-menu-row">
                             <div
@@ -273,6 +309,23 @@ function CreateMenuWithImageModal({ categoryId, hotelId, onClose, onSuccess }) {
                                 onChange={(e) => handleFileChange(row.id, e)}
                             />
                             <div className="create-menu-fields">
+                                <select
+                                    className={`create-menu-input ${
+                                        errors[`${row.id}-categoryId`] ? 'input-error' : ''
+                                    }`}
+                                    value={row.categoryId}
+                                    onChange={(e) => updateRow(row.id, 'categoryId', e.target.value)}
+                                >
+                                    <option value="">Select category</option>
+                                    {(categoriesOptions || []).map((option) => (
+                                        <option key={option.value} value={option.value}>
+                                            {option.label}
+                                        </option>
+                                    ))}
+                                </select>
+                                {errors[`${row.id}-categoryId`] && (
+                                    <span className="create-menu-field-error">{errors[`${row.id}-categoryId`]}</span>
+                                )}
                                 <input
                                     className={`create-menu-input ${errors[`${row.id}-name`] ? 'input-error' : ''}`}
                                     placeholder="Item name"
@@ -1472,11 +1525,33 @@ function Menu() {
             {createModal && (
                 <CreateMenuWithImageModal
                     categoryId={selectedCategory.value}
+                    categoryName={selectedCategory.label}
+                    categoriesOptions={categoriesOptions}
                     hotelId={hotelId}
                     onClose={() => setCreateModal(false)}
-                    onSuccess={() => {
+                    onSuccess={({ createdCount, categoryCount, failedCategoryGroups, failedImageUploads }) => {
                         setCreateModal(false);
-                        dispatch(getMenuItemsRequest({ categoryId: selectedCategory.value }));
+                        dispatch(setPagination({ ...pagination, pageIndex: 0 }));
+                        dispatch(
+                            getMenuItemsRequest({
+                                categoryId: selectedCategory.value,
+                                skip: 0,
+                                limit: pagination?.pageSize || 10,
+                                sortKey: 'createdAt',
+                                sortOrder: 'desc'
+                            })
+                        );
+                        if (failedCategoryGroups || failedImageUploads) {
+                            toast.warn(
+                                `${createdCount} item(s) created in ${categoryCount} category(s).` +
+                                    (failedCategoryGroups
+                                        ? ` ${failedCategoryGroups} category batch(es) failed.`
+                                        : '') +
+                                    (failedImageUploads ? ` ${failedImageUploads} image(s) could not be uploaded.` : '')
+                            );
+                        } else {
+                            toast.success(`${createdCount} menu item(s) added in ${categoryCount} category(s).`);
+                        }
                     }}
                 />
             )}
@@ -1534,6 +1609,7 @@ function Menu() {
                 .img-btn-upload:disabled { opacity:.4; cursor:not-allowed; }
                 .create-menu-modal { width:520px; }
                 .create-menu-body { display:flex; flex-direction:column; gap:12px; }
+                .create-menu-category-banner { padding:.65rem .8rem; border:1px solid rgba(73,172,96,.3); border-radius:8px; background:rgba(73,172,96,.08); color:#245b31; font-size:.85rem; }
                 .create-menu-row { display:flex; align-items:center; gap:10px; padding:10px; background:#f8f9fa; border-radius:10px; }
                 .create-menu-img-cell { width:52px; height:52px; border-radius:8px; border:2px dashed #cdd5df; display:flex; align-items:center; justify-content:center; cursor:pointer; overflow:hidden; flex-shrink:0; transition:border-color .2s; }
                 .create-menu-img-cell:hover { border-color:#49ac60; }

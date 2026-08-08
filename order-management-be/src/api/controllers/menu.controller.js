@@ -2,7 +2,7 @@ import { deleteImage } from '../../config/cloudinary.js';
 import logger from '../../config/logger.js';
 import { USER_ROLES } from '../models/user.model.js';
 import menuService from '../services/menu.service.js';
-import { STATUS_CODE } from '../utils/common.js';
+import { CustomError, STATUS_CODE } from '../utils/common.js';
 import {
     resolveHotelAccess,
     resolveHotelAccessByCategoryId,
@@ -29,7 +29,12 @@ const create = async (req, res) => {
             return res.status(STATUS_CODE.BAD_REQUEST).send({ message: validation.error.message });
         }
 
-        body.hotelId = await resolveHotelAccess(req.user, body.hotelId);
+        const requestedHotelId = await resolveHotelAccess(req.user, body.hotelId);
+        const categoryHotelId = await resolveHotelAccessByCategoryId(req.user, body.categoryId);
+        if (requestedHotelId !== categoryHotelId) {
+            throw CustomError(STATUS_CODE.BAD_REQUEST, 'Selected category does not belong to this cafe');
+        }
+        body.hotelId = categoryHotelId;
         const result = await menuService.create(body);
         logger('info', 'Menu created successfully', { result });
 

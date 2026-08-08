@@ -8,7 +8,7 @@ import { CustomError, STATUS_CODE } from '../utils/common.js';
 const create = async (payload) => {
     try {
         const { categoryId, hotelId, data } = payload;
-        const options = data.map((item) => ({ id: uuidv4(), categoryId, hotelId, ...item }));
+        const options = data.map((item) => ({ ...item, id: uuidv4(), categoryId, hotelId }));
         logger('debug', 'Request to add menu items');
         return await menuRepo.save(options);
     } catch (error) {
@@ -100,13 +100,15 @@ const fetch = async (payload) => {
             filterValue
         } = payload;
 
+        const allowedSortKeys = new Set(['name', 'price', 'createdAt', 'updatedAt', 'foodType', 'status']);
+        const normalizedSortKey = allowedSortKeys.has(sortKey) ? sortKey : 'createdAt';
+        const normalizedSortOrder = String(sortOrder).toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
         const options = {
             where: { categoryId, isCombo: false },
             limit: Number(limit),
-            offset: Number(skip)
+            offset: Number(skip),
+            order: [[normalizedSortKey, normalizedSortOrder]]
         };
-
-        if (sortKey && sortOrder) options.order = [[sortKey, sortOrder]];
 
         if (filterKey && filterValue) {
             options.where = {
