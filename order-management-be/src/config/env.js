@@ -18,6 +18,12 @@ const env = {
         dialect: process.env.DB_DIALECT
     },
     email: {
+        provider: String(process.env.EMAIL_PROVIDER || (process.env.RESEND_API_KEY ? 'resend' : 'smtp')).toLowerCase(),
+        from: process.env.EMAIL_FROM,
+        replyTo: process.env.EMAIL_REPLY_TO || process.env.SUPPORT_EMAIL,
+        resendApiKey: process.env.RESEND_API_KEY,
+        resendApiUrl: process.env.RESEND_API_URL || 'https://api.resend.com/emails',
+        timeoutMs: Number(process.env.EMAIL_TIMEOUT_MS || 15000),
         service: 'gmail',
         host: 'smtp.gmail.com',
         port: 465,
