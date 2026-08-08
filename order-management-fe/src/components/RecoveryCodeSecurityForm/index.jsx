@@ -56,7 +56,7 @@ const RecoveryCodeSecurityForm = ({ configured = false, onSuccess = () => {} }) 
                     <p className="text-muted small mb-3">
                         {configured
                             ? 'Your existing code cannot be viewed. Verify your password to replace it.'
-                            : 'Create a private 4-digit code for secure password recovery.'}
+                            : 'Create a private 6-digit code for secure password recovery.'}
                     </p>
                     <CustomFormGroup name="currentPassword" type="password" label="Current Password" />
                     <div className="row">

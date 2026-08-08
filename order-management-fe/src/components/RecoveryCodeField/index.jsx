@@ -25,12 +25,12 @@ const RecoveryCodeField = ({
                         className="form-control rc-recovery-input"
                         inputMode="numeric"
                         pattern="[0-9]*"
-                        maxLength={4}
+                        maxLength={6}
                         autoComplete="off"
                         disabled={disabled}
                         aria-label={label}
                         onChange={(event) => {
-                            const digits = event.target.value.replace(/\D/g, '').slice(0, 4);
+                            const digits = event.target.value.replace(/\D/g, '').slice(0, 6);
                             form.setFieldValue(name, digits);
                         }}
                         onBlur={() => form.setFieldTouched(name, true)}

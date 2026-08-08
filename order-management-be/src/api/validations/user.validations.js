@@ -10,9 +10,9 @@ const passwordSchema = Joi.string()
     });
 
 const recoveryCodeSchema = Joi.string()
-    .pattern(/^\d{4}$/)
+    .pattern(/^\d{6}$/)
     .messages({
-        'string.pattern.base': 'Recovery code must be exactly 4 numeric digits.'
+        'string.pattern.base': 'Recovery code must be exactly 6 numeric digits.'
     });
 
 export const registrationValidation = (payload) => {

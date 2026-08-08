@@ -27,10 +27,10 @@ export const userRegistrationSchema = Yup.object().shape({
         .oneOf([Yup.ref('password'), null], 'Passwords must match')
         .required('Confirm password is required'),
     recoveryCode: Yup.string()
-        .matches(/^\d{4}$/, 'Recovery code must be exactly 4 numeric digits')
+        .matches(/^\d{6}$/, 'Recovery code must be exactly 6 numeric digits')
         .required('Recovery code is required'),
     confirmRecoveryCode: Yup.string()
-        .matches(/^\d{4}$/, 'Recovery code must be exactly 4 numeric digits')
+        .matches(/^\d{6}$/, 'Recovery code must be exactly 6 numeric digits')
         .oneOf([Yup.ref('recoveryCode'), null], 'Recovery codes must match')
         .required('Confirm recovery code is required')
 });
@@ -67,7 +67,7 @@ export const passwordSchema = Yup.object().shape({
 export const ownerRecoveryResetSchema = Yup.object().shape({
     email: Yup.string().trim().lowercase().matches(emailRegex, 'Invalid email').required('Email is required'),
     recoveryCode: Yup.string()
-        .matches(/^\d{4}$/, 'Recovery code must be exactly 4 numeric digits')
+        .matches(/^\d{6}$/, 'Recovery code must be exactly 6 numeric digits')
         .required('Recovery code is required'),
     newPassword: Yup.string()
         .matches(
@@ -83,10 +83,10 @@ export const ownerRecoveryResetSchema = Yup.object().shape({
 export const recoveryCodeUpdateSchema = Yup.object().shape({
     currentPassword: Yup.string().required('Current password is required'),
     recoveryCode: Yup.string()
-        .matches(/^\d{4}$/, 'Recovery code must be exactly 4 numeric digits')
+        .matches(/^\d{6}$/, 'Recovery code must be exactly 6 numeric digits')
         .required('Recovery code is required'),
     confirmRecoveryCode: Yup.string()
-        .matches(/^\d{4}$/, 'Recovery code must be exactly 4 numeric digits')
+        .matches(/^\d{6}$/, 'Recovery code must be exactly 6 numeric digits')
         .oneOf([Yup.ref('recoveryCode'), null], 'Recovery codes must match')
         .required('Confirm recovery code is required'),
     invalidateSessions: Yup.boolean()

@@ -82,7 +82,7 @@ const ForgotPassword = () => {
                 >
                     {({ isSubmitting, dirty, isValid }) => (
                         <Form className="d-flex flex-column">
-                            <p className="text-muted small">Reset immediately using your private 4-digit code.</p>
+                            <p className="text-muted small">Reset immediately using your private 6-digit code.</p>
                             <CustomFormGroup name="email" type="email" label="Registered Email" />
                             <RecoveryCodeField name="recoveryCode" label="Recovery Code" />
                             <CustomFormGroup name="newPassword" type="password" label="New Password" />
