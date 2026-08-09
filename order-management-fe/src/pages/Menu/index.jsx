@@ -9,7 +9,8 @@ import {
     MdKeyboardArrowUp,
     MdModeEditOutline,
     MdOutlineQrCode2,
-    MdReplay
+    MdReplay,
+    MdTune
 } from 'react-icons/md';
 import { TiPlus } from 'react-icons/ti';
 import { useDispatch, useSelector } from 'react-redux';
@@ -1063,6 +1064,7 @@ function Menu() {
     const [imageModal, setImageModal] = useState(null);
     const [createModal, setCreateModal] = useState(false);
     const [updateModal, setUpdateModal] = useState(null);
+    const [categoryOrganizerOpen, setCategoryOrganizerOpen] = useState(false);
     const [managerSection, setManagerSection] = useState('categories');
     const [comboItems, setComboItems] = useState({ count: 0, rows: [] });
     const [allFoodItems, setAllFoodItems] = useState([]);
@@ -1157,6 +1159,20 @@ function Menu() {
     useEffect(() => {
         if (hotelId) dispatch(getCategoryRequest(hotelId));
     }, [hotelId]);
+
+    useEffect(() => {
+        if (!categoryOrganizerOpen) return undefined;
+        const previousOverflow = document.body.style.overflow;
+        const handleKeyDown = (event) => {
+            if (event.key === 'Escape') setCategoryOrganizerOpen(false);
+        };
+        document.body.style.overflow = 'hidden';
+        window.addEventListener('keydown', handleKeyDown);
+        return () => {
+            document.body.style.overflow = previousOverflow;
+            window.removeEventListener('keydown', handleKeyDown);
+        };
+    }, [categoryOrganizerOpen]);
 
     useEffect(
         () =>
@@ -1420,11 +1436,22 @@ function Menu() {
                                 value={selectedCategory}
                                 onChange={handleCategorySelect}
                             />
+                            <button
+                                type="button"
+                                className="category-edit-open-btn"
+                                disabled={!categories?.rows?.length}
+                                aria-haspopup="dialog"
+                                onClick={() => setCategoryOrganizerOpen(true)}
+                            >
+                                <MdTune />
+                                <span>Edit Categories</span>
+                                <b>{categories?.count || 0}</b>
+                            </button>
                             <ActionDropdown
                                 options={[
                                     { label: 'Add', icon: TiPlus, onClick: () => handleAddItemClick('category') },
                                     {
-                                        label: 'Update',
+                                        label: 'Rename Selected',
                                         icon: MdModeEditOutline,
                                         disabled: !Object.keys(selectedCategory).length,
                                         onClick: handleUpdateCategoryClick
@@ -1438,15 +1465,6 @@ function Menu() {
                                 ]}
                             />
                         </div>
-                        <CategoryOrderOrganizer
-                            categories={categories}
-                            hotelId={hotelId}
-                            selectedCategory={selectedCategory}
-                            onSelect={handleCategorySelect}
-                            onSaved={(preferredCategoryId) =>
-                                dispatch(getCategoryRequest({ hotelId, preferredCategoryId }))
-                            }
-                        />
                     </div>
                 ) : (
                     <div className="combo-toolbar">
@@ -1460,6 +1478,42 @@ function Menu() {
                     </div>
                 )}
             </div>
+
+            {categoryOrganizerOpen && (
+                <div className="category-edit-backdrop">
+                    <div
+                        className="category-edit-modal"
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby="category-edit-modal-title"
+                    >
+                        <header className="category-edit-modal-bar">
+                            <div>
+                                <span className="category-edit-eyebrow">Menu settings</span>
+                                <h2 id="category-edit-modal-title">Edit Categories</h2>
+                                <p>Set the order customers will see on the QR menu.</p>
+                            </div>
+                            <button
+                                type="button"
+                                className="category-edit-close"
+                                aria-label="Close category editor"
+                                onClick={() => setCategoryOrganizerOpen(false)}
+                            >
+                                <IoCloseSharp />
+                            </button>
+                        </header>
+                        <CategoryOrderOrganizer
+                            categories={categories}
+                            hotelId={hotelId}
+                            selectedCategory={selectedCategory}
+                            onSelect={handleCategorySelect}
+                            onSaved={(preferredCategoryId) =>
+                                dispatch(getCategoryRequest({ hotelId, preferredCategoryId }))
+                            }
+                        />
+                    </div>
+                </div>
+            )}
 
             {managerSection === 'combos' ? (
                 <div className="combo-manager-wrap mx-md-5 mx-2">
@@ -1831,7 +1885,28 @@ function Menu() {
                 .update-menu-status-row { flex-direction:row; align-items:center; gap:10px; }
                 .update-menu-checkbox { width:18px; height:18px; cursor:pointer; accent-color:#49ac60; }
 
-                .category-manager-section { display:flex; flex-direction:column; gap:16px; }
+                .category-manager-section { display:flex; flex-direction:column; }
+                .category-manager-toolbar { align-items:center; gap:10px; }
+                .category-manager-toolbar .me-4 { margin-right:0 !important; }
+                .category-edit-open-btn { flex:0 0 auto; min-height:42px; display:inline-flex; align-items:center; justify-content:center; gap:7px; padding:.55rem .78rem; border:1.5px solid #cfe6d5; border-radius:12px; background:linear-gradient(135deg,#f1fbf3,#fff); color:#2e7e42; font-size:.78rem; font-weight:800; white-space:nowrap; box-shadow:0 6px 18px rgba(73,172,96,.1); transition:all .18s ease; }
+                .category-edit-open-btn > svg { font-size:1.15rem; }
+                .category-edit-open-btn > b { min-width:22px; height:22px; display:grid; place-items:center; padding:0 5px; border-radius:999px; background:#49ac60; color:#fff; font-size:.67rem; }
+                .category-edit-open-btn:hover:not(:disabled) { border-color:#49ac60; background:#49ac60; color:#fff; box-shadow:0 9px 22px rgba(73,172,96,.22); transform:translateY(-1px); }
+                .category-edit-open-btn:hover:not(:disabled) > b { background:#fff; color:#2f8f46; }
+                .category-edit-open-btn:disabled { opacity:.45; cursor:not-allowed; }
+                .category-edit-backdrop { position:fixed; inset:0; z-index:10020; display:flex; align-items:center; justify-content:center; padding:24px; background:rgba(4,15,29,.66); backdrop-filter:blur(5px); animation:categoryBackdropIn .18s ease-out; }
+                .category-edit-modal { width:min(760px,100%); max-height:calc(100vh - 48px); overflow:hidden; border:1px solid rgba(255,255,255,.45); border-radius:24px; background:#f7faf8; box-shadow:0 28px 80px rgba(3,14,27,.35); animation:categoryModalIn .24s cubic-bezier(.2,.8,.2,1); }
+                .category-edit-modal-bar { position:relative; display:flex; align-items:flex-start; justify-content:space-between; gap:16px; padding:20px 22px 16px; color:#fff; background:linear-gradient(125deg,#07182c 0%,#12334a 64%,#22533b 100%); }
+                .category-edit-modal-bar::after { content:""; position:absolute; width:150px; height:150px; right:55px; top:-105px; border-radius:50%; border:28px solid rgba(255,255,255,.055); pointer-events:none; }
+                .category-edit-eyebrow { display:block; margin-bottom:3px; color:#8ee2a1; font-size:.65rem; font-weight:900; letter-spacing:.12em; text-transform:uppercase; }
+                .category-edit-modal-bar h2 { margin:0; color:#fff; font-size:1.18rem; font-weight:850; letter-spacing:-.02em; }
+                .category-edit-modal-bar p { margin:4px 0 0; color:#c4d2dc; font-size:.76rem; }
+                .category-edit-close { position:relative; z-index:1; width:38px; height:38px; flex:0 0 38px; display:grid; place-items:center; padding:0; border:1px solid rgba(255,255,255,.18); border-radius:12px; background:rgba(255,255,255,.09); color:#fff; font-size:1.25rem; transition:all .16s ease; }
+                .category-edit-close:hover { border-color:rgba(255,255,255,.42); background:rgba(255,255,255,.18); transform:rotate(4deg); }
+                .category-edit-modal .category-order-panel { max-height:calc(100vh - 170px); overflow:hidden; border:0; border-radius:0; box-shadow:none; background:linear-gradient(145deg,#fff 0%,#f7fbf8 100%); }
+                .category-edit-modal .category-order-list { max-height:calc(100vh - 365px); min-height:160px; }
+                @keyframes categoryBackdropIn { from { opacity:0; } to { opacity:1; } }
+                @keyframes categoryModalIn { from { opacity:0; transform:translateY(14px) scale(.985); } to { opacity:1; transform:translateY(0) scale(1); } }
                 .category-order-panel { position:relative; overflow:hidden; padding:18px; border:1px solid #e5ede8; border-radius:20px; background:linear-gradient(145deg,#ffffff 0%,#f7fbf8 100%); box-shadow:0 16px 45px rgba(8,24,45,.09); }
                 .category-order-panel::before { content:""; position:absolute; width:170px; height:170px; right:-75px; top:-90px; border-radius:50%; background:rgba(73,172,96,.08); pointer-events:none; }
                 .category-order-header { position:relative; display:flex; align-items:flex-start; justify-content:space-between; gap:16px; margin-bottom:16px; }
@@ -1906,8 +1981,15 @@ function Menu() {
                 .combo-check { width:26px; height:26px; border-radius:50%; display:grid; place-items:center; background:#edf2f7; color:#4a5568; font-weight:800; }
                 .combo-food-option.active .combo-check { background:#49ac60; color:#fff; }
                 @media(max-width:576px) {
-                    .category-manager-toolbar { align-items:center; }
-                    .category-manager-toolbar .me-4 { margin-right:.65rem !important; }
+                    .category-manager-toolbar { gap:7px; }
+                    .category-edit-open-btn { min-width:44px; min-height:42px; padding:.5rem .65rem; }
+                    .category-edit-open-btn > span { display:none; }
+                    .category-edit-open-btn > b { min-width:19px; height:19px; font-size:.61rem; }
+                    .category-edit-backdrop { align-items:flex-end; padding:0; }
+                    .category-edit-modal { width:100%; max-height:92vh; border:0; border-radius:24px 24px 0 0; animation:categorySheetIn .25s cubic-bezier(.2,.8,.2,1); }
+                    .category-edit-modal-bar { padding:17px 16px 14px; }
+                    .category-edit-modal .category-order-panel { max-height:calc(92vh - 100px); padding:14px 14px 18px; }
+                    .category-edit-modal .category-order-list { max-height:calc(92vh - 330px); min-height:150px; }
                     .category-order-panel { padding:14px; border-radius:17px; }
                     .category-order-header, .category-order-footer { flex-direction:column; align-items:stretch; }
                     .category-order-saved, .category-order-dirty { align-self:flex-start; }
@@ -1924,6 +2006,7 @@ function Menu() {
                     .combo-form-grid { grid-template-columns:1fr; }
                     .combo-modal { width:95vw; }
                 }
+                @keyframes categorySheetIn { from { opacity:.7; transform:translateY(40px); } to { opacity:1; transform:translateY(0); } }
 
             `}</style>
         </>
