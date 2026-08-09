@@ -2,7 +2,7 @@
 
 // Keep this worker stable between regular app deployments. New frontend builds
 // are activated explicitly through APPLY_APP_UPDATE so users may defer safely.
-const CACHE_VERSION = 'v10-controlled-updates';
+const CACHE_VERSION = 'v11-self-healing-updates';
 const APP_SHELL_CACHE = `rcdine-shell-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `rcdine-runtime-${CACHE_VERSION}`;
 const APP_SHELL = [
@@ -108,26 +108,6 @@ const cacheSuccessfulResponse = async (request, response) => {
     return response;
 };
 
-const handleNavigationRequest = async (request) => {
-    const shellCache = await caches.open(APP_SHELL_CACHE);
-    const currentShell = await shellCache.match('/');
-    if (currentShell) return currentShell;
-
-    try {
-        const response = await fetch(request);
-        if (response.ok) {
-            await shellCache.put('/', response.clone());
-            return response;
-        }
-
-        // A static host without an SPA rewrite returns 404 for routes such as
-        // /orders or /cart/:id. Serve the cached React shell in that case.
-        return (await caches.match('/')) || response;
-    } catch (_error) {
-        return (await caches.match(request)) || (await caches.match('/')) || caches.match('/offline.html');
-    }
-};
-
 const getStaticAssetUrls = (html) => {
     const urls = new Set();
     const attributePattern = /\b(?:src|href)=["']([^"']+)["']/g;
@@ -142,6 +122,85 @@ const getStaticAssetUrls = (html) => {
         match = attributePattern.exec(html);
     }
     return [...urls];
+};
+
+const isUsableStaticAsset = (assetUrl, response) => {
+    if (!response?.ok) return false;
+    const pathname = new URL(assetUrl).pathname;
+    const contentType = String(response.headers.get('content-type') || '').toLowerCase();
+    if (pathname.endsWith('.js')) return /javascript|ecmascript/.test(contentType);
+    if (pathname.endsWith('.css')) return contentType.includes('text/css');
+    return true;
+};
+
+const getShellAssets = async (shellResponse) => {
+    if (!shellResponse?.ok) return [];
+    const html = await shellResponse.clone().text();
+    return getStaticAssetUrls(html);
+};
+
+const hasCompleteCachedShell = async (shellResponse) => {
+    const assetUrls = await getShellAssets(shellResponse);
+    if (!assetUrls.length) return false;
+
+    const cachedAssets = await Promise.all(assetUrls.map((assetUrl) => caches.match(assetUrl)));
+    return cachedAssets.every((response, index) => isUsableStaticAsset(assetUrls[index], response));
+};
+
+const fetchAndCacheFreshShell = async (request) => {
+    const shellUrl = new URL(request?.url || '/', self.location.origin);
+    shellUrl.pathname = '/';
+    shellUrl.search = '';
+    shellUrl.searchParams.set('rcCacheRecovery', String(Date.now()));
+
+    const shellResponse = await fetch(shellUrl.href, {
+        cache: 'no-store',
+        credentials: 'same-origin'
+    });
+    if (!shellResponse.ok) throw new Error(`Fresh app shell returned ${shellResponse.status}`);
+
+    const assetUrls = await getShellAssets(shellResponse);
+    if (!assetUrls.length) throw new Error('Fresh app shell does not contain static assets');
+
+    const downloadedAssets = await Promise.all(
+        assetUrls.map(async (assetUrl) => {
+            const assetRequest = new Request(assetUrl, { cache: 'no-store', credentials: 'same-origin' });
+            const response = await fetch(assetRequest);
+            if (!isUsableStaticAsset(assetUrl, response)) {
+                throw new Error(`Fresh app asset is unavailable: ${new URL(assetUrl).pathname}`);
+            }
+            return { assetRequest, response };
+        })
+    );
+
+    const runtimeCache = await caches.open(RUNTIME_CACHE);
+    await Promise.all(
+        downloadedAssets.map(({ assetRequest, response }) => runtimeCache.put(assetRequest, response.clone()))
+    );
+
+    const shellCache = await caches.open(APP_SHELL_CACHE);
+    await shellCache.put('/', shellResponse.clone());
+    return shellResponse;
+};
+
+const handleNavigationRequest = async (request) => {
+    const shellCache = await caches.open(APP_SHELL_CACHE);
+    const currentShell = await shellCache.match('/');
+
+    if (currentShell && (await hasCompleteCachedShell(currentShell))) {
+        return currentShell;
+    }
+
+    try {
+        // A cached HTML shell without all of its hashed JS/CSS files renders a
+        // blank screen. Recover atomically by downloading the current shell and
+        // every referenced static asset before replacing the cached version.
+        return await fetchAndCacheFreshShell(request);
+    } catch (_error) {
+        return (
+            (await caches.match(request)) || (await caches.match('/offline.html')) || currentShell || Response.error()
+        );
+    }
 };
 
 const prepareAppUpdate = async (version) => {
