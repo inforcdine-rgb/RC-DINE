@@ -3,6 +3,7 @@ import { Op } from 'sequelize';
 import { getAdminSettings, saveAdminSettings } from '../../config/adminSettings.js';
 import { db } from '../../config/database.js';
 import logger from '../../config/logger.js';
+import { normalizeActiveQrTemplateIds } from '../../config/qrTemplates.js';
 import { USER_ROLES } from '../models/user.model.js';
 import subscriptionPlanRepo from '../repositories/subscriptionPlan.repository.js';
 import userRepo from '../repositories/user.repository.js';
@@ -272,6 +273,9 @@ const getSettings = async (adminId) => {
                 phoneNumber: admin.phoneNumber
             },
             razorpay: { keyId: settings.razorpay.keyId, keySecret: maskedSecret },
+            qrTemplates: {
+                activeIds: settings.qrTemplates.activeIds
+            },
             plans: (await subscriptionPlanRepo.findAll()).reduce((result, plan) => {
                 result[plan.code] = {
                     name: plan.name,
@@ -292,7 +296,7 @@ const getSettings = async (adminId) => {
 
 const updateSettings = async (adminId, payload) => {
     try {
-        const { profile, razorpay, plans } = payload;
+        const { profile, razorpay, plans, qrTemplates } = payload;
         const admin = await db.users.findOne({ where: { id: adminId } });
         if (!admin) throw CustomError(STATUS_CODE.NOT_FOUND, 'Admin not found');
 
@@ -327,6 +331,11 @@ const updateSettings = async (adminId, payload) => {
                 }
             }
         }
+        if (Array.isArray(qrTemplates?.activeIds)) {
+            currentSettings.qrTemplates = {
+                activeIds: normalizeActiveQrTemplateIds(qrTemplates.activeIds)
+            };
+        }
 
         saveAdminSettings(currentSettings);
         return { success: true, message: 'Settings updated successfully' };
@@ -334,6 +343,11 @@ const updateSettings = async (adminId, payload) => {
         logger('error', 'Error while updating admin settings service', { error });
         throw CustomError(error.code || 500, error.message);
     }
+};
+
+const getActiveQrTemplates = async () => {
+    const settings = getAdminSettings();
+    return { activeIds: settings.qrTemplates.activeIds };
 };
 
 export default {
@@ -344,6 +358,7 @@ export default {
     extendSubscription,
     sendOwnerPasswordResetLink,
     revenue,
+    getActiveQrTemplates,
     getSettings,
     updateSettings
 };

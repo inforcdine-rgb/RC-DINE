@@ -80,6 +80,16 @@ const revenue = async (req, res) => {
     }
 };
 
+const getActiveQrTemplates = async (req, res) => {
+    try {
+        const result = await adminService.getActiveQrTemplates();
+        return res.status(STATUS_CODE.OK).send(result);
+    } catch (error) {
+        logger('error', 'Error occurred while fetching active QR templates', { error });
+        return res.status(error.code || STATUS_CODE.INTERNAL_SERVER_ERROR).send({ message: error.message });
+    }
+};
+
 const getSettings = async (req, res) => {
     try {
         const result = await adminService.getSettings(req.user.id);
@@ -110,6 +120,7 @@ export default {
     extendSubscription,
     sendOwnerPasswordResetLink,
     revenue,
+    getActiveQrTemplates,
     getSettings,
     updateSettings
 };

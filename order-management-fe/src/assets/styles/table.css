@@ -32,6 +32,7 @@
 .tables-download-all,
 .table-session-btn,
 .table-download-btn,
+.table-template-download-btn,
 .table-delete-btn,
 .table-edit-btn,
 .table-modal-actions button,
@@ -231,6 +232,7 @@
 
 .table-session-btn,
 .table-download-btn,
+.table-template-download-btn,
 .table-delete-btn {
     display: flex;
     align-items: center;
@@ -267,6 +269,33 @@
     transform: translateY(-1px);
     background: #eafff1;
     border-color: #73c892;
+}
+
+.table-template-download-btn {
+    position: relative;
+    overflow: hidden;
+    margin-bottom: 10px;
+    border: 1px solid #c8b7ef;
+    background: linear-gradient(135deg, #f8f5ff, #eef7ff);
+    color: #5839a6;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.65);
+}
+
+.table-template-download-btn::after {
+    position: absolute;
+    width: 70px;
+    height: 70px;
+    border-radius: 50%;
+    background: rgba(117, 85, 210, 0.08);
+    content: '';
+    inset: -42px -28px auto auto;
+}
+
+.table-template-download-btn:hover {
+    transform: translateY(-1px);
+    border-color: #9f86df;
+    background: linear-gradient(135deg, #f1ebff, #e6f2ff);
+    color: #482890;
 }
 
 .table-delete-btn {

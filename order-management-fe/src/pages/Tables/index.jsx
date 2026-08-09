@@ -8,16 +8,24 @@ import { toast } from 'react-toastify';
 
 import OMTModal from '../../components/Modal';
 import NoData from '../../components/NoData';
+import QrTemplatePicker from '../../components/QrTemplatePicker';
 
 import env from '../../config/env';
 import features from '../../config/features';
 
 import * as managerRcSessionService from '../../services/managerRcSession.service';
+import * as qrTemplateService from '../../services/qrTemplate.service';
 import * as tableService from '../../services/tables.service';
 
 import { addTablesRequest, getDashboardRequest, getTablesRequest, setTableModalData } from '../../store/slice';
 
-import { buildQrFilename, downloadSvgQrAsPng } from '../../utils/qrDownload';
+import {
+    buildQrFilename,
+    buildQrTemplateFilename,
+    downloadQrTemplateAsPng,
+    downloadSvgQrAsPng
+} from '../../utils/qrDownload';
+import { DEFAULT_ACTIVE_QR_TEMPLATE_IDS, getQrTemplatesByIds } from '../../utils/qrTemplates';
 import { getBackgroundRequestVersion, registerRefreshHandler, waitForBackgroundRequests } from '../../utils/refreshBus';
 import { addTableValidationSchema } from '../../validations/tables';
 
@@ -39,6 +47,10 @@ function Tables() {
     const [showSessionOptions, setShowSessionOptions] = useState(false);
     const [showPaymentConfirm, setShowPaymentConfirm] = useState(false);
     const [keepQrActive, setKeepQrActive] = useState(true);
+    const [activeQrTemplateIds, setActiveQrTemplateIds] = useState(DEFAULT_ACTIVE_QR_TEMPLATE_IDS);
+    const [templateTable, setTemplateTable] = useState(null);
+    const [selectedTemplateId, setSelectedTemplateId] = useState(DEFAULT_ACTIVE_QR_TEMPLATE_IDS[0]);
+    const [downloadingTemplate, setDownloadingTemplate] = useState(false);
     const refreshSnapshotRef = useRef('');
     refreshSnapshotRef.current = JSON.stringify(tablesData);
 
@@ -48,6 +60,22 @@ function Tables() {
             dispatch(getDashboardRequest(hotelId));
         }
     }, [hotelId, dispatch]);
+
+    useEffect(() => {
+        let active = true;
+        const loadActiveQrTemplates = async () => {
+            try {
+                const response = await qrTemplateService.getActive();
+                if (active && Array.isArray(response?.activeIds)) setActiveQrTemplateIds(response.activeIds);
+            } catch (error) {
+                console.error('Active QR templates could not be loaded', error);
+            }
+        };
+        if (hotelId) loadActiveQrTemplates();
+        return () => {
+            active = false;
+        };
+    }, [hotelId]);
 
     useEffect(
         () =>
@@ -80,6 +108,8 @@ function Tables() {
                 .includes(query)
         );
     }, [searchText, tablesData]);
+
+    const activeQrTemplates = useMemo(() => getQrTemplatesByIds(activeQrTemplateIds), [activeQrTemplateIds]);
 
     const openAddModal = () => {
         dispatch(
@@ -194,15 +224,50 @@ function Tables() {
         }
     };
 
-    const handleDownloadQr = (table) => {
-        const filename = buildQrFilename(cafeName, table.label);
-        downloadSvgQrAsPng(qrRefs.current[table.value], filename);
+    const handleDownloadQr = async (table) => {
+        try {
+            const filename = buildQrFilename(cafeName, table.label);
+            await downloadSvgQrAsPng(qrRefs.current[table.value], filename);
+        } catch (error) {
+            toast.error(error.message);
+        }
     };
 
     const handleDownloadAllQr = () => {
         filteredTables.forEach((table, index) => {
             setTimeout(() => handleDownloadQr(table), index * 250);
         });
+    };
+
+    const openTemplatePicker = (table) => {
+        if (!activeQrTemplates.length) {
+            toast.info('Admin has not activated any QR templates yet');
+            return;
+        }
+        setTemplateTable(table);
+        setSelectedTemplateId(activeQrTemplates[0].id);
+    };
+
+    const handleDownloadTemplate = async () => {
+        const template = activeQrTemplates.find((item) => item.id === selectedTemplateId);
+        if (!templateTable || !template) return;
+
+        try {
+            setDownloadingTemplate(true);
+            await downloadQrTemplateAsPng({
+                container: qrRefs.current[templateTable.value],
+                filename: buildQrTemplateFilename(cafeName, templateTable.label, template.name),
+                template,
+                cafeName,
+                tableName: templateTable.label
+            });
+            toast.success(`${template.name} QR template downloaded`);
+            setTemplateTable(null);
+        } catch (error) {
+            toast.error(error.message || 'QR template download failed');
+        } finally {
+            setDownloadingTemplate(false);
+        }
     };
 
     return (
@@ -283,6 +348,15 @@ function Tables() {
                                 >
                                     ↓ Download QR
                                 </button>
+                                {activeQrTemplates.length > 0 && (
+                                    <button
+                                        className="table-template-download-btn"
+                                        type="button"
+                                        onClick={() => openTemplatePicker(table)}
+                                    >
+                                        ✦ Download with Template
+                                    </button>
+                                )}
                                 <button
                                     className="table-delete-btn"
                                     type="button"
@@ -314,6 +388,20 @@ function Tables() {
                 submitText={tablesModalData?.submitText}
                 closeText={tablesModalData?.closeText}
             />
+
+            {templateTable && (
+                <QrTemplatePicker
+                    templates={activeQrTemplates}
+                    selectedId={selectedTemplateId}
+                    cafeName={cafeName || 'Your Cafe'}
+                    tableName={templateTable.label}
+                    qrValue={makeTableUrl(templateTable.value)}
+                    downloading={downloadingTemplate}
+                    onSelect={setSelectedTemplateId}
+                    onClose={() => setTemplateTable(null)}
+                    onDownload={handleDownloadTemplate}
+                />
+            )}
 
             {editTable && (
                 <div className="table-modal-backdrop">

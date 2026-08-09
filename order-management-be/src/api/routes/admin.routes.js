@@ -17,6 +17,7 @@ router.post(
     adminController.sendOwnerPasswordResetLink
 );
 router.get('/revenue', authenticate, adminAuthentication, adminController.revenue);
+router.get('/qr-templates/active', authenticate, adminController.getActiveQrTemplates);
 router.get('/settings', authenticate, adminAuthentication, adminController.getSettings);
 router.put('/settings', authenticate, adminAuthentication, adminController.updateSettings);
 

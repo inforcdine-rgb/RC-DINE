@@ -3,7 +3,9 @@ import { Card, Col, Form, Row } from 'react-bootstrap';
 import { toast } from 'react-toastify';
 import CustomButton from '../../components/CustomButton';
 import Loader from '../../components/Loader';
+import QrTemplateAdminPanel from '../../components/QrTemplateAdminPanel';
 import * as adminService from '../../services/admin.service';
+import { DEFAULT_ACTIVE_QR_TEMPLATE_IDS } from '../../utils/qrTemplates';
 import '../../assets/styles/settings.css';
 
 function AdminSettings() {
@@ -25,10 +27,12 @@ function AdminSettings() {
     const [monthlyPrice, setMonthlyPrice] = useState(1000);
     const [halfYearlyPrice, setHalfYearlyPrice] = useState(5500);
     const [yearlyPrice, setYearlyPrice] = useState(11000);
+    const [activeQrTemplateIds, setActiveQrTemplateIds] = useState(DEFAULT_ACTIVE_QR_TEMPLATE_IDS);
 
     const [savingProfile, setSavingProfile] = useState(false);
     const [savingRazorpay, setSavingRazorpay] = useState(false);
     const [savingPlans, setSavingPlans] = useState(false);
+    const [savingQrTemplates, setSavingQrTemplates] = useState(false);
 
     useEffect(() => {
         const fetchSettings = async () => {
@@ -47,6 +51,9 @@ function AdminSettings() {
                         setMonthlyPrice(res.plans.MONTHLY?.amount || 1000);
                         setHalfYearlyPrice(res.plans.HALF_YEARLY?.amount || 5500);
                         setYearlyPrice(res.plans.YEARLY?.amount || 11000);
+                    }
+                    if (Array.isArray(res.qrTemplates?.activeIds)) {
+                        setActiveQrTemplateIds(res.qrTemplates.activeIds);
                     }
                 }
             } catch (error) {
@@ -122,6 +129,18 @@ function AdminSettings() {
             toast.error(error?.message || 'Failed to update plans');
         } finally {
             setSavingPlans(false);
+        }
+    };
+
+    const handleSaveQrTemplates = async () => {
+        setSavingQrTemplates(true);
+        try {
+            await adminService.updateSettings({ qrTemplates: { activeIds: activeQrTemplateIds } });
+            toast.success('Manager QR templates updated successfully');
+        } catch (error) {
+            toast.error(error?.message || 'Failed to update QR templates');
+        } finally {
+            setSavingQrTemplates(false);
         }
     };
 
@@ -325,6 +344,12 @@ function AdminSettings() {
                     </Card>
                 </Col>
             </Row>
+            <QrTemplateAdminPanel
+                activeIds={activeQrTemplateIds}
+                onChange={setActiveQrTemplateIds}
+                onSave={handleSaveQrTemplates}
+                saving={savingQrTemplates}
+            />
         </div>
     );
 }

@@ -3,7 +3,24 @@ export * from './manager.slice';
 export * from './hotel.slice';
 export * from './invite.slice';
 export * from './app.slice';
-export * from './menu.slice';
+export {
+    getCategoryRequest,
+    getCategorySucess,
+    setMenuModalData,
+    createCategoryRequest,
+    setSelectedCategory,
+    updateCategoryRequest,
+    removeCategoryRequest,
+    getMenuItemsRequest,
+    getMenuItemsSuccess,
+    createMenuItemRequest,
+    removeMenuItemRequest,
+    updateMenuItemsRequest,
+    setSorting,
+    setFiltering,
+    setPagination,
+    menuReducer
+} from './menu.slice';
 export * from './table.slice';
 export {
     setCurrentPage,
