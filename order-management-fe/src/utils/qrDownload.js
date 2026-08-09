@@ -1,6 +1,7 @@
 const QR_EXPORT_SIZE = 1024;
-const TEMPLATE_WIDTH = 1748;
-const TEMPLATE_HEIGHT = 2480;
+// Portrait 4 x 6 inch table stand at 300 DPI.
+const TEMPLATE_WIDTH = 1200;
+const TEMPLATE_HEIGHT = 1800;
 
 const slugify = (value, fallback) => {
     const slug = String(value || fallback)
@@ -198,7 +199,7 @@ const drawBackground = (context, template) => {
 
     context.strokeStyle = hexToRgba(template.accent, 0.66);
     context.lineWidth = template.layout === 'framed' ? 8 : 3;
-    roundedRect(context, 65, 65, TEMPLATE_WIDTH - 130, TEMPLATE_HEIGHT - 130, template.layout === 'organic' ? 70 : 24);
+    roundedRect(context, 45, 45, TEMPLATE_WIDTH - 90, TEMPLATE_HEIGHT - 90, template.layout === 'organic' ? 52 : 20);
     context.stroke();
 };
 
@@ -225,70 +226,71 @@ const drawTemplateContent = (context, image, template, cafeName, tableName) => {
     context.textBaseline = 'middle';
 
     context.fillStyle = template.muted;
-    context.font = '800 32px Arial, sans-serif';
-    context.letterSpacing = '8px';
-    context.fillText('CAFE  •  KITCHEN  •  GOOD TIMES', centerX, 245);
+    context.font = '800 22px Arial, sans-serif';
+    context.letterSpacing = '6px';
+    context.fillText('CAFE  •  KITCHEN  •  GOOD TIMES', centerX, 160);
 
     context.fillStyle = template.foreground;
-    const cafeFontSize = fitFontSize(context, displayCafeName, TEMPLATE_WIDTH - 300, 126);
+    const cafeFontSize = fitFontSize(context, displayCafeName, TEMPLATE_WIDTH - 180, 86, 36);
     context.font = `900 ${cafeFontSize}px Arial, sans-serif`;
-    context.fillText(displayCafeName, centerX, 390);
+    context.fillText(displayCafeName, centerX, 265);
 
-    const tableWidth = Math.min(760, Math.max(350, context.measureText(displayTableName).width + 130));
-    roundedRect(context, centerX - tableWidth / 2, 505, tableWidth, 108, 54);
+    context.font = '900 30px Arial, sans-serif';
+    const tableWidth = Math.min(520, Math.max(240, context.measureText(displayTableName).width + 90));
+    roundedRect(context, centerX - tableWidth / 2, 340, tableWidth, 78, 39);
     context.fillStyle = hexToRgba(template.accent, 0.18);
     context.fill();
     context.strokeStyle = hexToRgba(template.accent, 0.8);
     context.lineWidth = 3;
     context.stroke();
     context.fillStyle = template.foreground;
-    context.font = '900 42px Arial, sans-serif';
-    context.fillText(displayTableName, centerX, 560);
+    context.font = '900 30px Arial, sans-serif';
+    context.fillText(displayTableName, centerX, 379);
 
-    const panelSize = 1160;
+    const panelSize = 820;
     const panelX = (TEMPLATE_WIDTH - panelSize) / 2;
-    const panelY = 735;
+    const panelY = 485;
     context.save();
     context.shadowColor = 'rgba(0, 0, 0, 0.22)';
-    context.shadowBlur = 55;
-    context.shadowOffsetY = 24;
-    roundedRect(context, panelX, panelY, panelSize, panelSize, template.layout === 'arched' ? 180 : 70);
+    context.shadowBlur = 40;
+    context.shadowOffsetY = 18;
+    roundedRect(context, panelX, panelY, panelSize, panelSize, template.layout === 'arched' ? 120 : 52);
     context.fillStyle = template.qrPanel;
     context.fill();
     context.restore();
 
     context.strokeStyle = hexToRgba(template.accent, 0.72);
-    context.lineWidth = 7;
-    roundedRect(context, panelX, panelY, panelSize, panelSize, template.layout === 'arched' ? 180 : 70);
+    context.lineWidth = 5;
+    roundedRect(context, panelX, panelY, panelSize, panelSize, template.layout === 'arched' ? 120 : 52);
     context.stroke();
 
-    const qrSize = 910;
+    const qrSize = 640;
     context.drawImage(image, centerX - qrSize / 2, panelY + (panelSize - qrSize) / 2, qrSize, qrSize);
 
     context.fillStyle = template.foreground;
-    context.font = '900 65px Arial, sans-serif';
-    context.fillText('SCAN. ORDER. ENJOY.', centerX, 2070);
+    context.font = '900 44px Arial, sans-serif';
+    context.fillText('SCAN. ORDER. ENJOY.', centerX, 1375);
 
     context.fillStyle = template.muted;
-    context.font = '700 31px Arial, sans-serif';
-    context.fillText('Point your camera at the QR code to open the menu', centerX, 2145);
+    context.font = '700 21px Arial, sans-serif';
+    context.fillText('Point your camera at the QR code to open the menu', centerX, 1435);
 
     context.strokeStyle = hexToRgba(template.accent, 0.75);
-    context.lineWidth = 4;
+    context.lineWidth = 3;
     context.beginPath();
-    context.moveTo(centerX - 240, 2240);
-    context.lineTo(centerX - 45, 2240);
-    context.moveTo(centerX + 45, 2240);
-    context.lineTo(centerX + 240, 2240);
+    context.moveTo(centerX - 165, 1530);
+    context.lineTo(centerX - 32, 1530);
+    context.moveTo(centerX + 32, 1530);
+    context.lineTo(centerX + 165, 1530);
     context.stroke();
     context.fillStyle = template.accent;
     context.beginPath();
-    context.arc(centerX, 2240, 10, 0, Math.PI * 2);
+    context.arc(centerX, 1530, 7, 0, Math.PI * 2);
     context.fill();
 
     context.fillStyle = template.muted;
-    context.font = '800 27px Arial, sans-serif';
-    context.fillText('Powered by RC DINE', centerX, 2350);
+    context.font = '800 19px Arial, sans-serif';
+    context.fillText('Powered by RC DINE', centerX, 1690);
 };
 
 /** Converts the rendered QRCodeSVG element to a PNG and triggers a browser download. */

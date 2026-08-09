@@ -28,7 +28,7 @@ function QrTemplatePicker({
             >
                 <header className="qr-picker-head">
                     <div>
-                        <span>PRINT-READY A5 • HIGH QUALITY PNG</span>
+                        <span>PRINT-READY 4 × 6 INCH • 300 DPI PNG</span>
                         <h2 id="qr-picker-title">Choose a QR Template</h2>
                         <p>{tableName} ke liye design select karke download karein.</p>
                     </div>
