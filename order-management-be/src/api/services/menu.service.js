@@ -197,6 +197,31 @@ const updateCategory = async (id, payload) => {
     }
 };
 
+const reorderCategories = async (hotelId, categoryIds) => {
+    try {
+        const existingCategories = await categoryRepo.find({
+            where: { hotelId },
+            attributes: ['id']
+        });
+        const existingIds = new Set(existingCategories.rows.map((category) => category.id));
+        const includesEveryCategory =
+            existingCategories.count === categoryIds.length && categoryIds.every((id) => existingIds.has(id));
+
+        if (!includesEveryCategory) {
+            throw CustomError(
+                STATUS_CODE.BAD_REQUEST,
+                'Category list changed. Refresh the page and arrange the categories again.'
+            );
+        }
+
+        await categoryRepo.reorder(hotelId, categoryIds);
+        return await fetchCategory(hotelId);
+    } catch (error) {
+        logger('error', 'Error while reordering categories', { error });
+        throw CustomError(error.code, error.message);
+    }
+};
+
 const removeCategory = async (categoryIds, hotelId) => {
     try {
         if (!Array.isArray(categoryIds) || !categoryIds.length) {
@@ -376,5 +401,6 @@ export default {
     createCategory,
     fetchCategory,
     updateCategory,
+    reorderCategories,
     removeCategory
 };

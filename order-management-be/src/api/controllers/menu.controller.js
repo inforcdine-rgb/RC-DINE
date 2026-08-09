@@ -12,6 +12,7 @@ import {
 import {
     createCategoryValidation,
     createValidation,
+    reorderCategoryValidation,
     updateCategoryValidation,
     updateValidation,
     createComboValidation,
@@ -357,6 +358,23 @@ const updateCategory = async (req, res) => {
     }
 };
 
+const reorderCategories = async (req, res) => {
+    try {
+        const validation = reorderCategoryValidation(req.body);
+        if (validation.error) {
+            return res.status(STATUS_CODE.BAD_REQUEST).send({ message: validation.error.message });
+        }
+
+        const hotelId = await resolveHotelAccess(req.user, req.body.hotelId);
+        const result = await menuService.reorderCategories(hotelId, req.body.categoryIds);
+
+        return res.status(STATUS_CODE.OK).send(result);
+    } catch (error) {
+        logger('error', 'Error occurred during category reordering', { error });
+        return res.status(error.code || 500).send({ message: error.message });
+    }
+};
+
 const removeCategory = async (req, res) => {
     try {
         const { categoryIds } = req.body;
@@ -402,5 +420,6 @@ export default {
     createCategory,
     fetchCategory,
     updateCategory,
+    reorderCategories,
     removeCategory
 };

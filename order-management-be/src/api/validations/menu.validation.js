@@ -35,6 +35,19 @@ export const updateCategoryValidation = (payload) => {
     }
 };
 
+export const reorderCategoryValidation = (payload) => {
+    try {
+        const schema = Joi.object({
+            hotelId: Joi.string().required(),
+            categoryIds: Joi.array().items(Joi.string().required()).min(1).unique().required()
+        });
+        return schema.validate(payload);
+    } catch (error) {
+        logger('error', `Error in reordering menu categories ${error}`);
+        throw CustomError(error.code, error.message);
+    }
+};
+
 export const createValidation = (payload) => {
     try {
         const schema = Joi.object({

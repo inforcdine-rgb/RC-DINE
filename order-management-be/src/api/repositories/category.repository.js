@@ -35,6 +35,29 @@ const update = async (options, data) => {
     }
 };
 
+const reorder = async (hotelId, categoryIds) => {
+    try {
+        logger('debug', 'Saving category display order', { hotelId, categoryIds });
+        return await db.categories.sequelize.transaction(async (transaction) => {
+            await Promise.all(
+                categoryIds.map((id, index) =>
+                    db.categories.update(
+                        { order: index + 1 },
+                        {
+                            where: { id, hotelId },
+                            transaction
+                        }
+                    )
+                )
+            );
+        });
+    } catch (error) {
+        const err = error?.errors ? error.errors[0]?.message : undefined;
+        logger('error', 'Error while saving category display order', { error: err || error.message });
+        throw CustomError(error.code, err || error.message);
+    }
+};
+
 const remove = async (options) => {
     try {
         logger('debug', 'Removing hotel category with options:', { options });
@@ -46,4 +69,4 @@ const remove = async (options) => {
     }
 };
 
-export default { save, find, update, remove };
+export default { save, find, update, reorder, remove };

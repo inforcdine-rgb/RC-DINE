@@ -1,7 +1,16 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import moment from 'moment/moment';
 import { IoCloseSharp } from 'react-icons/io5';
-import { MdDeleteForever, MdModeEditOutline } from 'react-icons/md';
+import {
+    MdCheckCircleOutline,
+    MdDeleteForever,
+    MdDragIndicator,
+    MdKeyboardArrowDown,
+    MdKeyboardArrowUp,
+    MdModeEditOutline,
+    MdOutlineQrCode2,
+    MdReplay
+} from 'react-icons/md';
 import { TiPlus } from 'react-icons/ti';
 import { useDispatch, useSelector } from 'react-redux';
 import { toast } from 'react-toastify';
@@ -866,6 +875,184 @@ function ComboModal({ combo, allFoodItems, hotelId, onClose, onSuccess }) {
 }
 
 // ── Main Menu page ─────────────────────────────────────────────────────────────
+function CategoryOrderOrganizer({ categories, hotelId, selectedCategory, onSelect, onSaved }) {
+    const rows = useMemo(() => categories?.rows || [], [categories?.rows]);
+    const [draft, setDraft] = useState([]);
+    const [savedIds, setSavedIds] = useState([]);
+    const [draggingId, setDraggingId] = useState(null);
+    const [saving, setSaving] = useState(false);
+    const draggingIdRef = useRef(null);
+
+    useEffect(() => {
+        setDraft(rows);
+        setSavedIds(rows.map((category) => category.id));
+    }, [rows]);
+
+    const draftIds = draft.map((category) => category.id);
+    const hasChanges = draftIds.join('|') !== savedIds.join('|');
+
+    const moveCategory = (categoryId, targetIndex) => {
+        setDraft((current) => {
+            const sourceIndex = current.findIndex((category) => category.id === categoryId);
+            if (sourceIndex < 0 || sourceIndex === targetIndex || targetIndex < 0 || targetIndex >= current.length) {
+                return current;
+            }
+            const next = [...current];
+            const [movedCategory] = next.splice(sourceIndex, 1);
+            next.splice(targetIndex, 0, movedCategory);
+            return next;
+        });
+    };
+
+    const handleDragStart = (event, categoryId) => {
+        draggingIdRef.current = categoryId;
+        setDraggingId(categoryId);
+        event.dataTransfer.effectAllowed = 'move';
+        event.dataTransfer.setData('text/plain', categoryId);
+    };
+
+    const handleDragEnter = (targetIndex) => {
+        if (draggingIdRef.current) moveCategory(draggingIdRef.current, targetIndex);
+    };
+
+    const handleDragEnd = () => {
+        draggingIdRef.current = null;
+        setDraggingId(null);
+    };
+
+    const resetOrder = () => setDraft(rows);
+
+    const saveOrder = async () => {
+        if (!hotelId || !draft.length || !hasChanges) return;
+        setSaving(true);
+        try {
+            const categoryIds = draft.map((category) => category.id);
+            const response = await instance.put('/menu/category/reorder', { hotelId, categoryIds });
+            const savedRows = response.data?.rows || draft;
+            setDraft(savedRows);
+            setSavedIds(savedRows.map((category) => category.id));
+            toast.success('Category order saved. QR menu is now updated.');
+            onSaved(selectedCategory?.value);
+        } catch (error) {
+            toast.error(error?.response?.data?.message || 'Category order could not be saved');
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    if (!rows.length) return null;
+
+    return (
+        <section className="category-order-panel" aria-labelledby="category-order-title">
+            <div className="category-order-header">
+                <div className="category-order-heading">
+                    <div className="category-order-icon">
+                        <MdOutlineQrCode2 />
+                    </div>
+                    <div>
+                        <div className="category-order-title-row">
+                            <h2 id="category-order-title">Category Display Order</h2>
+                            <span className="category-order-live">
+                                <span /> QR Live Order
+                            </span>
+                        </div>
+                        <p>Drag categories into position, or use the arrow buttons. Customers see this exact order.</p>
+                    </div>
+                </div>
+                {hasChanges ? (
+                    <span className="category-order-dirty">Unsaved changes</span>
+                ) : (
+                    <span className="category-order-saved">
+                        <MdCheckCircleOutline /> Saved
+                    </span>
+                )}
+            </div>
+
+            <div className="category-order-list" role="list" aria-label="Category display order">
+                {draft.map((category, index) => {
+                    const selected = String(selectedCategory?.value) === String(category.id);
+                    return (
+                        <div
+                            key={category.id}
+                            role="listitem"
+                            draggable
+                            className={`category-order-item ${selected ? 'selected' : ''} ${
+                                draggingId === category.id ? 'dragging' : ''
+                            }`}
+                            onDragStart={(event) => handleDragStart(event, category.id)}
+                            onDragEnter={() => handleDragEnter(index)}
+                            onDragOver={(event) => {
+                                event.preventDefault();
+                                event.dataTransfer.dropEffect = 'move';
+                            }}
+                            onDrop={(event) => {
+                                event.preventDefault();
+                                handleDragEnd();
+                            }}
+                            onDragEnd={handleDragEnd}
+                        >
+                            <span className="category-order-number">{String(index + 1).padStart(2, '0')}</span>
+                            <span className="category-order-drag" title="Drag to reorder" aria-hidden="true">
+                                <MdDragIndicator />
+                            </span>
+                            <button
+                                type="button"
+                                className="category-order-name"
+                                onClick={() => onSelect({ label: category.name, value: category.id })}
+                            >
+                                <strong>{category.name}</strong>
+                                <small>{selected ? 'Currently selected' : 'Click to manage items'}</small>
+                            </button>
+                            <div className="category-order-arrows" aria-label={`Move ${category.name}`}>
+                                <button
+                                    type="button"
+                                    disabled={index === 0}
+                                    aria-label={`Move ${category.name} up`}
+                                    title="Move up"
+                                    onClick={() => moveCategory(category.id, index - 1)}
+                                >
+                                    <MdKeyboardArrowUp />
+                                </button>
+                                <button
+                                    type="button"
+                                    disabled={index === draft.length - 1}
+                                    aria-label={`Move ${category.name} down`}
+                                    title="Move down"
+                                    onClick={() => moveCategory(category.id, index + 1)}
+                                >
+                                    <MdKeyboardArrowDown />
+                                </button>
+                            </div>
+                        </div>
+                    );
+                })}
+            </div>
+
+            <div className="category-order-footer">
+                <small>Save once after arranging. New categories are added at the end automatically.</small>
+                <div className="category-order-actions">
+                    <button
+                        type="button"
+                        className="category-order-reset"
+                        disabled={!hasChanges || saving}
+                        onClick={resetOrder}
+                    >
+                        <MdReplay /> Reset
+                    </button>
+                    <button
+                        type="button"
+                        className="category-order-save"
+                        disabled={!hasChanges || saving}
+                        onClick={saveOrder}
+                    >
+                        <MdCheckCircleOutline /> {saving ? 'Saving...' : 'Save Order'}
+                    </button>
+                </div>
+            </div>
+        </section>
+    );
+}
+
 function Menu() {
     const [managerFoodFilter, setManagerFoodFilter] = useState('ALL');
     const dispatch = useDispatch();
@@ -993,6 +1180,19 @@ function Menu() {
         }
         // eslint-disable-next-line
     }, [hotelId, managerSection, categories?.rows?.length]);
+
+    const handleCategorySelect = (item) => {
+        dispatch(setSelectedCategory(item));
+        if (hotelId && item?.value) {
+            dispatch(
+                getMenuItemsRequest({
+                    categoryId: item.value,
+                    skip: 0,
+                    limit: pagination?.pageSize || 10
+                })
+            );
+        }
+    };
 
     const handleAddButtonClick = (currentModalData, values, type) => {
         const { options } = currentModalData;
@@ -1131,10 +1331,9 @@ function Menu() {
             setMenuModalData({
                 title: 'Update Category',
                 type: 'update',
-                initialValues: { name: category.name, order: category.order },
+                initialValues: { name: category.name },
                 options: {
-                    name: { name: 'name', type: 'text', label: 'Name', className: FIELD_CLASS },
-                    order: { name: 'order', type: 'number', label: 'Order', className: FIELD_CLASS }
+                    name: { name: 'name', type: 'text', label: 'Name', className: FIELD_CLASS }
                 },
                 submitText: 'Update',
                 closeText: 'Close'
@@ -1213,40 +1412,40 @@ function Menu() {
                     </button>
                 </div>
                 {managerSection === 'categories' ? (
-                    <div className="d-flex">
-                        <CustomSelect
-                            className="w-100 me-4"
-                            options={categoriesOptions || []}
-                            value={selectedCategory}
-                            onChange={(item) => {
-                                dispatch(setSelectedCategory(item));
-                                if (hotelId && item?.value) {
-                                    dispatch(
-                                        getMenuItemsRequest({
-                                            categoryId: item.value,
-                                            skip: 0,
-                                            limit: pagination?.pageSize || 10
-                                        })
-                                    );
-                                }
-                            }}
-                        />
-                        <ActionDropdown
-                            options={[
-                                { label: 'Add', icon: TiPlus, onClick: () => handleAddItemClick('category') },
-                                {
-                                    label: 'Update',
-                                    icon: MdModeEditOutline,
-                                    disabled: !Object.keys(selectedCategory).length,
-                                    onClick: handleUpdateCategoryClick
-                                },
-                                {
-                                    label: 'Delete',
-                                    disabled: !Object.keys(selectedCategory).length,
-                                    icon: MdDeleteForever,
-                                    onClick: () => handleDeleteItemClick('category')
-                                }
-                            ]}
+                    <div className="category-manager-section">
+                        <div className="d-flex category-manager-toolbar">
+                            <CustomSelect
+                                className="w-100 me-4"
+                                options={categoriesOptions || []}
+                                value={selectedCategory}
+                                onChange={handleCategorySelect}
+                            />
+                            <ActionDropdown
+                                options={[
+                                    { label: 'Add', icon: TiPlus, onClick: () => handleAddItemClick('category') },
+                                    {
+                                        label: 'Update',
+                                        icon: MdModeEditOutline,
+                                        disabled: !Object.keys(selectedCategory).length,
+                                        onClick: handleUpdateCategoryClick
+                                    },
+                                    {
+                                        label: 'Delete',
+                                        disabled: !Object.keys(selectedCategory).length,
+                                        icon: MdDeleteForever,
+                                        onClick: () => handleDeleteItemClick('category')
+                                    }
+                                ]}
+                            />
+                        </div>
+                        <CategoryOrderOrganizer
+                            categories={categories}
+                            hotelId={hotelId}
+                            selectedCategory={selectedCategory}
+                            onSelect={handleCategorySelect}
+                            onSaved={(preferredCategoryId) =>
+                                dispatch(getCategoryRequest({ hotelId, preferredCategoryId }))
+                            }
                         />
                     </div>
                 ) : (
@@ -1632,6 +1831,44 @@ function Menu() {
                 .update-menu-status-row { flex-direction:row; align-items:center; gap:10px; }
                 .update-menu-checkbox { width:18px; height:18px; cursor:pointer; accent-color:#49ac60; }
 
+                .category-manager-section { display:flex; flex-direction:column; gap:16px; }
+                .category-order-panel { position:relative; overflow:hidden; padding:18px; border:1px solid #e5ede8; border-radius:20px; background:linear-gradient(145deg,#ffffff 0%,#f7fbf8 100%); box-shadow:0 16px 45px rgba(8,24,45,.09); }
+                .category-order-panel::before { content:""; position:absolute; width:170px; height:170px; right:-75px; top:-90px; border-radius:50%; background:rgba(73,172,96,.08); pointer-events:none; }
+                .category-order-header { position:relative; display:flex; align-items:flex-start; justify-content:space-between; gap:16px; margin-bottom:16px; }
+                .category-order-heading { display:flex; align-items:flex-start; gap:12px; min-width:0; }
+                .category-order-icon { width:44px; height:44px; flex:0 0 44px; display:grid; place-items:center; border-radius:14px; color:#fff; font-size:1.5rem; background:linear-gradient(135deg,#49ac60,#2f8f46); box-shadow:0 8px 18px rgba(73,172,96,.28); }
+                .category-order-title-row { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+                .category-order-title-row h2 { margin:0; color:#08182d; font-size:1.02rem; font-weight:800; letter-spacing:-.01em; }
+                .category-order-heading p { margin:4px 0 0; color:#718096; font-size:.8rem; line-height:1.45; }
+                .category-order-live { display:inline-flex; align-items:center; gap:5px; padding:.25rem .52rem; border:1px solid #ccebd4; border-radius:999px; background:#edfaf0; color:#287d3c; font-size:.67rem; font-weight:800; letter-spacing:.02em; text-transform:uppercase; }
+                .category-order-live > span { width:6px; height:6px; border-radius:50%; background:#49ac60; box-shadow:0 0 0 4px rgba(73,172,96,.12); }
+                .category-order-saved, .category-order-dirty { position:relative; flex:0 0 auto; display:inline-flex; align-items:center; gap:5px; padding:.4rem .65rem; border-radius:999px; font-size:.72rem; font-weight:800; }
+                .category-order-saved { background:#edf9f0; color:#2f8f46; }
+                .category-order-dirty { background:#fff6df; color:#a46600; }
+                .category-order-list { position:relative; display:flex; flex-direction:column; gap:9px; max-height:390px; overflow-y:auto; padding:2px 5px 2px 2px; scrollbar-width:thin; scrollbar-color:#b9d7c0 transparent; }
+                .category-order-item { display:flex; align-items:center; gap:10px; min-height:62px; padding:8px 10px; border:1.5px solid #e7eeea; border-radius:14px; background:#fff; box-shadow:0 5px 16px rgba(8,24,45,.045); transition:border-color .18s ease,box-shadow .18s ease,transform .18s ease,opacity .18s ease; cursor:grab; }
+                .category-order-item:hover { border-color:#b9ddc1; box-shadow:0 9px 22px rgba(8,24,45,.075); transform:translateY(-1px); }
+                .category-order-item.selected { border-color:#89cc98; background:linear-gradient(90deg,#f2fbf4,#fff 55%); }
+                .category-order-item.dragging { opacity:.55; border-color:#49ac60; box-shadow:0 12px 28px rgba(73,172,96,.18); cursor:grabbing; }
+                .category-order-number { width:42px; height:42px; flex:0 0 42px; display:grid; place-items:center; border-radius:12px; background:#eef7f0; color:#2f8f46; font-size:.78rem; font-weight:900; letter-spacing:.04em; }
+                .category-order-item.selected .category-order-number { background:#49ac60; color:#fff; }
+                .category-order-drag { display:grid; place-items:center; flex:0 0 24px; color:#a7b4aa; font-size:1.45rem; }
+                .category-order-name { min-width:0; flex:1; display:flex; flex-direction:column; align-items:flex-start; gap:2px; padding:3px 0; border:0; background:transparent; text-align:left; }
+                .category-order-name strong { width:100%; overflow:hidden; color:#182b40; font-size:.9rem; text-overflow:ellipsis; white-space:nowrap; }
+                .category-order-name small { color:#8a99a8; font-size:.69rem; }
+                .category-order-arrows { display:flex; gap:6px; flex:0 0 auto; }
+                .category-order-arrows button { width:34px; height:34px; display:grid; place-items:center; padding:0; border:1px solid #dde7e0; border-radius:10px; background:#f8fbf9; color:#355442; font-size:1.2rem; transition:all .16s ease; }
+                .category-order-arrows button:hover:not(:disabled) { border-color:#49ac60; background:#49ac60; color:#fff; transform:translateY(-1px); }
+                .category-order-arrows button:disabled { opacity:.3; cursor:not-allowed; }
+                .category-order-footer { position:relative; display:flex; align-items:center; justify-content:space-between; gap:14px; padding-top:15px; }
+                .category-order-footer > small { color:#778797; font-size:.73rem; }
+                .category-order-actions { display:flex; gap:8px; flex:0 0 auto; }
+                .category-order-actions button { display:inline-flex; align-items:center; justify-content:center; gap:6px; min-height:40px; padding:.55rem .82rem; border-radius:11px; font-size:.78rem; font-weight:800; transition:all .17s ease; }
+                .category-order-reset { border:1px solid #dce6df; background:#fff; color:#526355; }
+                .category-order-save { border:1px solid #49ac60; background:linear-gradient(135deg,#49ac60,#369b4d); color:#fff; box-shadow:0 7px 17px rgba(73,172,96,.22); }
+                .category-order-actions button:hover:not(:disabled) { transform:translateY(-1px); }
+                .category-order-actions button:disabled { opacity:.45; cursor:not-allowed; box-shadow:none; }
+
                 .menu-section-tabs { display:flex; gap:10px; margin-bottom:12px; }
                 .menu-section-tabs button { border:1.5px solid #dce5ef; background:#fff; color:#08182d; padding:.65rem 1rem; border-radius:999px; font-weight:700; box-shadow:0 6px 18px rgba(8,24,45,.06); }
                 .menu-section-tabs button.active { background:#49ac60; color:#fff; border-color:#49ac60; }
@@ -1668,7 +1905,25 @@ function Menu() {
                 .combo-food-info small { color:#718096; }
                 .combo-check { width:26px; height:26px; border-radius:50%; display:grid; place-items:center; background:#edf2f7; color:#4a5568; font-weight:800; }
                 .combo-food-option.active .combo-check { background:#49ac60; color:#fff; }
-                @media(max-width:576px) { .combo-toolbar { flex-direction:column; align-items:stretch; } .combo-form-grid { grid-template-columns:1fr; } .combo-modal { width:95vw; } }
+                @media(max-width:576px) {
+                    .category-manager-toolbar { align-items:center; }
+                    .category-manager-toolbar .me-4 { margin-right:.65rem !important; }
+                    .category-order-panel { padding:14px; border-radius:17px; }
+                    .category-order-header, .category-order-footer { flex-direction:column; align-items:stretch; }
+                    .category-order-saved, .category-order-dirty { align-self:flex-start; }
+                    .category-order-heading p { max-width:260px; }
+                    .category-order-list { max-height:350px; }
+                    .category-order-item { gap:7px; min-height:58px; padding:7px; }
+                    .category-order-number { width:36px; height:36px; flex-basis:36px; border-radius:10px; }
+                    .category-order-drag { display:none; }
+                    .category-order-arrows { gap:4px; }
+                    .category-order-arrows button { width:32px; height:32px; }
+                    .category-order-actions { width:100%; }
+                    .category-order-actions button { flex:1; }
+                    .combo-toolbar { flex-direction:column; align-items:stretch; }
+                    .combo-form-grid { grid-template-columns:1fr; }
+                    .combo-modal { width:95vw; }
+                }
 
             `}</style>
         </>

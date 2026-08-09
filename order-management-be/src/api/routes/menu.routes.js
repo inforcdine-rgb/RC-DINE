@@ -12,6 +12,7 @@ router
     .all(authenticate, checkSubscriptionAccess)
     .post(menuController.createCategory)
     .delete(menuController.removeCategory);
+router.put('/category/reorder', authenticate, checkSubscriptionAccess, menuController.reorderCategories);
 router.get('/category/:hotelId', authenticate, checkSubscriptionAccess, menuController.fetchCategory);
 router.put('/category/:id', authenticate, checkSubscriptionAccess, menuController.updateCategory);
 
