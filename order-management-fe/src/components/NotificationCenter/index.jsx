@@ -2,6 +2,7 @@ import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from '
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 
+import { applyAppUpdate, getAppUpdateNotification, snoozeAppUpdate } from '../../services/appUpdate.service';
 import {
     clear,
     clearCustomerNotifications,
@@ -65,6 +66,7 @@ const getDateGroup = (value) => {
 };
 
 const getCategoryIcon = (category, type) => {
+    if (type === 'APP_UPDATE') return 'NEW';
     if (category === 'PAYMENTS') return '₹';
     if (category === 'RC_SESSION') return 'RC';
     if (category === 'ORDERS' || String(type).includes('ORDER')) return '🍽';
@@ -83,7 +85,7 @@ const getLocalCustomerNotifications = () => {
 
 const persistLocalCustomerNotifications = (notifications) => {
     const localItems = notifications
-        .filter((item) => item.localOnly)
+        .filter((item) => item.localOnly && !item.appUpdate)
         .map((item) => ({
             ...item,
             read: item.isRead,
@@ -95,9 +97,11 @@ const persistLocalCustomerNotifications = (notifications) => {
 
 function NotificationCenter({ open, onClose, audience = 'manager', token, onUnreadChange }) {
     const navigate = useNavigate();
-    const [notifications, setNotifications] = useState(() =>
-        audience === 'customer' ? getLocalCustomerNotifications() : []
-    );
+    const [notifications, setNotifications] = useState(() => {
+        const initial = audience === 'customer' ? getLocalCustomerNotifications() : [];
+        const appUpdate = getAppUpdateNotification();
+        return appUpdate ? mergeNotifications(initial, [appUpdate]) : initial;
+    });
     const [search, setSearch] = useState('');
     const [category, setCategory] = useState('ALL');
     const [unreadOnly, setUnreadOnly] = useState(false);
@@ -108,6 +112,7 @@ function NotificationCenter({ open, onClose, audience = 'manager', token, onUnre
     const [soundEnabled, setSoundEnabled] = useState(() => localStorage.getItem(SOUND_SETTING_KEY) !== 'off');
     const [capability, setCapability] = useState(() => getPushCapability());
     const [permissionBusy, setPermissionBusy] = useState(false);
+    const [appUpdateBusy, setAppUpdateBusy] = useState(false);
     const observerTarget = useRef(null);
     const undoTimer = useRef(null);
     const gestureStart = useRef(new Map());
@@ -116,7 +121,11 @@ function NotificationCenter({ open, onClose, audience = 'manager', token, onUnre
 
     const loadNotifications = useCallback(async () => {
         if (audience === 'customer' && !resolvedToken) {
-            setNotifications((current) => mergeNotifications(current, getLocalCustomerNotifications()));
+            const localItems = getLocalCustomerNotifications();
+            const appUpdate = getAppUpdateNotification();
+            setNotifications((current) =>
+                mergeNotifications(current, appUpdate ? [appUpdate, ...localItems] : localItems)
+            );
             return;
         }
         setLoading(true);
@@ -124,7 +133,9 @@ function NotificationCenter({ open, onClose, audience = 'manager', token, onUnre
         try {
             const response =
                 audience === 'customer' ? await fetchCustomerNotifications('', resolvedToken) : await fetch();
-            setNotifications((current) => mergeNotifications(current, response.rows || []));
+            const appUpdate = getAppUpdateNotification();
+            const incoming = appUpdate ? [appUpdate, ...(response.rows || [])] : response.rows || [];
+            setNotifications((current) => mergeNotifications(current, incoming));
             onUnreadChange?.(response.unreadCount ?? 0);
         } catch (requestError) {
             setError(navigator.onLine ? requestError.message : 'You\'re offline');
@@ -171,10 +182,19 @@ function NotificationCenter({ open, onClose, audience = 'manager', token, onUnre
         window.addEventListener('rcdine:notification', handleNotification);
         const handleLocalNotification = () =>
             setNotifications((current) => mergeNotifications(current, getLocalCustomerNotifications()));
+        const handleAppUpdateState = (event) => {
+            const notification = event.detail?.notification;
+            setNotifications((current) => {
+                const withoutPreviousUpdate = current.filter((item) => !item.appUpdate);
+                return notification ? mergeNotifications(withoutPreviousUpdate, [notification]) : withoutPreviousUpdate;
+            });
+        };
         window.addEventListener('rcdineNotificationsUpdated', handleLocalNotification);
+        window.addEventListener('rcdine:app-update-state', handleAppUpdateState);
         return () => {
             window.removeEventListener('rcdine:notification', handleNotification);
             window.removeEventListener('rcdineNotificationsUpdated', handleLocalNotification);
+            window.removeEventListener('rcdine:app-update-state', handleAppUpdateState);
         };
     }, [audience, loadNotifications, soundEnabled]);
 
@@ -215,6 +235,14 @@ function NotificationCenter({ open, onClose, audience = 'manager', token, onUnre
         [visible]
     );
     const unreadCount = useMemo(() => notifications.filter((item) => !item.isRead).length, [notifications]);
+    const serverUnreadCount = useMemo(
+        () => notifications.filter((item) => !item.appUpdate && !item.isRead).length,
+        [notifications]
+    );
+    const serverNotificationCount = useMemo(
+        () => notifications.filter((item) => !item.appUpdate).length,
+        [notifications]
+    );
 
     useEffect(() => {
         onUnreadChange?.(unreadCount);
@@ -235,12 +263,12 @@ function NotificationCenter({ open, onClose, audience = 'manager', token, onUnre
     useEffect(() => () => clearTimeout(undoTimer.current), []);
 
     const markAllRead = async () => {
-        if (!unreadCount) return;
+        if (!serverUnreadCount) return;
         if (audience === 'customer') {
             if (resolvedToken) await readCustomerNotification(undefined, resolvedToken);
         } else await update();
         setNotifications((current) => {
-            const next = current.map((item) => ({ ...item, isRead: true, status: 'INACTIVE' }));
+            const next = current.map((item) => (item.appUpdate ? item : { ...item, isRead: true, status: 'INACTIVE' }));
             if (audience === 'customer') persistLocalCustomerNotifications(next);
             return next;
         });
@@ -252,6 +280,7 @@ function NotificationCenter({ open, onClose, audience = 'manager', token, onUnre
             event?.stopPropagation();
             return;
         }
+        if (item.appUpdate) return;
 
         if (!item.isRead) {
             if (audience === 'customer') {
@@ -273,6 +302,11 @@ function NotificationCenter({ open, onClose, audience = 'manager', token, onUnre
     };
 
     const deleteNotification = async (item) => {
+        if (item.appUpdate) {
+            snoozeAppUpdate();
+            window.navigator.vibrate?.(30);
+            return;
+        }
         if (audience === 'customer') {
             if (!item.localOnly) await deleteCustomerNotification(item.id, resolvedToken);
         } else await remove(item.id);
@@ -306,7 +340,23 @@ function NotificationCenter({ open, onClose, audience = 'manager', token, onUnre
             if (resolvedToken) await clearCustomerNotifications(resolvedToken);
         } else await clear();
         if (audience === 'customer') persistLocalCustomerNotifications([]);
-        setNotifications([]);
+        setNotifications((current) => current.filter((item) => item.appUpdate));
+    };
+
+    const handleAppUpdateLater = () => {
+        snoozeAppUpdate();
+        window.navigator.vibrate?.(30);
+    };
+
+    const handleAppUpdateNow = async () => {
+        setAppUpdateBusy(true);
+        setError('');
+        try {
+            await applyAppUpdate();
+        } catch (updateError) {
+            setError(updateError.message || 'App update failed. Please try again.');
+            setAppUpdateBusy(false);
+        }
     };
 
     const enableNotifications = async () => {
@@ -486,10 +536,10 @@ function NotificationCenter({ open, onClose, audience = 'manager', token, onUnre
                         Unread only
                     </label>
                     <span>
-                        <button type="button" disabled={!unreadCount} onClick={markAllRead}>
+                        <button type="button" disabled={!serverUnreadCount} onClick={markAllRead}>
                             Mark all read
                         </button>
-                        <button type="button" disabled={!notifications.length} onClick={clearAll}>
+                        <button type="button" disabled={!serverNotificationCount} onClick={clearAll}>
                             Clear all
                         </button>
                     </span>
@@ -516,7 +566,9 @@ function NotificationCenter({ open, onClose, audience = 'manager', token, onUnre
                                 {grouped[group].map((item) => (
                                     <article
                                         key={item.id}
-                                        className={`notification-card ${item.isRead ? 'is-read' : 'is-unread'} category-${item.category.toLowerCase()}`}
+                                        className={`notification-card ${item.isRead ? 'is-read' : 'is-unread'} ${
+                                            item.appUpdate ? 'is-app-update' : ''
+                                        } category-${item.category.toLowerCase()}`}
                                         onPointerDown={(event) => handlePointerDown(event, item)}
                                         onPointerUp={(event) => handlePointerUp(event, item)}
                                         onPointerCancel={() => cancelGesture(item)}
@@ -544,14 +596,34 @@ function NotificationCenter({ open, onClose, audience = 'manager', token, onUnre
                                             </span>
                                             {!item.isRead && <i aria-label="Unread" />}
                                         </button>
-                                        <button
-                                            className="notification-delete"
-                                            type="button"
-                                            aria-label={`Delete ${item.title}`}
-                                            onClick={() => deleteNotification(item)}
-                                        >
-                                            Delete
-                                        </button>
+                                        {item.appUpdate ? (
+                                            <div className="notification-update-actions">
+                                                <button
+                                                    type="button"
+                                                    disabled={appUpdateBusy || item.applying}
+                                                    onClick={handleAppUpdateLater}
+                                                >
+                                                    Not now
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    className="notification-update-primary"
+                                                    disabled={appUpdateBusy || item.applying}
+                                                    onClick={handleAppUpdateNow}
+                                                >
+                                                    {appUpdateBusy || item.applying ? 'Updating...' : 'Yes, Update'}
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            <button
+                                                className="notification-delete"
+                                                type="button"
+                                                aria-label={`Delete ${item.title}`}
+                                                onClick={() => deleteNotification(item)}
+                                            >
+                                                Delete
+                                            </button>
+                                        )}
                                     </article>
                                 ))}
                             </section>

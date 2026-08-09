@@ -1,6 +1,8 @@
 /* global caches, clients */
 
-const CACHE_VERSION = 'v9';
+// Keep this worker stable between regular app deployments. New frontend builds
+// are activated explicitly through APPLY_APP_UPDATE so users may defer safely.
+const CACHE_VERSION = 'v10-controlled-updates';
 const APP_SHELL_CACHE = `rcdine-shell-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `rcdine-runtime-${CACHE_VERSION}`;
 const APP_SHELL = [
@@ -107,11 +109,14 @@ const cacheSuccessfulResponse = async (request, response) => {
 };
 
 const handleNavigationRequest = async (request) => {
+    const shellCache = await caches.open(APP_SHELL_CACHE);
+    const currentShell = await shellCache.match('/');
+    if (currentShell) return currentShell;
+
     try {
         const response = await fetch(request);
         if (response.ok) {
-            const cache = await caches.open(RUNTIME_CACHE);
-            await cache.put('/', response.clone());
+            await shellCache.put('/', response.clone());
             return response;
         }
 
@@ -121,6 +126,68 @@ const handleNavigationRequest = async (request) => {
     } catch (_error) {
         return (await caches.match(request)) || (await caches.match('/')) || caches.match('/offline.html');
     }
+};
+
+const getStaticAssetUrls = (html) => {
+    const urls = new Set();
+    const attributePattern = /\b(?:src|href)=["']([^"']+)["']/g;
+    let match = attributePattern.exec(html);
+    while (match) {
+        try {
+            const url = new URL(match[1], self.location.origin);
+            if (url.origin === self.location.origin && url.pathname.startsWith('/static/')) urls.add(url.href);
+        } catch (_error) {
+            // Ignore malformed optional asset URLs.
+        }
+        match = attributePattern.exec(html);
+    }
+    return [...urls];
+};
+
+const prepareAppUpdate = async (version) => {
+    const updateUrl = new URL('/', self.location.origin);
+    updateUrl.searchParams.set('rcAppUpdate', version || String(Date.now()));
+    const shellResponse = await fetch(updateUrl.href, {
+        cache: 'no-store',
+        credentials: 'same-origin'
+    });
+    if (!shellResponse.ok) throw new Error(`New app shell returned ${shellResponse.status}`);
+
+    const html = await shellResponse.clone().text();
+    const assetUrls = getStaticAssetUrls(html);
+    if (!assetUrls.length) throw new Error('New app assets were not found');
+
+    const runtimeCache = await caches.open(RUNTIME_CACHE);
+    let versionVerified = !version;
+    await Promise.all(
+        assetUrls.map(async (assetUrl) => {
+            const request = new Request(assetUrl, { cache: 'no-store', credentials: 'same-origin' });
+            const response = await fetch(request);
+            if (!response.ok) throw new Error(`App asset returned ${response.status}`);
+            if (version && new URL(assetUrl).pathname.endsWith('.js')) {
+                const source = await response.clone().text();
+                if (source.includes(version)) versionVerified = true;
+            }
+            await runtimeCache.put(assetUrl, response);
+        })
+    );
+    if (!versionVerified) throw new Error('New deployment is still propagating. Please try again shortly.');
+
+    const shellCache = await caches.open(APP_SHELL_CACHE);
+    await shellCache.put('/', shellResponse);
+
+    const currentAssets = new Set(assetUrls);
+    const cachedRequests = await runtimeCache.keys();
+    await Promise.all(
+        cachedRequests
+            .filter((request) => {
+                const url = new URL(request.url);
+                return url.pathname.startsWith('/static/') && !currentAssets.has(url.href);
+            })
+            .map((request) => runtimeCache.delete(request))
+    );
+
+    return { version, assetCount: assetUrls.length };
 };
 
 const handleStaticAssetRequest = async (request) => {
@@ -303,5 +370,20 @@ self.addEventListener('pushsubscriptionchange', (event) => {
 });
 
 self.addEventListener('message', (event) => {
-    if (event.data?.type === 'SKIP_WAITING') self.skipWaiting();
+    if (event.data?.type === 'SKIP_WAITING') {
+        self.skipWaiting();
+        return;
+    }
+    if (event.data?.type === 'APPLY_APP_UPDATE') {
+        event.waitUntil(
+            prepareAppUpdate(event.data.version)
+                .then((result) => event.ports?.[0]?.postMessage({ ok: true, ...result }))
+                .catch((error) =>
+                    event.ports?.[0]?.postMessage({
+                        ok: false,
+                        message: error?.message || 'App update failed'
+                    })
+                )
+        );
+    }
 });

@@ -11,6 +11,7 @@ import ManagerLiveOrders from './components/ManagerLiveOrders';
 import PwaInstallPrompt from './components/PwaInstallPrompt';
 import RefreshExperience from './components/RefreshExperience';
 import Routes from './routes';
+import { initializeAppUpdateLifecycle } from './services/appUpdate.service';
 import {
     initializeNotificationLifecycle,
     initializeWebPush,
@@ -23,9 +24,13 @@ function App() {
 
     useEffect(() => {
         initializeNotificationLifecycle();
-        registerServiceWorker().catch((error) => {
-            console.warn('PWA service worker registration failed:', error?.message || error);
-        });
+        registerServiceWorker()
+            .then((registration) => {
+                if (registration) initializeAppUpdateLifecycle(registration);
+            })
+            .catch((error) => {
+                console.warn('PWA service worker registration failed:', error?.message || error);
+            });
     }, []);
 
     useEffect(() => {

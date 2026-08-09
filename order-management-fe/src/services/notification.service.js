@@ -151,14 +151,10 @@ export const getPushCapability = () => {
 export const registerServiceWorker = async () => {
     if (!('serviceWorker' in navigator)) return null;
 
-    const registration = await navigator.serviceWorker.register('/serviceWorker.js', {
+    await navigator.serviceWorker.register('/serviceWorker.js', {
         scope: '/',
         updateViaCache: 'none'
     });
-
-    if (registration.waiting) {
-        registration.waiting.postMessage({ type: 'SKIP_WAITING' });
-    }
 
     const readyRegistration = await navigator.serviceWorker.ready;
 
