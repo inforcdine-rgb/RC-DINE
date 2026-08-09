@@ -29,7 +29,15 @@ const CACHEABLE_PATHS = [
     /^\/order\/menu(?:\?|$)/,
     /^\/order\/[^/]+(?:\/status|\/details)?(?:\?|$)/
 ];
-const PUBLIC_AUTH_PATHS = new Set(['/user/login', '/user/register', '/user/forget', '/user/reset']);
+const PUBLIC_AUTH_PATHS = new Set([
+    '/user/login',
+    '/user/register',
+    '/user/forget',
+    '/user/reset',
+    '/admin-auth/login',
+    '/admin-auth/login/verify',
+    '/admin-auth/otp/resend'
+]);
 
 const getRequestPath = (config = {}) =>
     String(config.url || '')

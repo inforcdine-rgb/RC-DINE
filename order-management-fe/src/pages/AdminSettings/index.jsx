@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Card, Col, Form, Row } from 'react-bootstrap';
 import { toast } from 'react-toastify';
+import AdminSecurityPanel from '../../components/AdminSecurityPanel';
 import CustomButton from '../../components/CustomButton';
 import Loader from '../../components/Loader';
 import QrTemplateAdminPanel from '../../components/QrTemplateAdminPanel';
@@ -16,8 +17,6 @@ function AdminSettings() {
     const [lastName, setLastName] = useState('');
     const [email, setEmail] = useState('');
     const [phoneNumber, setPhoneNumber] = useState('');
-    const [password, setPassword] = useState('');
-    const [confirmPassword, setConfirmPassword] = useState('');
 
     // Razorpay State
     const [keyId, setKeyId] = useState('');
@@ -67,25 +66,17 @@ function AdminSettings() {
 
     const handleSaveProfile = async (e) => {
         e.preventDefault();
-        if (password && password !== confirmPassword) {
-            toast.error('Passwords do not match');
-            return;
-        }
         setSavingProfile(true);
         try {
             const payload = {
                 profile: {
                     firstName,
                     lastName,
-                    email,
-                    phoneNumber,
-                    ...(password ? { password } : {})
+                    phoneNumber
                 }
             };
             await adminService.updateSettings(payload);
             toast.success('Admin Profile updated successfully');
-            setPassword('');
-            setConfirmPassword('');
         } catch (error) {
             toast.error(error?.message || 'Failed to update admin profile');
         } finally {
@@ -185,13 +176,10 @@ function AdminSettings() {
                                 </Form.Group>
                                 <Form.Group className="mb-3" controlId="email">
                                     <Form.Label className="small fw-semibold text-secondary">Email Address</Form.Label>
-                                    <Form.Control
-                                        type="email"
-                                        placeholder="admin@example.com"
-                                        value={email}
-                                        onChange={(e) => setEmail(e.target.value)}
-                                        required
-                                    />
+                                    <Form.Control type="email" placeholder="admin@example.com" value={email} readOnly />
+                                    <Form.Text className="text-muted">
+                                        Use Admin Security Center below to change this email securely.
+                                    </Form.Text>
                                 </Form.Group>
                                 <Form.Group className="mb-3" controlId="phoneNumber">
                                     <Form.Label className="small fw-semibold text-secondary">Phone Number</Form.Label>
@@ -201,28 +189,6 @@ function AdminSettings() {
                                         value={phoneNumber}
                                         onChange={(e) => setPhoneNumber(e.target.value)}
                                         required
-                                    />
-                                </Form.Group>
-                                <hr />
-                                <h6 className="fw-bold text-secondary mb-3">Change Password (Optional)</h6>
-                                <Form.Group className="mb-3" controlId="password">
-                                    <Form.Label className="small fw-semibold text-secondary">New Password</Form.Label>
-                                    <Form.Control
-                                        type="password"
-                                        placeholder="Leave blank to keep current password"
-                                        value={password}
-                                        onChange={(e) => setPassword(e.target.value)}
-                                    />
-                                </Form.Group>
-                                <Form.Group className="mb-4" controlId="confirmPassword">
-                                    <Form.Label className="small fw-semibold text-secondary">
-                                        Confirm New Password
-                                    </Form.Label>
-                                    <Form.Control
-                                        type="password"
-                                        placeholder="Confirm new password"
-                                        value={confirmPassword}
-                                        onChange={(e) => setConfirmPassword(e.target.value)}
                                     />
                                 </Form.Group>
                                 <div className="d-flex justify-content-end">
@@ -344,6 +310,7 @@ function AdminSettings() {
                     </Card>
                 </Col>
             </Row>
+            <AdminSecurityPanel currentEmail={email} />
             <QrTemplateAdminPanel
                 activeIds={activeQrTemplateIds}
                 onChange={setActiveQrTemplateIds}

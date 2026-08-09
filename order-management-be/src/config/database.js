@@ -2,6 +2,7 @@ import mysql2 from 'mysql2';
 import { Sequelize } from 'sequelize';
 import { v4 as uuidv4 } from 'uuid';
 
+import adminOtpChallengeModel from '../api/models/adminOtpChallenge.model.js';
 import defineAssociations from '../api/models/associations.js';
 import categoryModel from '../api/models/category.model.js';
 import contactEnquiryModel from '../api/models/contactEnquiry.model.js';
@@ -172,6 +173,7 @@ const ensureAdminUser = async () => {
 
 const defineModels = (sequelize) => {
     db.Sequelize = Sequelize;
+    db.adminOtpChallenges = adminOtpChallengeModel(sequelize);
     db.users = userModel(sequelize);
     db.invites = inviteModel(sequelize);
     db.legalPages = legalPageModel(sequelize);
@@ -259,7 +261,7 @@ const initDb = async () => {
             },
             {
                 name: 'subscriptionStatus',
-                type: 'VARCHAR(20) NOT NULL DEFAULT \'TRIAL\''
+                type: "VARCHAR(20) NOT NULL DEFAULT 'TRIAL'"
             },
             {
                 name: 'subscriptionPlan',
@@ -383,7 +385,7 @@ const initDb = async () => {
             },
             {
                 name: 'paymentMethod',
-                type: 'ENUM(\'CASH\',\'UPI\',\'CARD\') NULL'
+                type: "ENUM('CASH','UPI','CARD') NULL"
             },
             {
                 name: 'cashReceived',
@@ -395,7 +397,7 @@ const initDb = async () => {
             },
             {
                 name: 'paymentStatus',
-                type: 'ENUM(\'PAID\',\'UNPAID\') NOT NULL DEFAULT \'UNPAID\''
+                type: "ENUM('PAID','UNPAID') NOT NULL DEFAULT 'UNPAID'"
             }
         ];
 
@@ -521,7 +523,7 @@ const initDb = async () => {
             { name: 'endpointHash', type: 'VARCHAR(64) NULL' },
             { name: 'platform', type: 'VARCHAR(50) NULL' },
             { name: 'lastSeenAt', type: 'DATETIME NULL' },
-            { name: 'provider', type: 'VARCHAR(20) NOT NULL DEFAULT \'WEB_PUSH\'' },
+            { name: 'provider', type: "VARCHAR(20) NOT NULL DEFAULT 'WEB_PUSH'" },
             { name: 'fcmToken', type: 'TEXT NULL' }
         ];
 
@@ -578,8 +580,8 @@ const initDb = async () => {
         const notificationColumns = [
             { name: 'customerId', type: 'VARCHAR(255) NULL' },
             { name: 'phoneNumber', type: 'VARCHAR(20) NULL' },
-            { name: 'type', type: 'VARCHAR(50) NOT NULL DEFAULT \'UPDATE\'' },
-            { name: 'category', type: 'VARCHAR(50) NOT NULL DEFAULT \'GENERAL\'' },
+            { name: 'type', type: "VARCHAR(50) NOT NULL DEFAULT 'UPDATE'" },
+            { name: 'category', type: "VARCHAR(50) NOT NULL DEFAULT 'GENERAL'" },
             { name: 'entityId', type: 'VARCHAR(255) NULL' },
             { name: 'dedupeKey', type: 'VARCHAR(255) NULL' },
             { name: 'payload', type: 'JSON NULL' },

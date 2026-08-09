@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import adminRoutes from './admin.routes.js';
+import adminAuthRoutes from './adminAuth.routes.js';
 import checkoutRoutes from './checkout.routes.js';
 import contactEnquiryRoutes from './contactEnquiry.routes.js';
 import customerAuthRoutes from './customerAuth.routes.js';
@@ -36,6 +37,7 @@ router.use('/customer-auth', customerAuthRoutes);
 router.use('/contact-enquiries', contactEnquiryRoutes);
 router.use('/rc-session', diningSessionRoutes);
 router.use('/admin', adminRoutes);
+router.use('/admin-auth', adminAuthRoutes);
 router.use('/website-settings', websiteSettingsRoutes);
 
 export default router;

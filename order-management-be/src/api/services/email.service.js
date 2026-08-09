@@ -123,7 +123,6 @@ const getEmailData = (action, payload) => {
     let template = '';
     let url = '';
     let filePath = '';
-    const logoUrl = `${env.app.appUrl}/icons/icon-192.png`;
     switch (action) {
         case EMAIL_ACTIONS.VERIFY_USER:
             filePath = path.join(process.cwd(), `src/api/templates/verifyEmail.html`);
@@ -132,7 +131,7 @@ const getEmailData = (action, payload) => {
 
             return {
                 subject: 'Re: Email Verification',
-                template: Mustache.render(template, { appUrl: url, logoUrl })
+                template: Mustache.render(template, { appUrl: url })
             };
         case EMAIL_ACTIONS.FORGOT_PASSWORD:
             filePath = path.join(process.cwd(), `src/api/templates/forgotPassword.html`);
@@ -141,7 +140,7 @@ const getEmailData = (action, payload) => {
 
             return {
                 subject: 'Re: Recover Password',
-                template: Mustache.render(template, { appUrl: url, logoUrl })
+                template: Mustache.render(template, { appUrl: url })
             };
         case EMAIL_ACTIONS.INVITE_MANAGER:
             filePath = path.join(process.cwd(), `src/api/templates/inviteManager.html`);
@@ -152,7 +151,6 @@ const getEmailData = (action, payload) => {
                 subject: 'Re: Invite Manager',
                 template: Mustache.render(template, {
                     appUrl: url,
-                    logoUrl,
                     ownerName: payload.name
                 })
             };
@@ -162,7 +160,7 @@ const getEmailData = (action, payload) => {
 
             return {
                 subject: 'Re: Custom Subscription Request',
-                template: Mustache.render(template, { ...payload, logoUrl })
+                template: Mustache.render(template, { ...payload })
             };
         case EMAIL_ACTIONS.INVOICE_EMAIL:
             filePath = path.join(process.cwd(), `src/api/templates/invoiceEmail.html`);
@@ -170,7 +168,23 @@ const getEmailData = (action, payload) => {
 
             return {
                 subject: 'Re: Customer Invoice',
-                template: Mustache.render(template, { ...payload, logoUrl })
+                template: Mustache.render(template, { ...payload })
+            };
+        case EMAIL_ACTIONS.ADMIN_OTP:
+            filePath = path.join(process.cwd(), `src/api/templates/adminOtp.html`);
+            template = readFileSync(filePath, 'utf8');
+
+            return {
+                subject: 'RC DINE admin verification code',
+                template: Mustache.render(template, { ...payload })
+            };
+        case EMAIL_ACTIONS.ADMIN_SECURITY_NOTICE:
+            filePath = path.join(process.cwd(), `src/api/templates/adminSecurityNotice.html`);
+            template = readFileSync(filePath, 'utf8');
+
+            return {
+                subject: `RC DINE security alert: ${payload.actionLabel}`,
+                template: Mustache.render(template, { ...payload })
             };
         default:
             break;
@@ -188,8 +202,7 @@ export const sendEmail = async (payload, to, action, attachments = []) => {
         logger('info', `Sending email to: ${to}`);
 
         const options = { to, subject: data.subject, html: data.template, attachments };
-        const result =
-            getEmailProvider() === 'resend' ? await sendWithResend(options) : await sendWithSmtp(options);
+        const result = getEmailProvider() === 'resend' ? await sendWithResend(options) : await sendWithSmtp(options);
 
         logger('info', `Email sent successfully to: ${to}`);
 

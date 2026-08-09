@@ -1,0 +1,301 @@
+.admin-security-panel {
+    overflow: hidden;
+    color: #17211d;
+    background: #fff;
+    border: 1px solid rgba(23, 111, 73, 0.14);
+    border-radius: 22px;
+    box-shadow: 0 16px 44px rgba(16, 71, 47, 0.1);
+}
+
+.admin-security-header {
+    position: relative;
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    padding: 24px 26px;
+    color: #fff;
+    background:
+        radial-gradient(circle at 82% 15%, rgba(127, 255, 191, 0.18), transparent 30%),
+        linear-gradient(130deg, #0c3b29 0%, #126e49 58%, #159a63 100%);
+}
+
+.admin-security-icon {
+    display: grid;
+    flex: 0 0 52px;
+    width: 52px;
+    height: 52px;
+    font-size: 25px;
+    color: #d6ffe9;
+    background: rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 16px;
+    place-items: center;
+}
+
+.admin-security-header h5 {
+    margin: 2px 0 4px;
+    font-size: 1.18rem;
+    font-weight: 800;
+}
+
+.admin-security-header p {
+    margin: 0;
+    font-size: 0.86rem;
+    color: rgba(255, 255, 255, 0.75);
+}
+
+.admin-security-eyebrow {
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.13em;
+    color: #a7f3cf;
+    text-transform: uppercase;
+}
+
+.admin-security-status {
+    display: inline-flex;
+    gap: 7px;
+    align-items: center;
+    margin-left: auto;
+    padding: 8px 12px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #d9ffec;
+    white-space: nowrap;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    border-radius: 999px;
+}
+
+.admin-security-body {
+    display: grid;
+    grid-template-columns: minmax(180px, 0.28fr) minmax(0, 1fr);
+    min-height: 345px;
+}
+
+.admin-security-tabs {
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+    padding: 24px 16px;
+    background: #f5faf7;
+    border-right: 1px solid #e3eee8;
+}
+
+.admin-security-tabs button {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    padding: 13px 14px;
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: #4e6157;
+    text-align: left;
+    background: transparent;
+    border: 0;
+    border-radius: 12px;
+    transition: 180ms ease;
+}
+
+.admin-security-tabs button:hover,
+.admin-security-tabs button.active {
+    color: #0d754b;
+    background: #fff;
+    box-shadow: 0 7px 20px rgba(19, 104, 70, 0.09);
+    transform: translateX(2px);
+}
+
+.admin-security-form {
+    display: grid;
+    grid-template-columns: minmax(220px, 0.85fr) minmax(300px, 1.15fr);
+    gap: 36px;
+    align-items: start;
+    padding: 34px;
+}
+
+.admin-security-copy h6,
+.admin-security-verification h6 {
+    margin-bottom: 10px;
+    font-size: 1.04rem;
+    font-weight: 800;
+    color: #173f2e;
+}
+
+.admin-security-copy p,
+.admin-security-verification p {
+    margin: 0;
+    font-size: 0.84rem;
+    line-height: 1.65;
+    color: #68786f;
+}
+
+.admin-security-fields {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.admin-security-fields label {
+    margin-bottom: 7px;
+    font-size: 0.76rem;
+    font-weight: 750;
+    color: #52635a;
+}
+
+.admin-security-fields .form-control {
+    min-height: 45px;
+    border-color: #d9e7df;
+    border-radius: 11px;
+    box-shadow: none;
+}
+
+.admin-security-fields .form-control:focus,
+.admin-security-otp:focus {
+    border-color: #2ba46f;
+    box-shadow: 0 0 0 3px rgba(43, 164, 111, 0.12);
+}
+
+.admin-security-password-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.admin-security-primary {
+    min-height: 44px;
+    padding: 10px 18px;
+    font-size: 0.83rem;
+    font-weight: 800;
+    color: #fff;
+    background: linear-gradient(120deg, #0e6945, #19a569);
+    border: 0;
+    border-radius: 11px;
+    box-shadow: 0 9px 20px rgba(22, 139, 89, 0.2);
+    transition: 180ms ease;
+}
+
+.admin-security-primary:hover:not(:disabled) {
+    box-shadow: 0 12px 24px rgba(22, 139, 89, 0.27);
+    transform: translateY(-1px);
+}
+
+.admin-security-primary:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.admin-security-verification {
+    width: min(100%, 470px);
+    padding: 34px;
+}
+
+.admin-security-step {
+    display: inline-block;
+    margin-bottom: 13px;
+    padding: 5px 9px;
+    font-size: 0.66rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    color: #16734c;
+    text-transform: uppercase;
+    background: #e9f8f0;
+    border-radius: 999px;
+}
+
+.admin-security-otp {
+    max-width: 290px;
+    height: 58px;
+    margin: 20px 0 14px;
+    font-size: 1.55rem;
+    font-weight: 800;
+    letter-spacing: 0.35em;
+    text-align: center;
+    border-color: #cfe2d7;
+    border-radius: 12px;
+}
+
+.admin-security-verification .admin-security-primary {
+    width: min(100%, 290px);
+}
+
+.admin-security-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 18px;
+    margin-top: 13px;
+}
+
+.admin-security-actions button {
+    padding: 4px 0;
+    font-size: 0.76rem;
+    font-weight: 700;
+    color: #557066;
+    background: transparent;
+    border: 0;
+}
+
+.admin-security-actions button:hover:not(:disabled) {
+    color: #0e754c;
+}
+
+.admin-security-actions button:disabled {
+    opacity: 0.5;
+}
+
+@media (max-width: 900px) {
+    .admin-security-status {
+        display: none;
+    }
+
+    .admin-security-form {
+        grid-template-columns: 1fr;
+        gap: 22px;
+    }
+}
+
+@media (max-width: 650px) {
+    .admin-security-header {
+        align-items: flex-start;
+        padding: 20px;
+    }
+
+    .admin-security-body {
+        display: block;
+        min-height: auto;
+    }
+
+    .admin-security-tabs {
+        flex-direction: row;
+        padding: 12px;
+        border-right: 0;
+        border-bottom: 1px solid #e3eee8;
+    }
+
+    .admin-security-tabs button {
+        flex: 1;
+        justify-content: center;
+        padding: 11px 8px;
+        font-size: 0.78rem;
+    }
+
+    .admin-security-tabs button:hover,
+    .admin-security-tabs button.active {
+        transform: none;
+    }
+
+    .admin-security-form,
+    .admin-security-verification {
+        padding: 24px 18px;
+    }
+
+    .admin-security-password-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .admin-security-icon {
+        flex-basis: 44px;
+        width: 44px;
+        height: 44px;
+        border-radius: 13px;
+    }
+}

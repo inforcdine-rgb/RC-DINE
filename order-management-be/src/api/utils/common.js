@@ -18,7 +18,9 @@ export const EMAIL_ACTIONS = {
     FORGOT_PASSWORD: 'forgot-password',
     INVITE_MANAGER: 'invite-manager',
     CUSTOM_SUBSCRIPTION: 'custom-subscription',
-    INVOICE_EMAIL: 'invoice-email'
+    INVOICE_EMAIL: 'invoice-email',
+    ADMIN_OTP: 'admin-otp',
+    ADMIN_SECURITY_NOTICE: 'admin-security-notice'
 };
 
 export const TABLES = {
@@ -41,7 +43,8 @@ export const TABLES = {
     SESSION_MEMBER: 'sessionMembers',
     SESSION_JOIN_REQUEST: 'sessionJoinRequests',
     OPEN_ORDER: 'openOrders',
-    OPEN_ORDER_ITEM: 'openOrderItems'
+    OPEN_ORDER_ITEM: 'openOrderItems',
+    ADMIN_OTP_CHALLENGE: 'adminOtpChallenges'
 };
 
 export const CustomError = (code = STATUS_CODE.INTERNAL_SERVER_ERROR, message = 'Something went wrong.') => {

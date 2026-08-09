@@ -79,7 +79,7 @@ const activateUser = async (userId) => {
     await userRepo.update({ where: { id: userId } }, { status: USER_STATUS[0] });
 };
 
-const createLoginSession = async (user) => {
+export const createLoginSession = async (user, { expiresIn = '18h' } = {}) => {
     const { id, firstName, lastName, phoneNumber } = user;
     let managerHotelId = null;
     if (user.role === USER_ROLES[1]) {
@@ -105,7 +105,7 @@ const createLoginSession = async (user) => {
     };
     if (managerHotelId) tokenPayload.hotelId = managerHotelId;
 
-    const token = jwt.sign(tokenPayload, env.jwtSecret, { expiresIn: '18h' });
+    const token = jwt.sign(tokenPayload, env.jwtSecret, { expiresIn });
     return { token, data };
 };
 
@@ -235,6 +235,9 @@ const create = async (payload) => {
 const login = async (payload) => {
     try {
         const { password, role } = payload;
+        if (String(role).toUpperCase() === USER_ROLES[2]) {
+            throw CustomError(STATUS_CODE.FORBIDDEN, 'Use the secure Admin Login page');
+        }
         const email = String(payload.email || '')
             .trim()
             .toLowerCase();

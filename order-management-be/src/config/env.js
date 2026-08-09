@@ -60,6 +60,14 @@ const env = {
         tokenExpiry: process.env.CUSTOMER_TOKEN_EXPIRY || '12h',
         otpHashSecret: process.env.OTP_HASH_SECRET || process.env.CUSTOMER_JWT_SECRET || process.env.JWT_SECRET
     },
+    adminAuth: {
+        otpExpiryMinutes: Number(process.env.ADMIN_OTP_EXPIRY_MINUTES || 5),
+        resendCooldownSeconds: Number(process.env.ADMIN_OTP_RESEND_COOLDOWN_SECONDS || 45),
+        maxAttempts: Number(process.env.ADMIN_OTP_MAX_ATTEMPTS || 5),
+        maxSends: Number(process.env.ADMIN_OTP_MAX_SENDS || 5),
+        tokenExpiry: process.env.ADMIN_TOKEN_EXPIRY || '4h',
+        otpHashSecret: process.env.ADMIN_OTP_HASH_SECRET || process.env.OTP_HASH_SECRET || process.env.JWT_SECRET
+    },
     plans: {
         standaranMonthly: process.env.STANDARD_MONTHLY,
         standardYearly: process.env.STANDARD_YEARLY

@@ -8,7 +8,6 @@ import { USER_ROLES } from '../models/user.model.js';
 import subscriptionPlanRepo from '../repositories/subscriptionPlan.repository.js';
 import userRepo from '../repositories/user.repository.js';
 import { CustomError, STATUS_CODE } from '../utils/common.js';
-import { hashPassword } from '../utils/password.js';
 import userService from './user.service.js';
 
 const sanitizeOwner = (owner) => {
@@ -304,11 +303,7 @@ const updateSettings = async (adminId, payload) => {
         if (profile) {
             if (profile.firstName) updateData.firstName = profile.firstName;
             if (profile.lastName) updateData.lastName = profile.lastName;
-            if (profile.email) updateData.email = profile.email;
             if (profile.phoneNumber) updateData.phoneNumber = profile.phoneNumber;
-            if (profile.password) {
-                updateData.password = await hashPassword(profile.password);
-            }
         }
 
         if (Object.keys(updateData).length > 0) {
