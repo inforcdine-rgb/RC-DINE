@@ -1,2 +1,2 @@
 // Generated automatically before start/build. Do not edit manually.
-export const APP_VERSION = '20260809153615-51c939e5';
+export const APP_VERSION = '20260810074234-d4e5065f';
