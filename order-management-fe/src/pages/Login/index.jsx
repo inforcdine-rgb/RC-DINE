@@ -1,5 +1,4 @@
 import React from 'react';
-import CryptoJS from 'crypto-js';
 import { Form, Formik, Field, ErrorMessage } from 'formik';
 import { useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
@@ -34,8 +33,7 @@ function Login() {
 
     const handleSubmit = (values, { setSubmitting }) => {
         setSubmitting(true);
-        const enpass = CryptoJS.AES.encrypt(values.password, env.cryptoSecret).toString();
-        const data = { ...values, password: enpass };
+        const data = { ...values, password: values.password };
         dispatch(loginRequest({ data, navigate }));
         setSubmitting(false);
     };

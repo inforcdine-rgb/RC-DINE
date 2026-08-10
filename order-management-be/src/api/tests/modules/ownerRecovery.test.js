@@ -36,8 +36,8 @@ const ownerPayload = {
     phoneNumber: '9876543210',
     email: 'owner@example.com',
     password: 'Strong@123',
-    recoveryCode: '4829',
-    confirmRecoveryCode: '4829'
+    recoveryCode: '482901',
+    confirmRecoveryCode: '482901'
 };
 
 const startRateLimitServer = async (middleware) => {
@@ -87,8 +87,8 @@ describe('OWNER recovery-code security flow', () => {
         const savedOwner = db.users.create.mock.calls[0][0];
 
         expect(savedOwner.recoveryCodeHash).toMatch(/^\$2[aby]\$/);
-        expect(await compareRecoveryCode('4829', savedOwner.recoveryCodeHash)).toBe(true);
-        expect(JSON.stringify(savedOwner)).not.toContain('RC4829');
+        expect(await compareRecoveryCode('482901', savedOwner.recoveryCodeHash)).toBe(true);
+        expect(JSON.stringify(savedOwner)).not.toContain('482901');
         expect(response).not.toHaveProperty('recoveryCodeHash');
         expect(response).not.toHaveProperty('recoveryCode');
     });
@@ -119,7 +119,7 @@ describe('OWNER recovery-code security flow', () => {
     });
 
     test('correct email and code reset password, clear failures, and invalidate old tokens', async () => {
-        const recoveryCodeHash = await hashRecoveryCode('4829');
+        const recoveryCodeHash = await hashRecoveryCode('482901');
         db.users.findOne.mockResolvedValue({
             id: 'owner-1',
             recoveryCodeHash,
@@ -130,7 +130,7 @@ describe('OWNER recovery-code security flow', () => {
 
         const result = await userService.resetOwnerPassword({
             email: ' OWNER@EXAMPLE.COM ',
-            recoveryCode: '4829',
+            recoveryCode: '482901',
             newPassword: 'Changed@123'
         });
         const update = db.users.update.mock.calls[0][0];
@@ -149,7 +149,7 @@ describe('OWNER recovery-code security flow', () => {
         db.users.findOne
             .mockResolvedValueOnce({
                 id: 'owner-1',
-                recoveryCodeHash: await hashRecoveryCode('4829'),
+                recoveryCodeHash: await hashRecoveryCode('482901'),
                 recoveryCodeFailedAttempts: 0,
                 recoveryCodeLockedUntil: null,
                 tokenVersion: 0
@@ -159,14 +159,14 @@ describe('OWNER recovery-code security flow', () => {
         await expect(
             userService.resetOwnerPassword({
                 email: 'owner@example.com',
-                recoveryCode: '1111',
+                recoveryCode: '111111',
                 newPassword: 'Changed@123'
             })
         ).rejects.toMatchObject({ code: 401, message: 'Email or recovery code is incorrect.' });
         await expect(
             userService.resetOwnerPassword({
                 email: 'unknown@example.com',
-                recoveryCode: '1111',
+                recoveryCode: '111111',
                 newPassword: 'Changed@123'
             })
         ).rejects.toMatchObject({ code: 401, message: 'Email or recovery code is incorrect.' });
@@ -175,7 +175,7 @@ describe('OWNER recovery-code security flow', () => {
     test('fifth failed code locks the owner for 30 minutes', async () => {
         db.users.findOne.mockResolvedValue({
             id: 'owner-1',
-            recoveryCodeHash: await hashRecoveryCode('4829'),
+            recoveryCodeHash: await hashRecoveryCode('482901'),
             recoveryCodeFailedAttempts: 4,
             recoveryCodeLockedUntil: null,
             tokenVersion: 0
@@ -184,7 +184,7 @@ describe('OWNER recovery-code security flow', () => {
         await expect(
             userService.resetOwnerPassword({
                 email: 'owner@example.com',
-                recoveryCode: '1111',
+                recoveryCode: '111111',
                 newPassword: 'Changed@123'
             })
         ).rejects.toMatchObject({ code: 401, message: 'Email or recovery code is incorrect.' });
@@ -197,7 +197,7 @@ describe('OWNER recovery-code security flow', () => {
     test('active lock returns only the generic response', async () => {
         db.users.findOne.mockResolvedValue({
             id: 'owner-1',
-            recoveryCodeHash: await hashRecoveryCode('4829'),
+            recoveryCodeHash: await hashRecoveryCode('482901'),
             recoveryCodeFailedAttempts: 5,
             recoveryCodeLockedUntil: new Date(Date.now() + 10 * 60 * 1000),
             tokenVersion: 0
@@ -206,7 +206,7 @@ describe('OWNER recovery-code security flow', () => {
         await expect(
             userService.resetOwnerPassword({
                 email: 'owner@example.com',
-                recoveryCode: '4829',
+                recoveryCode: '482901',
                 newPassword: 'Changed@123'
             })
         ).rejects.toMatchObject({ code: 429, message: 'Email or recovery code is incorrect.' });

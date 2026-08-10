@@ -55,7 +55,11 @@ const isCacheableRequest = (config = {}) => {
     return isGetRequest(config) && CACHEABLE_PATHS.some((pattern) => pattern.test(path));
 };
 const getCacheKey = (config = {}) => {
-    const token = localStorage.getItem('token') || localStorage.getItem('rcCustomerToken') || 'public';
+    const token =
+        localStorage.getItem('token') ||
+        localStorage.getItem('rcCustomerToken') ||
+        localStorage.getItem('rcCustomerPushToken') ||
+        'public';
     const scope = CryptoJS.SHA256(token).toString().slice(0, 12);
     return `${CACHE_PREFIX}${scope}:${config.url || ''}:${JSON.stringify(config.params || {})}`;
 };
@@ -161,7 +165,10 @@ instance.interceptors.request.use(
         config.__showGlobalLoader = !config.__backgroundRequest && !cached;
         startRequest(config);
         const staffToken = localStorage.getItem('token');
-        const customerToken = localStorage.getItem('rcCustomerToken') || localStorage.getItem('customerToken');
+        const customerToken =
+            localStorage.getItem('rcCustomerToken') ||
+            localStorage.getItem('rcCustomerPushToken') ||
+            localStorage.getItem('customerToken');
 
         const token = staffToken || customerToken;
         const requestPath = getRequestPath(config);

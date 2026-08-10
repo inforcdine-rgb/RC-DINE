@@ -297,8 +297,17 @@ function Sidebar() {
                     </div>
                     <div
                         className={`arrow ${compress ? 'arrow-compress order-1' : 'arrow-full order-2'}`}
+                        role="button"
+                        tabIndex={0}
+                        aria-label={compress ? 'Expand navigation' : 'Collapse navigation'}
                         onClick={() => {
                             setCompress(!compress);
+                        }}
+                        onKeyDown={(event) => {
+                            if (event.key === 'Enter' || event.key === ' ') {
+                                event.preventDefault();
+                                setCompress(!compress);
+                            }
                         }}
                     >
                         {compress ? (
@@ -329,7 +338,15 @@ function Sidebar() {
                             >
                                 <li
                                     data-testid={`test-${id}`}
+                                    role="link"
+                                    tabIndex={0}
                                     onClick={() => handleClick(item)}
+                                    onKeyDown={(event) => {
+                                        if (event.key === 'Enter' || event.key === ' ') {
+                                            event.preventDefault();
+                                            handleClick(item);
+                                        }
+                                    }}
                                     className={`d-flex align-items-center container ${window.location.pathname === path && 'active'}`}
                                 >
                                     <Icon size={25} className={`${compress ? 'm-0' : 'ms-4'}`} />

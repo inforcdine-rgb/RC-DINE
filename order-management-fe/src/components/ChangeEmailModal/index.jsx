@@ -1,12 +1,10 @@
 import React from 'react';
-import CryptoJS from 'crypto-js';
 import { ErrorMessage, Field, Form as FormikForm, Formik } from 'formik';
 import { Form as BootstrapForm } from 'react-bootstrap';
 import { FaEye, FaEyeSlash } from 'react-icons/fa';
 import { useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import env from '../../config/env';
 import { changeOwnerEmail } from '../../services/auth.service';
 import { logoutRequest } from '../../store/slice';
 import { getChangeEmailSchema } from '../../validations/auth';
@@ -32,7 +30,7 @@ const ChangeEmailModal = ({ show, currentEmail, onClose }) => {
 
         try {
             await changeOwnerEmail({
-                currentPassword: CryptoJS.AES.encrypt(values.currentPassword, env.cryptoSecret).toString(),
+                currentPassword: values.currentPassword,
                 newEmail: values.newEmail.trim().toLowerCase(),
                 confirmEmail: values.confirmEmail.trim().toLowerCase()
             });

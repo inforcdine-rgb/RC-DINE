@@ -26,10 +26,9 @@ const customerSessionAuth = (req, res, next) => {
             'CUSTOMER_PUSH'
         ];
 
-        if (
-            !allowedTypes.includes(payload.type) ||
-            !payload.customerId
-        ) {
+        const requiresCustomerId = payload.type === 'CUSTOMER_PUSH';
+
+        if (!allowedTypes.includes(payload.type) || (requiresCustomerId && !payload.customerId)) {
             return res.status(STATUS_CODE.UNAUTHORIZED).json({
                 message: 'Invalid customer token'
             });

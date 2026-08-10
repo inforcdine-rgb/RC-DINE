@@ -1,11 +1,9 @@
 import React, { useEffect, useRef } from 'react';
-import CryptoJS from 'crypto-js';
 import { Form, Formik } from 'formik';
 import { Accordion } from 'react-bootstrap';
 import { useDispatch, useSelector } from 'react-redux';
 import CustomFormGroup from '../../components/CustomFormGroup';
 import Stepper from '../../components/Stepper';
-import env from '../../config/env';
 import {
     saveBankDetailsRequest,
     saveBusinessDetailsRequest,
@@ -357,8 +355,7 @@ const PaymentActivation = () => {
                 dispatch(saveStakeholderDetailsRequest({ step, payload }));
                 break;
             case 3: {
-                const token = CryptoJS.AES.encrypt(JSON.stringify(payload), env.cryptoSecret).toString();
-                dispatch(saveBankDetailsRequest({ token }));
+                dispatch(saveBankDetailsRequest(payload));
                 break;
             }
             default:

@@ -32,13 +32,17 @@ const maskEmail = (email) => {
     return `${visible}${'*'.repeat(Math.max(3, name.length - visible.length))}@${domain}`;
 };
 
-const decryptSecret = (value) => {
+const readPassword = (value) => {
+    const rawValue = String(value || '');
+    if (!rawValue || !env.cryptoSecret) return rawValue;
+
     try {
-        const plain = CryptoJS.AES.decrypt(String(value || ''), env.cryptoSecret).toString(CryptoJS.enc.Utf8);
-        if (!plain) throw new Error('empty');
-        return plain;
+        // Backward compatibility for an older frontend that encrypted password
+        // fields with the public frontend key. Current clients send passwords
+        // over HTTPS and the server stores only bcrypt hashes.
+        return CryptoJS.AES.decrypt(rawValue, env.cryptoSecret).toString(CryptoJS.enc.Utf8) || rawValue;
     } catch (_error) {
-        throw CustomError(STATUS_CODE.BAD_REQUEST, 'Secure field could not be read. Refresh and try again.');
+        return rawValue;
     }
 };
 
@@ -191,7 +195,7 @@ const resend = async ({ challengeId }) => {
 
 const startLogin = async ({ email, password }, metadata) => {
     const normalizedEmail = normalizeEmail(email);
-    const plainPassword = decryptSecret(password);
+    const plainPassword = readPassword(password);
     const admin = await userRepo.findOne({ where: { email: normalizedEmail, role: USER_ROLES[2] }, raw: true });
 
     if (!admin || !(await comparePassword(plainPassword, admin.password))) {
@@ -230,7 +234,7 @@ const verifyLogin = async ({ challengeId, otp }) => {
 
 const requestEmailChange = async (adminId, { currentPassword, newEmail }, metadata) => {
     const admin = await getAdmin(adminId);
-    const plainCurrentPassword = decryptSecret(currentPassword);
+    const plainCurrentPassword = readPassword(currentPassword);
     if (!(await comparePassword(plainCurrentPassword, admin.password))) {
         throw CustomError(STATUS_CODE.UNAUTHORIZED, 'Current password is incorrect');
     }
@@ -313,9 +317,9 @@ const isStrongPassword = (value) =>
 
 const requestPasswordChange = async (adminId, payload, metadata) => {
     const admin = await getAdmin(adminId);
-    const currentPassword = decryptSecret(payload.currentPassword);
-    const newPassword = decryptSecret(payload.newPassword);
-    const confirmPassword = decryptSecret(payload.confirmPassword);
+    const currentPassword = readPassword(payload.currentPassword);
+    const newPassword = readPassword(payload.newPassword);
+    const confirmPassword = readPassword(payload.confirmPassword);
 
     if (!(await comparePassword(currentPassword, admin.password))) {
         throw CustomError(STATUS_CODE.UNAUTHORIZED, 'Current password is incorrect');

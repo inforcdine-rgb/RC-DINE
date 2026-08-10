@@ -5,7 +5,7 @@ const RECOVERY_CODE_PATTERN = /^\d{6}$/;
 
 // Created once at process startup. Unknown emails still perform the same
 // bcrypt comparison work as known accounts without exposing a real hash.
-const dummyRecoveryCodeHash = bcrypt.hash('RC000000', SALT_ROUNDS);
+const dummyRecoveryCodeHash = bcrypt.hashSync('RC000000', SALT_ROUNDS);
 
 export const normalizeRecoveryCode = (digits) => {
     const value = String(digits ?? '');
@@ -20,9 +20,9 @@ export const hashRecoveryCode = async (digits) => {
 
 export const compareRecoveryCode = async (digits, storedHash) => {
     const normalized = normalizeRecoveryCode(digits) || 'RC000000';
-    const comparisonHash = storedHash || (await dummyRecoveryCodeHash);
+    const comparisonHash = storedHash || dummyRecoveryCodeHash;
     return bcrypt.compare(normalized, comparisonHash);
 };
 
 export const safeDummyRecoveryCodeComparison = async (digits) =>
-    bcrypt.compare(normalizeRecoveryCode(digits) || 'RC000000', await dummyRecoveryCodeHash);
+    bcrypt.compare(normalizeRecoveryCode(digits) || 'RC000000', dummyRecoveryCodeHash);

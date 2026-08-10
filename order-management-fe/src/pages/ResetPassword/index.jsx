@@ -1,12 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import CryptoJS from 'crypto-js';
 import { Form, Formik } from 'formik';
 import { useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import AuthContainer from '../../components/AuthContainer';
 import CustomButton from '../../components/CustomButton';
 import CustomFormGroup from '../../components/CustomFormGroup';
-import env from '../../config/env';
 import { resetPasswordRequest } from '../../store/slice';
 import { passwordSchema } from '../../validations/auth';
 
@@ -33,8 +31,7 @@ const ResetPassword = () => {
 
     const handleSubmit = (values, { setSubmitting }) => {
         setSubmitting(true);
-        const enpass = CryptoJS.AES.encrypt(values.password, env.cryptoSecret).toString();
-        dispatch(resetPasswordRequest({ data: { newPassword: enpass, token }, navigate }));
+        dispatch(resetPasswordRequest({ data: { newPassword: values.password, token }, navigate }));
         setSubmitting(false);
     };
 

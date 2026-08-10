@@ -1,5 +1,4 @@
 import React, { useEffect, useRef, useState } from 'react';
-import CryptoJS from 'crypto-js';
 import { Card, FormControl } from 'react-bootstrap';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -10,7 +9,6 @@ import MenuCard from '../../components/MenuCard';
 import OMTModal from '../../components/Modal';
 import Rating from '../../components/Rating';
 import Razorpay, { ACTIONS } from '../../components/Razporpay';
-import env from '../../config/env';
 import {
     getMenuDetailsRequest,
     getCustomerOrderDetailsRequest,
@@ -27,6 +25,7 @@ import {
     setUpdatedOrderDetails,
     setViewOrderDetails,
     customerPrePaymentRequest,
+    customerPaymentConfirmationRequest,
     verifyCustomerPaymentRequest
 } from '../../store/slice';
 import { NOTIFICATION_ACTIONS, ORDER_STATUS, PAYMENT_PREFERENCE, TABLE_STATUS } from '../../utils/constants';
@@ -114,18 +113,7 @@ function OrderPlacement() {
 
     useEffect(() => {
         if (token) {
-            const decryptedText = CryptoJS.AES.decrypt(token, env.cryptoSecret).toString(CryptoJS.enc.Utf8);
-
-            if (decryptedText && decryptedText.trim().length > 0) {
-                try {
-                    const data = JSON.parse(decryptedText);
-                    dispatch(getTableDetailsRequest(data.tableId));
-                } catch (error) {
-                    dispatch(getTableDetailsRequest(token));
-                }
-            } else {
-                dispatch(getTableDetailsRequest(token));
-            }
+            dispatch(getTableDetailsRequest(token));
         }
     }, [token]);
 
@@ -148,7 +136,8 @@ function OrderPlacement() {
                 email: 'guest@example.com',
                 hotelId: tableDetails.hotel.id,
                 tableId: tableDetails.id,
-                tableNumber: tableDetails.tableNumber
+                tableNumber: tableDetails.tableNumber,
+                qrToken: token
             };
             dispatch(registerCustomerRequest(payload));
         }
@@ -314,6 +303,20 @@ function OrderPlacement() {
     };
 
     const handlePaymentSuccess = (payload) => {
+        if (orderPaymentData?.isSettlementPayment) {
+            dispatch(
+                customerPaymentConfirmationRequest({
+                    customerId: tableDetails.customer.id,
+                    hotelId: tableDetails.hotel.id,
+                    manual: false,
+                    orderId: payload.orderId,
+                    paymentId: payload.paymentId,
+                    razorpaySignature: payload.razorpaySignature
+                })
+            );
+            return;
+        }
+
         const menus = Array.isArray(orderPaymentData?.menus)
             ? orderPaymentData.menus
             : Object.values(orderDetails || {}).filter((item) => item && item.menuId && Number(item.quantity) > 0);

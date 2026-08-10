@@ -1,5 +1,6 @@
 import { toast } from 'react-toastify';
 import { all, put, takeLatest } from 'redux-saga/effects';
+import * as checkoutService from '../../services/checkout.service';
 import * as service from '../../services/order.service';
 import {
     getActiveOrderRequest,
@@ -101,6 +102,7 @@ function* updateOrderStatusRequestSaga(action) {
 
 function* paymentConfirmationRequestSaga(action) {
     try {
+        yield checkoutService.confirmManualPayment(action.payload);
         yield put(paymentConfirmationSuccess());
         toast.success('Payment confirmed successfully');
     } catch (error) {

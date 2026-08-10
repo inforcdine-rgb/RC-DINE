@@ -70,7 +70,8 @@ const updateCredentials = async (req, res) => {
 
         const payload = { email };
         if (password) {
-            const decryptedPassword = CryptoJS.AES.decrypt(password, env.cryptoSecret).toString(CryptoJS.enc.Utf8);
+            const decryptedPassword =
+                CryptoJS.AES.decrypt(password, env.cryptoSecret).toString(CryptoJS.enc.Utf8) || password;
             if (!decryptedPassword) {
                 return res.status(STATUS_CODE.BAD_REQUEST).send({
                     message: 'Unable to read password. Please refresh the page and try again.'
@@ -131,7 +132,9 @@ const create = async (req, res) => {
         // Decrypt it before validation and before bcrypt hashing in the service.
         let decryptedPassword = '';
         try {
-            decryptedPassword = CryptoJS.AES.decrypt(req.body.password, env.cryptoSecret).toString(CryptoJS.enc.Utf8);
+            decryptedPassword =
+                CryptoJS.AES.decrypt(req.body.password, env.cryptoSecret).toString(CryptoJS.enc.Utf8) ||
+                req.body.password;
         } catch (decryptError) {
             logger('error', `Unable to decrypt manager password: ${decryptError.message}`);
         }

@@ -1,12 +1,10 @@
 /* eslint-disable camelcase */
-import CryptoJS from 'crypto-js';
 import moment from 'moment';
 import Razorpay from 'razorpay';
 import { Op, Sequelize } from 'sequelize';
 import { v4 as uuidv4 } from 'uuid';
 import { deleteImage } from '../../config/cloudinary.js';
 import { db } from '../../config/database.js';
-import env from '../../config/env.js';
 import logger from '../../config/logger.js';
 import { ORDER_STATUS } from '../models/order.model.js';
 import { USER_ROLES } from '../models/user.model.js';
@@ -20,6 +18,7 @@ import posOrderAnalyticsRepo from '../repositories/posOrderAnalytics.repository.
 import subscriptionRepo from '../repositories/subscription.repository.js';
 import tableRepo from '../repositories/table.repository.js';
 import { CustomError, STATUS_CODE } from '../utils/common.js';
+import { decryptServerSecret, encryptServerSecret } from '../utils/secretEncryption.js';
 
 const numberValue = (value) => Number(value) || 0;
 
@@ -249,9 +248,11 @@ const list = async (userId) => {
 };
 
 const remove = async (hotelId) => {
+    let transaction;
     try {
+        transaction = await db.hotel.sequelize.transaction();
         // Remove tables
-        const options = { where: { hotelId } };
+        const options = { where: { hotelId }, transaction };
         await tableRepo.remove(options);
         logger('debug', `HotelId-${hotelId} - Tables removed successfully`);
 
@@ -268,7 +269,8 @@ const remove = async (hotelId) => {
         if (customerIds.length) {
             // Remove Order
             const orderOptions = {
-                where: { [Op.in]: customerIds }
+                where: { customerId: { [Op.in]: customerIds } },
+                transaction
             };
             await orderRepo.remove(orderOptions);
             logger('debug', `HotelId-${hotelId} - Orders removed successfully`);
@@ -291,12 +293,16 @@ const remove = async (hotelId) => {
         logger('debug', `HotelId-${hotelId} - Subscriptions removed successfully`);
 
         // Remove hotel
-        const hotelOptions = { where: { id: hotelId } };
+        const hotelOptions = { where: { id: hotelId }, transaction };
         await hotelRepo.remove(hotelOptions);
         logger('debug', `HotelId-${hotelId} - Hotel removed successfully`);
 
+        await transaction.commit();
+        transaction = null;
+
         return { message: `Hotel removed successfully` };
     } catch (error) {
+        if (transaction) await transaction.rollback();
         logger('error', 'Error while removing hotel', { hotelId, error });
         throw CustomError(error.code, error.message);
     }
@@ -645,18 +651,11 @@ const revenue = async (ownerId) => {
 };
 
 const encrypt = (text) => {
-    if (!text) return null;
-    return CryptoJS.AES.encrypt(text, env.cryptoSecret).toString();
+    return encryptServerSecret(text);
 };
 
 const decrypt = (cipherText) => {
-    if (!cipherText) return null;
-    try {
-        const bytes = CryptoJS.AES.decrypt(cipherText, env.cryptoSecret);
-        return bytes.toString(CryptoJS.enc.Utf8);
-    } catch (e) {
-        return null;
-    }
+    return decryptServerSecret(cipherText) || null;
 };
 
 const getPaymentSettings = async (hotelId) => {

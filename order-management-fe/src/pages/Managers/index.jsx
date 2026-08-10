@@ -1,6 +1,5 @@
 import React, { useEffect } from 'react';
 
-import CryptoJS from 'crypto-js';
 import moment from 'moment';
 import { FaEnvelope, FaHotel, FaMapMarkerAlt, FaPhoneAlt, FaUserTie } from 'react-icons/fa';
 import { MdDeleteForever } from 'react-icons/md';
@@ -11,7 +10,6 @@ import { useDispatch, useSelector } from 'react-redux';
 import '../../assets/styles/ownerCards.css';
 import CustomButton from '../../components/CustomButton';
 import OMTModal from '../../components/Modal';
-import env from '../../config/env';
 import { getHotelRequest } from '../../store/slice';
 import {
     createManagerRequest,
@@ -159,14 +157,14 @@ function Managers() {
                     lastName,
                     phoneNumber: values.phoneNumber,
                     email: values.email,
-                    password: CryptoJS.AES.encrypt(values.password, env.cryptoSecret).toString(),
+                    password: values.password,
                     hotelId: values.hotel?.value
                 })
             );
         } else if (formInfo?.action === 'credentials') {
             const payload = { email: values.email };
             if (values.password) {
-                payload.password = CryptoJS.AES.encrypt(values.password, env.cryptoSecret).toString();
+                payload.password = values.password;
             }
             dispatch(updateManagerCredentialsRequest({ id: formInfo.managerId, data: payload }));
         } else {

@@ -63,6 +63,8 @@ export const paymentConfirmation = async (payload) => {
     }
 };
 
+export const confirmManualPayment = async (payload) => api(method.POST, '/checkout/confirm-manual', payload);
+
 export const cancelSubscription = async (payload) => {
     try {
         return await api(method.POST, `/checkout/cancel`, payload);

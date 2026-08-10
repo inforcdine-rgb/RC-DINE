@@ -35,3 +35,5 @@ export const update = async (hotelId, tableId, payload) => {
         throw error;
     }
 };
+
+export const createQrToken = async (hotelId, tableId) => api(method.POST, `/table/${hotelId}/${tableId}/qr-token`, {});

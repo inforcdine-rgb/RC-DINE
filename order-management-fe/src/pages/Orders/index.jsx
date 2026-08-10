@@ -1419,7 +1419,7 @@ function Orders() {
                     title={paymentRequest.title}
                     description={<p>{paymentRequest.message}</p>}
                     handleSubmit={() =>
-                        dispatch(paymentConfirmationRequest({ manual: true, customerId: paymentRequest.customerId }))
+                        dispatch(paymentConfirmationRequest({ customerId: paymentRequest.customerId, hotelId }))
                     }
                     size="md"
                     submitText={paymentRequest.submitText}

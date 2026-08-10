@@ -1,6 +1,7 @@
 import logger from '../../config/logger.js';
 import adminService from '../services/admin.service.js';
 import { STATUS_CODE } from '../utils/common.js';
+import { updateAdminSettingsValidation } from '../validations/admin.validation.js';
 
 const dashboard = async (req, res) => {
     try {
@@ -103,7 +104,11 @@ const getSettings = async (req, res) => {
 
 const updateSettings = async (req, res) => {
     try {
-        const result = await adminService.updateSettings(req.user.id, req.body);
+        const validation = updateAdminSettingsValidation(req.body);
+        if (validation.error) {
+            return res.status(STATUS_CODE.BAD_REQUEST).send({ message: validation.error.message });
+        }
+        const result = await adminService.updateSettings(req.user.id, validation.value);
         logger('info', 'Admin settings updated successfully');
         return res.status(STATUS_CODE.OK).send(result);
     } catch (error) {

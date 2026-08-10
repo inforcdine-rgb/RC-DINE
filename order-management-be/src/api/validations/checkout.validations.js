@@ -74,8 +74,11 @@ export const stakeholderDetailsValidation = (payload) => {
 export const accountDetailsValidation = (payload) => {
     try {
         const schema = Joi.object({
-            token: Joi.string().required()
-        });
+            token: Joi.string().optional(),
+            accountNumber: Joi.string().trim().pattern(/^\d{6,34}$/).optional(),
+            ifscCode: Joi.string().trim().uppercase().pattern(/^[A-Z]{4}0[A-Z0-9]{6}$/).optional(),
+            beneficiaryName: Joi.string().trim().min(2).max(100).optional()
+        }).or('token', 'accountNumber').with('accountNumber', ['ifscCode', 'beneficiaryName']);
         return schema.validate(payload);
     } catch (error) {
         logger('error', 'Error in bank validation', { error });
@@ -127,9 +130,11 @@ export const paymentConfirmationValidation = (payload) => {
     try {
         const schema = Joi.object({
             customerId: Joi.string().required(),
-            manual: Joi.boolean().required(),
-            orderId: Joi.string().optional(),
-            paymentId: Joi.string().optional()
+            hotelId: Joi.string().required(),
+            manual: Joi.valid(false).required(),
+            orderId: Joi.string().required(),
+            paymentId: Joi.string().required(),
+            razorpaySignature: Joi.string().required()
         });
         return schema.validate(payload);
     } catch (error) {
@@ -137,6 +142,12 @@ export const paymentConfirmationValidation = (payload) => {
         throw CustomError(error.code, error.message);
     }
 };
+
+export const manualPaymentConfirmationValidation = (payload) =>
+    Joi.object({
+        customerId: Joi.string().required(),
+        hotelId: Joi.string().required()
+    }).validate(payload, { stripUnknown: true });
 
 export const cancelValidation = (payload) => {
     try {

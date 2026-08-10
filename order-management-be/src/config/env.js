@@ -9,6 +9,8 @@ const env = {
         isDevelopment: process.env.NODE_ENV === 'development'
     },
     jwtSecret: process.env.JWT_SECRET,
+    tableQrSecret: process.env.TABLE_QR_SECRET || process.env.CUSTOMER_JWT_SECRET || process.env.JWT_SECRET,
+    trialDays: Number(process.env.TRIAL_DAYS || 3),
     db: {
         name: process.env.DB_NAME,
         host: process.env.DB_HOST,
@@ -32,6 +34,8 @@ const env = {
         pass: process.env.EMAIL_PASS
     },
     cryptoSecret: process.env.CRYPTO_SECRET_KEY,
+    // Server-only: never expose this through a REACT_APP_* variable.
+    serverEncryptionKey: process.env.SERVER_ENCRYPTION_KEY,
     firebase: {
         projectId: process.env.FIREBASE_PROJECT_ID,
         clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
@@ -96,6 +100,59 @@ const env = {
         publicKey: process.env.WEB_PUSH_PUBLIC_KEY,
         privateKey: process.env.WEB_PUSH_PRIVATE_KEY,
         email: process.env.WEB_PUSH_EMAIL
+    }
+};
+
+export const validateEnvironment = () => {
+    const errors = [];
+    const requireValue = (name, value) => {
+        if (!String(value || '').trim()) errors.push(`${name} is required`);
+    };
+
+    requireValue('JWT_SECRET', env.jwtSecret);
+    requireValue('CUSTOMER_JWT_SECRET', env.customerAuth.jwtSecret);
+    requireValue('OTP_HASH_SECRET', env.customerAuth.otpHashSecret);
+    requireValue('TABLE_QR_SECRET', env.tableQrSecret);
+    requireValue('DB_NAME', env.db.name);
+    requireValue('DB_HOST', env.db.host);
+    requireValue('DB_USER', env.db.user);
+    requireValue('DB_DIALECT', env.db.dialect);
+
+    if (!Number.isInteger(env.trialDays) || env.trialDays < 1 || env.trialDays > 90) {
+        errors.push('TRIAL_DAYS must be an integer between 1 and 90');
+    }
+
+    if (env.app.env === 'production') {
+        requireValue('APP_URL', env.app.appUrl);
+        requireValue('CRYPTO_SECRET_KEY', env.cryptoSecret);
+        requireValue('SERVER_ENCRYPTION_KEY', env.serverEncryptionKey);
+        requireValue('CUSTOMER_JWT_SECRET', process.env.CUSTOMER_JWT_SECRET);
+        requireValue('OTP_HASH_SECRET', process.env.OTP_HASH_SECRET);
+        requireValue('TABLE_QR_SECRET', process.env.TABLE_QR_SECRET);
+        requireValue('ADMIN_OTP_HASH_SECRET', process.env.ADMIN_OTP_HASH_SECRET);
+        requireValue('RAZORPAY_KEY_ID', env.razorpay.keyId);
+        requireValue('RAZORPAY_KEY_SECRET', env.razorpay.keySecret);
+        if (!env.cors.origins.length) errors.push('CORS_ORIGINS must contain at least one production origin');
+
+        const productionSecrets = [
+            ['JWT_SECRET', env.jwtSecret],
+            ['CUSTOMER_JWT_SECRET', process.env.CUSTOMER_JWT_SECRET],
+            ['OTP_HASH_SECRET', process.env.OTP_HASH_SECRET],
+            ['TABLE_QR_SECRET', process.env.TABLE_QR_SECRET],
+            ['ADMIN_OTP_HASH_SECRET', process.env.ADMIN_OTP_HASH_SECRET],
+            ['SERVER_ENCRYPTION_KEY', env.serverEncryptionKey]
+        ];
+        productionSecrets.forEach(([name, value]) => {
+            if (String(value || '').length < 32) errors.push(`${name} must contain at least 32 characters`);
+        });
+        const populatedSecrets = productionSecrets.map(([, value]) => value).filter(Boolean);
+        if (new Set(populatedSecrets).size !== populatedSecrets.length) {
+            errors.push('Production authentication and encryption secrets must all be different');
+        }
+    }
+
+    if (errors.length) {
+        throw new Error(`Invalid environment configuration: ${errors.join('; ')}`);
     }
 };
 

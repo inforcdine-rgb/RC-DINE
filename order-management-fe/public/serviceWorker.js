@@ -1,8 +1,9 @@
 /* global AbortController, caches, clients */
 
-// Open a verified complete snapshot immediately for speed. If any hashed asset
-// is missing, repair the whole snapshot atomically before returning its HTML.
-const CACHE_VERSION = 'v12-atomic-cache-recovery';
+// Navigation HTML is always fetched from the network and is never cached.
+// Hashed assets are verified and cached atomically so a partial deployment
+// cannot leave the application on a blank screen.
+const CACHE_VERSION = 'v13-network-first-shell';
 const APP_SHELL_CACHE = `rcdine-shell-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `rcdine-runtime-${CACHE_VERSION}`;
 const NAVIGATION_TIMEOUT_MS = 6000;
@@ -84,9 +85,23 @@ self.addEventListener('install', (event) => {
 });
 
 self.addEventListener('activate', (event) => {
-    // Keep the previous complete snapshot until the first v12 network refresh
-    // succeeds. It gives users a working fallback during a slow deployment.
-    event.waitUntil(clients.claim());
+    event.waitUntil(
+        Promise.all([
+            caches
+                .keys()
+                .then((keys) =>
+                    Promise.all(
+                        keys
+                            .filter(
+                                (key) => key.startsWith('rcdine-') && ![APP_SHELL_CACHE, RUNTIME_CACHE].includes(key)
+                            )
+                            .map((key) => caches.delete(key))
+                    )
+                ),
+            caches.open(APP_SHELL_CACHE).then((cache) => cache.delete('/')),
+            clients.claim()
+        ])
+    );
 });
 
 const fetchWithTimeout = async (input, options = {}, timeoutMs = NAVIGATION_TIMEOUT_MS) => {
@@ -137,30 +152,6 @@ const getShellAssets = async (shellResponse) => {
     return getStaticAssetUrls(html);
 };
 
-const hasCompleteCachedShell = async (shellResponse) => {
-    const assetUrls = await getShellAssets(shellResponse);
-    if (!assetUrls.length) return false;
-
-    const cachedAssets = await Promise.all(assetUrls.map((assetUrl) => caches.match(assetUrl)));
-    return cachedAssets.every((response, index) => isUsableStaticAsset(assetUrls[index], response));
-};
-
-const getCompleteCachedShell = async () => {
-    const cacheKeys = await caches.keys();
-    const shellCacheKeys = [
-        APP_SHELL_CACHE,
-        ...cacheKeys.filter((key) => key.startsWith('rcdine-shell-') && key !== APP_SHELL_CACHE)
-    ];
-
-    for (const cacheKey of shellCacheKeys) {
-        const cache = await caches.open(cacheKey);
-        const shellResponse = await cache.match('/');
-        if (shellResponse && (await hasCompleteCachedShell(shellResponse))) return shellResponse;
-    }
-
-    return null;
-};
-
 const cleanupOldCaches = async () => {
     const cacheKeys = await caches.keys();
     await Promise.all(
@@ -201,10 +192,6 @@ const cacheCompleteShellSnapshot = async (shellResponse, expectedVersion) => {
 
     const runtimeCache = await caches.open(RUNTIME_CACHE);
     await Promise.all(verifiedAssets.map(({ assetUrl, response }) => runtimeCache.put(assetUrl, response.clone())));
-
-    const shellCache = await caches.open(APP_SHELL_CACHE);
-    await shellCache.put('/', shellResponse.clone());
-
     const currentAssets = new Set(assetUrls);
     const cachedRequests = await runtimeCache.keys();
     await Promise.all(
@@ -243,15 +230,23 @@ const fetchAndCacheFreshShell = async (request, expectedVersion) => {
 };
 
 const handleNavigationRequest = async (request) => {
-    const completeCachedShell = await getCompleteCachedShell();
-    if (completeCachedShell) return completeCachedShell;
+    const requestUrl = new URL(request.url);
+    const isFileNavigation = /\/[^/]+\.[a-z0-9]+$/i.test(requestUrl.pathname);
+    const isStandaloneStaticPage = requestUrl.pathname.startsWith('/portfolio/');
 
     try {
+        if (isFileNavigation || isStandaloneStaticPage) {
+            return await fetchWithTimeout(request, { cache: 'no-store' });
+        }
+
         // Return network HTML only after every referenced hashed asset is
         // available, so an incomplete/blank application is never shown.
         const { shellResponse } = await fetchAndCacheFreshShell(request);
         return shellResponse;
     } catch (_error) {
+        if (isFileNavigation || isStandaloneStaticPage) {
+            return (await caches.match(request)) || (await caches.match('/offline.html')) || Response.error();
+        }
         return (await caches.match('/offline.html')) || Response.error();
     }
 };

@@ -95,6 +95,7 @@ export const update = {
     success: {
         req: {
             params: { id: 'test-hotel-id' },
+            user: { id: 'test-owner-id', role: 'OWNER' },
             body: {
                 openTime: '10:00 AM',
                 closeTime: '11:00 PM'
@@ -108,6 +109,7 @@ export const update = {
     error: {
         req: {
             params: { id: 'test-hotel-id' },
+            user: { id: 'test-owner-id', role: 'OWNER' },
             body: {
                 openTime: '10:00 AM',
                 closeTime: '11:00 PM'
@@ -159,7 +161,8 @@ export const remove = {
     success: {
         db: {},
         req: {
-            params: { id: 'test-hotel-id' }
+            params: { id: 'test-hotel-id' },
+            user: { id: 'test-owner-id', role: 'OWNER' }
         },
         response: {
             status: STATUS_CODE.OK,
@@ -171,7 +174,8 @@ export const remove = {
     error: {
         error: 'Failed to delete hotel',
         req: {
-            params: { id: 'test-hotel-id' }
+            params: { id: 'test-hotel-id' },
+            user: { id: 'test-owner-id', role: 'OWNER' }
         },
         response: {
             status: 500,

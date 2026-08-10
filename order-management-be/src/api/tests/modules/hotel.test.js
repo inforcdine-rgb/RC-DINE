@@ -47,7 +47,10 @@ jest.mock('../../../config/database.js', () => ({
         },
         hotel: {
             name: 'hotel',
-            destroy: jest.fn().mockResolvedValue(1)
+            destroy: jest.fn().mockResolvedValue(1),
+            sequelize: {
+                transaction: jest.fn()
+            }
         },
         users: { name: 'users' }
     }
@@ -77,6 +80,10 @@ const orderRepoFindSalesByHotelIdsSpy = jest.spyOn(orderRepo, 'findSalesByHotelI
 describe('testing hotel cases', () => {
     beforeEach(() => {
         jest.resetAllMocks();
+        db.hotel.sequelize.transaction.mockResolvedValue({
+            commit: jest.fn().mockResolvedValue(),
+            rollback: jest.fn().mockResolvedValue()
+        });
         db.customer.findAndCountAll.mockResolvedValue({ count: 0, rows: [] });
         db.customer.destroy.mockResolvedValue(1);
         db.tables.destroy.mockResolvedValue(1);
@@ -86,6 +93,7 @@ describe('testing hotel cases', () => {
         db.openOrders.findAll.mockResolvedValue([]);
         db.openOrderItems.findAll.mockResolvedValue([]);
         customerRepoFindSpy.mockImplementation((options) => db.customer.findAndCountAll(options));
+        hotelUserRelationRepoFindSpy.mockResolvedValue({ count: 1, rows: [] });
         db.categories.destroy.mockResolvedValue(1);
         db.menu.destroy.mockResolvedValue(1);
         db.hotelUserRelation.destroy.mockResolvedValue(1);

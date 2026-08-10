@@ -1,6 +1,5 @@
 import React from 'react';
 
-import CryptoJS from 'crypto-js';
 import { Card, Col, Form, Row } from 'react-bootstrap';
 import { FaUserEdit } from 'react-icons/fa';
 import { useDispatch, useSelector } from 'react-redux';
@@ -10,7 +9,6 @@ import ChangeEmailModal from '../../components/ChangeEmailModal';
 import CustomButton from '../../components/CustomButton';
 import OMTModal from '../../components/Modal';
 import RecoveryCodeSecurityForm from '../../components/RecoveryCodeSecurityForm';
-import env from '../../config/env';
 import { getPaymentSettings, testPaymentSettings, updatePaymentSettings } from '../../services/hotel.service';
 import {
     loadPrinterSettings,
@@ -395,8 +393,7 @@ const Settings = () => {
         const payload = { ...rest, preferences };
 
         if (payload.newPassword) {
-            const enpass = CryptoJS.AES.encrypt(payload.newPassword, env.cryptoSecret).toString();
-            payload.password = enpass;
+            payload.password = payload.newPassword;
         }
         delete payload.newPassword;
         delete payload.confirmPassword;

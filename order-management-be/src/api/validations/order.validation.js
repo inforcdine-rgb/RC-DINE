@@ -5,19 +5,19 @@ import { CustomError } from '../utils/common.js';
 export const customerRegistrationValidation = (payload) => {
     try {
         const schema = Joi.object({
-            name: Joi.string().required(),
+            name: Joi.string().trim().min(1).max(100).required(),
             phoneNumber: Joi.number()
                 .min(10 ** 9)
                 .max(10 ** 10 - 1)
                 .required(),
-            email: Joi.string().email({
-                minDomainSegments: 2,
-                tlds: { allow: ['com', 'net'] }
-            }),
+            email: Joi.string().trim().lowercase().email({ minDomainSegments: 2, tlds: { allow: false } }),
             hotelId: Joi.string().required(),
             tableId: Joi.string().required(),
             tableNumber: Joi.number().required(),
+            qrToken: Joi.string().min(40).required(),
             subscription: Joi.object({
+                deviceId: Joi.string().max(128).optional(),
+                platform: Joi.string().max(50).optional(),
                 endpoint: Joi.string().uri().required(),
                 expirationTime: Joi.date().allow(null),
                 keys: Joi.object({
@@ -43,13 +43,16 @@ export const orderPlacementValidation = (payload) => {
             menus: Joi.array().items(
                 Joi.object({
                     menuId: Joi.string().required(),
-                    menuName: Joi.string().required(),
-                    quantity: Joi.number().integer().required(),
-                    price: Joi.number().positive().required()
+                    quantity: Joi.number().integer().min(1).max(99).required(),
+                    // Accepted only for backward-compatible clients. Both fields
+                    // are stripped and replaced with authoritative DB values.
+                    menuName: Joi.any().strip(),
+                    price: Joi.any().strip()
                 })
-            )
+            ).min(1).max(100).required(),
+            tipAmount: Joi.number().min(0).max(100000).optional()
         });
-        return schema.validate(payload);
+        return schema.validate(payload, { stripUnknown: true });
     } catch (error) {
         logger('error', `Error in order placement validation ${error}`);
         throw CustomError(error.code, error.message);

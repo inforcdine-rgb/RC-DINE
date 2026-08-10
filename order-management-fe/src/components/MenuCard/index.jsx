@@ -510,9 +510,21 @@ function MenuCard({
         handleClick({ action: 'view' });
     };
 
-    const showComingSoon = (label) => {
-        setOpenPanel('');
-        showToast(`${label} coming soon`);
+    const openPublicPage = (path) => {
+        const opened = window.open(path, '_blank');
+        if (opened) {
+            opened.opener = null;
+        } else {
+            window.location.assign(path);
+        }
+    };
+
+    const reportRestaurant = () => {
+        const query = new URLSearchParams({
+            restaurantName: hotelDetails.cafeName || '',
+            message: `Restaurant report for ${hotelDetails.cafeName || 'this restaurant'}, table ${tableNumber || '-'}. `
+        });
+        openPublicPage(`/contact?${query.toString()}`);
     };
 
     const logoutCustomer = () => {
@@ -931,59 +943,12 @@ function MenuCard({
                     <button
                         className="rc-option rc-profile-option rc-glass"
                         type="button"
-                        onClick={() => showComingSoon('Favorites')}
-                    >
-                        <span>❤️</span>
-                        <b>Favorites</b>
-                        <small>Your saved food items</small>
-                    </button>
-                    <button
-                        className="rc-option rc-profile-option rc-glass"
-                        type="button"
-                        onClick={() => showComingSoon('Recently Visited')}
-                    >
-                        <span>🏪</span>
-                        <b>Recently Visited</b>
-                        <small>Restaurants visited with RC Dine</small>
-                    </button>
-                    <button
-                        className="rc-option rc-profile-option rc-glass"
-                        type="button"
-                        onClick={() => showComingSoon('Saved Addresses')}
-                    >
-                        <span>📍</span>
-                        <b>Saved Addresses</b>
-                        <small>Manage delivery addresses</small>
-                    </button>
-                    <button
-                        className="rc-option rc-profile-option rc-glass"
-                        type="button"
-                        onClick={() => showComingSoon('Payment Methods')}
-                    >
-                        <span>💳</span>
-                        <b>Payment Methods</b>
-                        <small>Manage cards and UPI</small>
-                    </button>
-                    <button
-                        className="rc-option rc-profile-option rc-glass"
-                        type="button"
                         onClick={() => setOpenPanel('notifications')}
                     >
                         <span>🔔</span>
                         <b>Notifications</b>
                         <small>Order and restaurant updates</small>
                     </button>
-                    {features.customerOtpLogin && (
-                        <button
-                            className="rc-option rc-profile-option rc-glass"
-                            type="button"
-                            onClick={() => showComingSoon('Logged-in Devices')}
-                        >
-                            <span>📱</span>
-                            <b>Logged-in Devices</b>
-                            <small>Manage active sessions</small>
-                        </button>
-                    )}
                     <button
                         className="rc-option rc-profile-option rc-glass"
                         type="button"
@@ -996,7 +961,7 @@ function MenuCard({
                     <button
                         className="rc-option rc-profile-option rc-glass"
                         type="button"
-                        onClick={() => setOpenPanel('privacy')}
+                        onClick={() => openPublicPage('/privacy')}
                     >
                         <span>🔒</span>
                         <b>Privacy Policy</b>
@@ -1005,7 +970,7 @@ function MenuCard({
                     <button
                         className="rc-option rc-profile-option rc-glass"
                         type="button"
-                        onClick={() => setOpenPanel('terms')}
+                        onClick={() => openPublicPage('/terms')}
                     >
                         <span>📄</span>
                         <b>Terms & Conditions</b>
@@ -1091,7 +1056,7 @@ function MenuCard({
                     <button className="rc-option rc-glass" type="button" onClick={callRestaurant}>
                         📞 Call Restaurant
                     </button>
-                    <button className="rc-option rc-glass" type="button" onClick={() => showComingSoon('Table Info')}>
+                    <button className="rc-option rc-glass" type="button" onClick={() => setOpenPanel('info')}>
                         🍽 Table Info
                     </button>
                     <button className="rc-option rc-glass" type="button" onClick={() => setOpenPanel('report')}>
@@ -1100,10 +1065,10 @@ function MenuCard({
                     <button className="rc-option rc-glass" type="button" onClick={() => setOpenPanel('help')}>
                         ❓ Help & Support
                     </button>
-                    <button className="rc-option rc-glass" type="button" onClick={() => setOpenPanel('privacy')}>
+                    <button className="rc-option rc-glass" type="button" onClick={() => openPublicPage('/privacy')}>
                         🔒 Privacy Policy
                     </button>
-                    <button className="rc-option rc-glass" type="button" onClick={() => setOpenPanel('terms')}>
+                    <button className="rc-option rc-glass" type="button" onClick={() => openPublicPage('/terms')}>
                         📄 Terms & Conditions
                     </button>
                 </SideDrawer>
@@ -1251,31 +1216,13 @@ function MenuCard({
                     </div>
                 </BottomSheet>
 
-                <BottomSheet open={openPanel === 'privacy'} title="Privacy Policy" onClose={() => setOpenPanel('')}>
-                    <p className="rc-muted">
-                        RC Dine stores the minimum customer and order information required to provide ordering, payment
-                        and support services.
-                    </p>
-                    <p className="rc-muted">Detailed production policy text can be connected here later.</p>
-                </BottomSheet>
-
                 <BottomSheet open={openPanel === 'report'} title="Report Restaurant" onClose={() => setOpenPanel('')}>
                     <div className="rc-restaurant-info-card rc-glass">
                         <p>Report incorrect menu, pricing, hygiene or service information.</p>
-                        <button
-                            className="rc-session-danger-button"
-                            type="button"
-                            onClick={() => showComingSoon('Restaurant reporting')}
-                        >
+                        <button className="rc-session-danger-button" type="button" onClick={reportRestaurant}>
                             Continue
                         </button>
                     </div>
-                </BottomSheet>
-
-                <BottomSheet open={openPanel === 'terms'} title="Terms & Conditions" onClose={() => setOpenPanel('')}>
-                    <p className="rc-muted">Orders once placed will be prepared by the restaurant.</p>
-                    <p className="rc-muted">Refund and cancellation policy depends on restaurant rules.</p>
-                    <p className="rc-muted">For payment or order issues, please contact restaurant staff.</p>
                 </BottomSheet>
 
                 {showCartScreen &&
@@ -1539,7 +1486,7 @@ function FoodContent({ item, quantity, setMenuQuantity, isCombo = false }) {
                 >
                     {isCombo ? 'COMBO' : getFoodType(item) === 'NON_VEG' ? 'NON VEG' : 'VEG'}
                 </span>
-                <span>⭐ {item.rating || '4.7'}</span>
+                <span>{item.rating ? `⭐ ${item.rating}` : 'New'}</span>
             </div>
             <h4>{item.name}</h4>
             <p>{getItemDescription(item)}</p>
@@ -1568,7 +1515,7 @@ function QtyButton({ item, quantity, setMenuQuantity }) {
                 <b key={quantity} className="rc-quantity-pop">
                     {quantity}
                 </b>
-                <button type="button" onClick={() => setMenuQuantity(item, quantity + 1)}>
+                <button type="button" disabled={quantity >= 99} onClick={() => setMenuQuantity(item, quantity + 1)}>
                     +
                 </button>
             </div>

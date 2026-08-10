@@ -1,5 +1,5 @@
-import crypto from 'crypto';
 import moment from 'moment';
+import { v4 as uuidv4 } from 'uuid';
 import { db } from '../../config/database.js';
 import env from '../../config/env.js';
 import logger from '../../config/logger.js';
@@ -68,7 +68,7 @@ const createOrder = async (req, res) => {
             order,
             orderId: order.id,
             amount: data.amount,
-            key: env.razorpay.keyId,
+            key: await razorpayService.getKeyId(),
             plan: serializePlan(selectedPlan)
         });
     } catch (error) {
@@ -81,6 +81,7 @@ const createOrder = async (req, res) => {
 };
 
 const verifyPayment = async (req, res) => {
+    let transaction;
     try {
         const {
             razorpay_order_id: razorpayOrderId,
@@ -98,38 +99,94 @@ const verifyPayment = async (req, res) => {
             throw CustomError(STATUS_CODE.BAD_REQUEST, 'Invalid or inactive plan');
         }
 
-        const generated = crypto
-            .createHmac('sha256', env.razorpay.keySecret)
-            .update(`${razorpayOrderId}|${razorpayPaymentId}`)
-            .digest('hex');
-
-        const generatedBuffer = Buffer.from(generated, 'utf8');
-        const signatureBuffer = Buffer.from(String(razorpaySignature), 'utf8');
-        const validSignature =
-            generatedBuffer.length === signatureBuffer.length &&
-            crypto.timingSafeEqual(generatedBuffer, signatureBuffer);
+        const validSignature = await razorpayService.verifyPaymentSignature(
+            razorpayOrderId,
+            razorpayPaymentId,
+            razorpaySignature
+        );
 
         if (!validSignature) {
             throw CustomError(STATUS_CODE.FORBIDDEN, 'Invalid signature');
         }
 
-        const user = await userRepo.findOne({ where: { id: req.user.id } });
+        const expectedAmount = Math.round(Number(selectedPlan.amount) * 100);
+        const [razorpayOrder, fetchedPayment] = await Promise.all([
+            razorpayService.fetchOrder(razorpayOrderId),
+            razorpayService.fetchPayment(razorpayPaymentId)
+        ]);
+
+        if (
+            String(fetchedPayment.order_id || '') !== String(razorpayOrderId) ||
+            Number(razorpayOrder.amount) !== expectedAmount ||
+            Number(fetchedPayment.amount) !== expectedAmount ||
+            String(razorpayOrder.currency || '').toUpperCase() !== 'INR' ||
+            String(fetchedPayment.currency || '').toUpperCase() !== 'INR' ||
+            String(razorpayOrder.notes?.userId || '') !== String(req.user.id) ||
+            String(razorpayOrder.notes?.plan || '') !== String(selectedPlan.code)
+        ) {
+            throw CustomError(STATUS_CODE.FORBIDDEN, 'Payment does not match this subscription request');
+        }
+
+        let verifiedPayment = fetchedPayment;
+        if (String(fetchedPayment.status).toLowerCase() === 'authorized') {
+            verifiedPayment = await razorpayService.capturePayment(razorpayPaymentId, expectedAmount, 'INR');
+        }
+        if (String(verifiedPayment.status).toLowerCase() !== 'captured' && verifiedPayment.captured !== true) {
+            throw CustomError(STATUS_CODE.BAD_REQUEST, 'Payment is not captured');
+        }
+
+        transaction = await db.users.sequelize.transaction();
+        const user = await userRepo.findOne({
+            where: { id: req.user.id },
+            transaction,
+            lock: transaction.LOCK.UPDATE
+        });
         if (!user) throw CustomError(STATUS_CODE.NOT_FOUND, 'User not found');
+
+        const replayedPayment = await userRepo.findOne({
+            where: { razorpayPaymentId },
+            attributes: ['id', 'razorpayOrderId', 'razorpayPaymentId'],
+            transaction,
+            lock: transaction.LOCK.UPDATE
+        });
+        if (replayedPayment) {
+            if (
+                String(replayedPayment.id) === String(req.user.id) &&
+                String(replayedPayment.razorpayOrderId) === String(razorpayOrderId)
+            ) {
+                await transaction.rollback();
+                transaction = null;
+                return res.status(STATUS_CODE.OK).send({
+                    success: true,
+                    duplicate: true,
+                    message: 'Subscription already activated',
+                    data: {
+                        subscriptionStatus: user.subscriptionStatus,
+                        subscriptionEndAt: user.subscriptionEndAt,
+                        plan: serializePlan(selectedPlan)
+                    }
+                });
+            }
+            throw CustomError(STATUS_CODE.CONFLICT, 'This payment has already been used');
+        }
 
         const now = moment();
         let start;
         let end;
+        let purchaseStart;
 
         if (user.subscriptionEndAt && moment(user.subscriptionEndAt).isAfter(now)) {
             start = user.subscriptionStartAt || now.toISOString();
+            purchaseStart = moment(user.subscriptionEndAt).toISOString();
             end = moment(user.subscriptionEndAt).add(Number(selectedPlan.days), 'days').toISOString();
         } else {
             start = now.toISOString();
+            purchaseStart = start;
             end = moment(now).add(Number(selectedPlan.days), 'days').toISOString();
         }
 
         await userRepo.update(
-            { where: { id: req.user.id } },
+            { where: { id: req.user.id }, transaction },
             {
                 subscriptionStartAt: start,
                 subscriptionEndAt: end,
@@ -139,6 +196,22 @@ const verifyPayment = async (req, res) => {
                 razorpayPaymentId
             }
         );
+        await db.subscriptionPayments.create(
+            {
+                id: uuidv4(),
+                userId: req.user.id,
+                planCode: selectedPlan.code,
+                amount: Number(selectedPlan.amount),
+                days: Number(selectedPlan.days),
+                subscriptionStartAt: purchaseStart,
+                subscriptionEndAt: end,
+                razorpayOrderId,
+                razorpayPaymentId
+            },
+            { transaction }
+        );
+        await transaction.commit();
+        transaction = null;
 
         return res.status(STATUS_CODE.OK).send({
             success: true,
@@ -150,6 +223,7 @@ const verifyPayment = async (req, res) => {
             }
         });
     } catch (error) {
+        if (transaction) await transaction.rollback();
         return res.status(error.code || STATUS_CODE.INTERNAL_SERVER_ERROR).send({
             success: false,
             message: error.message
@@ -209,7 +283,7 @@ const status = async (req, res) => {
         let trialEnd = user.trialEndAt;
         if (!trialEnd && statusValue === 'TRIAL') {
             trialStart = now.toISOString();
-            trialEnd = moment(now).add(2, 'days').toISOString();
+            trialEnd = moment(now).add(env.trialDays, 'days').toISOString();
             try {
                 await userRepo.update(
                     { where: { id: subscriptionUserId } },

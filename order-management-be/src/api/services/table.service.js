@@ -151,9 +151,16 @@ const updateName = async (hotelId, tableId, payload) => {
     }
 };
 
+const findById = async (hotelId, tableId) =>
+    tableRepo.findOne({
+        where: { id: tableId, hotelId },
+        attributes: ['id', 'hotelId', 'tableNumber']
+    });
+
 export default {
     create,
     fetch,
     remove,
-    updateName
+    updateName,
+    findById
 };

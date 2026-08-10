@@ -42,7 +42,11 @@ export const list = {
 };
 
 export const remove = {
-    req: { params: { id: 'test-invite-id' }, body: { id: 'test-invite-id' } },
+    req: {
+        params: { id: 'test-invite-id' },
+        body: { id: 'test-invite-id' },
+        user: { id: 'test-owner-id' }
+    },
     res: {
         success: {
             status: STATUS_CODE.OK,

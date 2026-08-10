@@ -15,8 +15,14 @@ import {
     updateValidation
 } from '../validations/user.validations.js';
 
-const decryptPassword = (value) =>
-    typeof value === 'string' ? CryptoJS.AES.decrypt(value, env.cryptoSecret).toString(CryptoJS.enc.Utf8) : '';
+const decryptPassword = (value) => {
+    if (typeof value !== 'string') return '';
+    try {
+        return CryptoJS.AES.decrypt(value, env.cryptoSecret).toString(CryptoJS.enc.Utf8) || value;
+    } catch (_error) {
+        return value;
+    }
+};
 
 const create = async (req, res) => {
     try {
@@ -235,7 +241,7 @@ const removeInvite = async (req, res) => {
         const id = req.params.id;
         logger('debug', 'Received request to remove invite with ID:', { id });
 
-        const result = await userService.removeInvite(id);
+        const result = await userService.removeInvite(id, req.user.id);
         logger('info', 'Invite removed successfully', { result });
 
         return res.status(STATUS_CODE.OK).send(result);
@@ -269,7 +275,7 @@ const update = async (req, res) => {
         const options = { ...payload };
         if (payload.password) {
             logger('debug', `${userId} requested for password update`);
-            const depass = CryptoJS.AES.decrypt(payload.password, env.cryptoSecret).toString(CryptoJS.enc.Utf8);
+            const depass = decryptPassword(payload.password);
             options.password = depass;
         }
 

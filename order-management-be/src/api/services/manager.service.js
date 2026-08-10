@@ -26,6 +26,17 @@ const verifyManagerOwnership = async (managerId, ownerId) => {
     return managerInvite;
 };
 
+const verifyOwnerHotel = async (ownerId, hotelId) => {
+    if (!hotelId) return;
+    const relation = await hotelUserRelationRepo.find({
+        where: { userId: ownerId, hotelId },
+        limit: 1
+    });
+    if (!relation?.count) {
+        throw CustomError(STATUS_CODE.FORBIDDEN, 'Access denied to this cafe');
+    }
+};
+
 const fetch = async (payload) => {
     try {
         const { owner, limit, skip, sortKey, sortOrder, filterKey, filterValue } = payload;
@@ -126,6 +137,8 @@ const fetch = async (payload) => {
 const update = async (prevHotel, currentHotel, manager, ownerId) => {
     try {
         await verifyManagerOwnership(manager, ownerId);
+        await verifyOwnerHotel(ownerId, prevHotel);
+        await verifyOwnerHotel(ownerId, currentHotel);
 
         const existingManager = await userRepo.findOne({ where: { id: manager, role: USER_ROLES[1] } });
         if (!existingManager) {
@@ -187,20 +200,29 @@ const remove = async (managerId, ownerId) => {
     try {
         await verifyManagerOwnership(managerId, ownerId);
 
-        const options = {
-            where: { userId: managerId }
-        };
-        await inviteRepo.remove(options);
+        await inviteRepo.remove({ where: { userId: managerId, ownerId } });
         logger('debug', `Invite record removed for ${managerId}`);
 
-        await hotelUserRelationRepo.remove(options);
+        const ownerHotels = await hotelUserRelationRepo.find({
+            where: { userId: ownerId },
+            attributes: ['hotelId']
+        });
+        const ownerHotelIds = ownerHotels.rows.map((relation) => relation.hotelId).filter(Boolean);
+        if (ownerHotelIds.length) {
+            await hotelUserRelationRepo.remove({
+                where: { userId: managerId, hotelId: { [Op.in]: ownerHotelIds } }
+            });
+        }
         logger('debug', `Hotel and user relation removed for ${managerId}`);
 
-        const userOptions = {
-            where: { id: managerId }
-        };
-        await userRepo.remove(userOptions);
-        logger('debug', `User removed for ${managerId}`);
+        const remainingInvites = await inviteRepo.find({
+            where: { userId: managerId, status: INVITE_STATUS[1] },
+            limit: 1
+        });
+        if (!remainingInvites.count) {
+            await userRepo.remove({ where: { id: managerId } });
+            logger('debug', `User removed for ${managerId}`);
+        }
 
         return { message: 'User removed successfully' };
     } catch (error) {
@@ -308,6 +330,7 @@ const create = async (payload) => {
 
         // Check if hotel already has a manager
         if (hotelId) {
+            await verifyOwnerHotel(ownerId, hotelId);
             const existingManager = await hotelUserRelationRepo.find({
                 where: { hotelId },
                 include: [

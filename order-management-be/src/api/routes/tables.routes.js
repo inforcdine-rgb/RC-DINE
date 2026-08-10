@@ -12,6 +12,11 @@ router
     .post(tableController.create)
     .delete(tableController.remove);
 
+router
+    .route('/:hotelId/:tableId/qr-token')
+    .all(authenticate, checkSubscriptionAccess)
+    .post(tableController.createQrToken);
+
 router.route('/:hotelId/:tableId').all(authenticate, checkSubscriptionAccess).put(tableController.updateName);
 
 export default router;

@@ -1,5 +1,6 @@
 import moment from 'moment';
 import { db } from '../../config/database.js';
+import env from '../../config/env.js';
 import logger from '../../config/logger.js';
 import hotelUserRelationRepo from '../repositories/hotelUserRelation.repository.js';
 import userRepo from '../repositories/user.repository.js';
@@ -72,7 +73,7 @@ const checkSubscriptionAccess = async (req, res, next) => {
         if (!owner.trialEndAt && ownerStatus === 'TRIAL') {
             // Auto initialize trial fields for existing user (backward compatibility)
             const trialStart = now.toISOString();
-            const trialEnd = moment(now).add(3, 'days').toISOString();
+            const trialEnd = moment(now).add(env.trialDays, 'days').toISOString();
             try {
                 await userRepo.update(
                     { where: { id: owner.id } },
@@ -83,7 +84,7 @@ const checkSubscriptionAccess = async (req, res, next) => {
                 );
                 owner.trialStartAt = trialStart;
                 owner.trialEndAt = trialEnd;
-                logger('info', `Initialized 2-minute trial for existing user ${owner.email}`);
+                logger('info', `Initialized ${env.trialDays}-day trial for existing user ${owner.email}`);
             } catch (e) {
                 logger('error', 'Error initializing trial fields for existing user', { e });
             }

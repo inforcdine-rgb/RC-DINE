@@ -1,9 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import CryptoJS from 'crypto-js';
 import { Form } from 'react-bootstrap';
 import { FiCheckCircle, FiLock, FiMail, FiRefreshCw, FiShield } from 'react-icons/fi';
 import { toast } from 'react-toastify';
-import env from '../../config/env';
 import * as adminAuthService from '../../services/adminAuth.service';
 import './style.css';
 
@@ -25,8 +23,6 @@ const AdminSecurityPanel = ({ currentEmail = '' }) => {
         const timer = setInterval(() => setCooldown((value) => Math.max(0, value - 1)), 1000);
         return () => clearInterval(timer);
     }, [cooldown]);
-
-    const encrypt = (value) => CryptoJS.AES.encrypt(value, env.cryptoSecret).toString();
 
     const clearSessionAndOpenLogin = () => {
         localStorage.removeItem('token');
@@ -65,7 +61,7 @@ const AdminSecurityPanel = ({ currentEmail = '' }) => {
         try {
             setBusy(true);
             const response = await adminAuthService.requestEmailChange({
-                currentPassword: encrypt(emailForm.currentPassword),
+                currentPassword: emailForm.currentPassword,
                 newEmail: emailForm.newEmail.trim()
             });
             setEmailForm((value) => ({ ...value, currentPassword: '' }));
@@ -91,9 +87,9 @@ const AdminSecurityPanel = ({ currentEmail = '' }) => {
         try {
             setBusy(true);
             const response = await adminAuthService.requestPasswordChange({
-                currentPassword: encrypt(passwordForm.currentPassword),
-                newPassword: encrypt(passwordForm.newPassword),
-                confirmPassword: encrypt(passwordForm.confirmPassword)
+                currentPassword: passwordForm.currentPassword,
+                newPassword: passwordForm.newPassword,
+                confirmPassword: passwordForm.confirmPassword
             });
             setPasswordForm(EMPTY_PASSWORD_FORM);
             startChallenge(response, 'password');

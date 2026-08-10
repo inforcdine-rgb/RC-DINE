@@ -83,7 +83,8 @@ const orderModel = (sequelize) =>
             },
             razorpayPaymentId: {
                 type: DataTypes.STRING,
-                allowNull: true
+                allowNull: true,
+                unique: true
             },
             subtotalAmount: {
                 type: DataTypes.DECIMAL(10, 2),

@@ -919,11 +919,18 @@ function Landing() {
                         <div className="faq-list reveal">
                             {faqs.map((faq, index) => (
                                 <article className={`faq-item ${openFaq === index ? 'open' : ''}`} key={faq.question}>
-                                    <button type="button" onClick={() => setOpenFaq(openFaq === index ? null : index)}>
+                                    <button
+                                        type="button"
+                                        aria-expanded={openFaq === index}
+                                        aria-controls={`faq-answer-${index}`}
+                                        onClick={() => setOpenFaq(openFaq === index ? null : index)}
+                                    >
                                         <span>{faq.question}</span>
                                         <span>{openFaq === index ? '−' : '+'}</span>
                                     </button>
-                                    <div className="faq-answer">{faq.answer}</div>
+                                    <div id={`faq-answer-${index}`} className="faq-answer">
+                                        {faq.answer}
+                                    </div>
                                 </article>
                             ))}
                         </div>

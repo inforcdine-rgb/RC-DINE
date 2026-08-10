@@ -1,5 +1,8 @@
+import crypto from 'crypto';
 import CryptoJS from 'crypto-js';
 import moment from 'moment';
+import Razorpay from 'razorpay';
+import { Op } from 'sequelize';
 import { v4 as uuidv4 } from 'uuid';
 import { db } from '../../config/database.js';
 import env from '../../config/env.js';
@@ -26,6 +29,7 @@ import {
     calculateBill
 } from '../utils/common.js';
 import { createInvoicePdf } from '../utils/pdfGenerator.js';
+import { decryptServerSecret } from '../utils/secretEncryption.js';
 import { sendEmail } from './email.service.js';
 import orderService from './order.service.js';
 import razorpayService from './razorpay.service.js';
@@ -99,6 +103,7 @@ const stakeholder = async (userId, payload) => {
         const stakeholderDetails = {
             name: payload.name,
             email: payload.email,
+            profile: {},
             kyc: {
                 pan: payload.kyc.pan
             }
@@ -141,14 +146,17 @@ const stakeholder = async (userId, payload) => {
     }
 };
 
-const account = async (userId, token) => {
+const account = async (userId, input) => {
     try {
         const options = { where: { userId } };
         const paymentGatewayDetails = await paymentGatewayEntitiesRepo.find(options);
         logger('debug', `payment gateway details for user ${userId}`, paymentGatewayDetails);
 
-        const payload = JSON.parse(CryptoJS.AES.decrypt(token, env.cryptoSecret).toString(CryptoJS.enc.Utf8));
-        logger('debug', 'bank details to attach to payment gateway', payload);
+        let bankDetails = input;
+        if (input.token) {
+            const decrypted = CryptoJS.AES.decrypt(input.token, env.cryptoSecret).toString(CryptoJS.enc.Utf8);
+            bankDetails = JSON.parse(decrypted);
+        }
 
         const requestProductPayload = {
             // eslint-disable-next-line camelcase
@@ -163,11 +171,11 @@ const account = async (userId, token) => {
         const updateProductPayload = {
             settlements: {
                 // eslint-disable-next-line camelcase
-                account_number: token.accountNumber,
+                account_number: bankDetails.accountNumber,
                 // eslint-disable-next-line camelcase
-                ifsc_code: token.ifscCode,
+                ifsc_code: bankDetails.ifscCode,
                 // eslint-disable-next-line camelcase
-                beneficiary_name: token.beneficiaryName
+                beneficiary_name: bankDetails.beneficiaryName
             },
             // eslint-disable-next-line camelcase
             tnc_accepted: true
@@ -230,6 +238,9 @@ const subscribe = async (payload) => {
             };
 
             const { rows } = await hotelUserRelationRepo.find(hotelOptions);
+            if (!rows.length) {
+                throw CustomError(STATUS_CODE.NOT_FOUND, 'Cafe owner details not found');
+            }
             const { user, hotel } = rows[0];
             const emailData = {
                 name: `${user.firstName} ${user.lastName}`,
@@ -312,63 +323,235 @@ const success = async (userId, payload) => {
     }
 };
 
+const getSettlementTotal = (orders) => {
+    const storedFinalAmount = orders.reduce((total, order) => total + Number(order.finalAmount || 0), 0);
+    if (storedFinalAmount > 0) return Number(storedFinalAmount.toFixed(2));
+
+    const price = orders.reduce((total, order) => total + Number(order.price || 0), 0);
+    return calculateBill(price).totalPrice;
+};
+
+const getHotelPaymentGateway = async (hotelId, { requireEnabled = true } = {}) => {
+    const hotel = await db.hotel.findOne({
+        where: { id: hotelId },
+        attributes: ['id', 'paymentEnabled', 'razorpayKeyId', 'razorpayKeySecret']
+    });
+    if (!hotel) throw CustomError(STATUS_CODE.NOT_FOUND, 'Hotel not found');
+    if (requireEnabled && !hotel.paymentEnabled) {
+        throw CustomError(STATUS_CODE.BAD_REQUEST, 'Online payment is disabled for this hotel');
+    }
+
+    const keySecret = decryptServerSecret(hotel.razorpayKeySecret);
+    if (!hotel.razorpayKeyId || !keySecret) {
+        throw CustomError(STATUS_CODE.BAD_REQUEST, 'Hotel Razorpay settings are incomplete');
+    }
+
+    return {
+        keyId: hotel.razorpayKeyId,
+        keySecret,
+        // Razorpay SDK requires snake_case credential keys.
+        // eslint-disable-next-line camelcase
+        client: new Razorpay({ key_id: hotel.razorpayKeyId, key_secret: keySecret })
+    };
+};
+
 const payment = async ({ customerId, hotelId, manual }) => {
     try {
         const options = {
             where: {
                 customerId,
-                status: ORDER_STATUS[1]
+                status: ORDER_STATUS[1],
+                paymentStatus: { [Op.ne]: 'PAID' }
             }
         };
         const { rows: orders } = await orderRepo.find(options);
         const { rows } = await customerRepo.find({
-            where: { id: customerId },
+            where: { id: customerId, hotelId },
             include: [{ model: db.tables }]
         });
         const customer = rows[0];
+        if (!customer) throw CustomError(STATUS_CODE.NOT_FOUND, 'Customer not found');
+        const activeTable = customer.table
+            ? await db.tables.findOne({
+                where: {
+                    id: customer.table.id,
+                    hotelId,
+                    customerId,
+                    status: { [Op.in]: [TABLE_STATUS[1], TABLE_STATUS[4]] }
+                }
+            })
+            : null;
+        if (!activeTable) throw CustomError(STATUS_CODE.CONFLICT, 'This table session is no longer active');
+        if (!orders.length) throw CustomError(STATUS_CODE.BAD_REQUEST, 'No served orders are awaiting payment');
         logger('debug', 'Customer details', customer);
 
-        const price = orders.reduce((cur, next) => {
-            cur += next.price;
-            return cur;
-        }, 0);
-
-        const { totalPrice } = calculateBill(price);
+        const totalPrice = getSettlementTotal(orders);
         logger('info', `total price for ${customerId} - ${totalPrice}`);
         if (manual) {
-            const userIds = await orderService.getNotificationUserIds(hotelId);
-            await notificationService.sendNotification(userIds, {
-                title: 'Payment Request',
-                message: `Payment request for Table-${customer.table.tableNumber} of amount ${totalPrice}. Please approve once the payment is done.`,
-                path: '/orders',
-                meta: {
-                    action: NOTIFICATION_ACTIONS.PAYMENT_REQUEST,
-                    tableId: customer.table.id,
-                    customerId,
-                    tableNumber: customer.table.tableNumber,
-                    totalPrice
-                }
-            });
+            await tableRepo.update(
+                { where: { id: activeTable.id, hotelId, customerId } },
+                { status: TABLE_STATUS[4] }
+            );
+            try {
+                const userIds = await orderService.getNotificationUserIds(hotelId);
+                await notificationService.sendNotification(userIds, {
+                    title: 'Payment Request',
+                    message: `Payment request for Table-${activeTable.tableNumber} of amount ${totalPrice}. Please approve once the payment is done.`,
+                    path: '/orders',
+                    meta: {
+                        action: NOTIFICATION_ACTIONS.PAYMENT_REQUEST,
+                        tableId: activeTable.id,
+                        customerId,
+                        tableNumber: activeTable.tableNumber,
+                        totalPrice
+                    }
+                });
+            } catch (notificationError) {
+                logger('warn', 'Manual payment request saved, but notification delivery failed', { notificationError });
+            }
             return { message: 'Success' };
         } else {
-            const payload = {
-                amount: totalPrice * 100,
-                currency: 'INR',
-                receipt: `online payment receipt`
-            };
-            const order = await razorpayService.order(payload);
+            const gateway = await getHotelPaymentGateway(hotelId);
+            const order = await db.orders.sequelize.transaction(async (transaction) => {
+                const { rows: lockedOrders } = await orderRepo.find({
+                    ...options,
+                    transaction,
+                    lock: transaction.LOCK.UPDATE
+                });
+                if (!lockedOrders.length) {
+                    throw CustomError(STATUS_CODE.BAD_REQUEST, 'No served orders are awaiting payment');
+                }
+
+                const lockedTotal = getSettlementTotal(lockedOrders);
+                const expectedAmount = Math.round(lockedTotal * 100);
+                const existingOrderId = lockedOrders.find((item) => item.razorpayOrderId)?.razorpayOrderId;
+                if (existingOrderId) {
+                    const existingOrder = await gateway.client.orders.fetch(existingOrderId);
+                    const notes = existingOrder.notes || {};
+                    if (
+                        Number(existingOrder.amount) === expectedAmount &&
+                        String(existingOrder.currency || '').toUpperCase() === 'INR' &&
+                        String(notes.customerId || '') === String(customerId) &&
+                        String(notes.hotelId || '') === String(hotelId) &&
+                        String(notes.type || '') === 'ORDER_SETTLEMENT'
+                    ) {
+                        if (String(existingOrder.status || '').toLowerCase() === 'paid') {
+                            throw CustomError(STATUS_CODE.CONFLICT, 'Payment is already processing');
+                        }
+                        return existingOrder;
+                    }
+                }
+
+                const payload = {
+                    amount: expectedAmount,
+                    currency: 'INR',
+                    receipt: `settle_${String(customerId).replace(/-/g, '').slice(0, 16)}_${Date.now()}`,
+                    notes: { customerId, hotelId, type: 'ORDER_SETTLEMENT' }
+                };
+                const createdOrder = await gateway.client.orders.create(payload);
+                await db.orders.update(
+                    { razorpayOrderId: createdOrder.id },
+                    {
+                        where: { id: { [Op.in]: lockedOrders.map((item) => item.id) } },
+                        transaction
+                    }
+                );
+                return createdOrder;
+            });
             return {
                 email: customer.email,
                 name: customer.name,
                 phoneNumber: customer.phoneNumber,
                 orderId: order.id,
-                amount: payload.amount
+                amount: Number(order.amount),
+                key: gateway.keyId,
+                isSettlementPayment: true
             };
         }
     } catch (error) {
         logger('error', 'Error while order payment ', { error });
         throw CustomError(error.code, error.message);
     }
+};
+
+const verifyPaymentConfirmation = async (payload) => {
+    const { customerId, hotelId, orderId, paymentId, razorpaySignature } = payload;
+    const gateway = await getHotelPaymentGateway(hotelId, { requireEnabled: false });
+
+    const generatedSignature = crypto
+        .createHmac('sha256', gateway.keySecret)
+        .update(`${orderId}|${paymentId}`)
+        .digest('hex');
+    const generatedBuffer = Buffer.from(generatedSignature, 'utf8');
+    const receivedBuffer = Buffer.from(String(razorpaySignature), 'utf8');
+    if (
+        generatedBuffer.length !== receivedBuffer.length ||
+        !crypto.timingSafeEqual(generatedBuffer, receivedBuffer)
+    ) {
+        throw CustomError(STATUS_CODE.FORBIDDEN, 'Invalid payment signature');
+    }
+
+    const existingPayment = await db.orders.findOne({
+        where: { razorpayPaymentId: paymentId },
+        attributes: ['id', 'customerId', 'hotelId', 'razorpayOrderId', 'status', 'paymentStatus']
+    });
+    if (existingPayment) {
+        const sameCompletedPayment =
+            String(existingPayment.customerId) === String(customerId) &&
+            String(existingPayment.hotelId) === String(hotelId) &&
+            String(existingPayment.razorpayOrderId) === String(orderId) &&
+            existingPayment.status === ORDER_STATUS[3] &&
+            existingPayment.paymentStatus === 'PAID';
+        if (sameCompletedPayment) return { message: 'Success', duplicate: true };
+        throw CustomError(STATUS_CODE.CONFLICT, 'This payment has already been used');
+    }
+
+    const [{ rows: orders }, razorpayOrder, razorpayPayment] = await Promise.all([
+        orderRepo.find({
+            where: {
+                customerId,
+                hotelId,
+                status: ORDER_STATUS[1],
+                paymentStatus: { [Op.ne]: 'PAID' },
+                razorpayOrderId: orderId
+            }
+        }),
+        gateway.client.orders.fetch(orderId),
+        gateway.client.payments.fetch(paymentId)
+    ]);
+    if (!orders.length) throw CustomError(STATUS_CODE.BAD_REQUEST, 'No served orders are awaiting payment');
+
+    const totalPrice = getSettlementTotal(orders);
+    const expectedAmount = Math.round(totalPrice * 100);
+    const notes = razorpayOrder.notes || {};
+    if (
+        String(razorpayPayment.order_id || '') !== String(orderId) ||
+        String(razorpayOrder.currency || '').toUpperCase() !== 'INR' ||
+        String(razorpayPayment.currency || '').toUpperCase() !== 'INR' ||
+        Number(razorpayOrder.amount) !== expectedAmount ||
+        Number(razorpayPayment.amount) !== expectedAmount ||
+        String(notes.customerId || '') !== String(customerId) ||
+        String(notes.hotelId || '') !== String(hotelId) ||
+        String(notes.type || '') !== 'ORDER_SETTLEMENT'
+    ) {
+        throw CustomError(STATUS_CODE.FORBIDDEN, 'Payment does not match this order settlement');
+    }
+
+    let verifiedPayment = razorpayPayment;
+    if (String(razorpayPayment.status).toLowerCase() === 'authorized') {
+        verifiedPayment = await gateway.client.payments.capture(paymentId, expectedAmount, 'INR');
+    }
+    if (String(verifiedPayment.status).toLowerCase() !== 'captured' && verifiedPayment.captured !== true) {
+        throw CustomError(STATUS_CODE.BAD_REQUEST, 'Payment is not captured');
+    }
+
+    return paymentConfirmation({
+        customerId,
+        hotelId,
+        manual: false,
+        orderId,
+        paymentId
+    });
 };
 
 const paymentConfirmation = async (payload) => {
@@ -385,7 +568,21 @@ const paymentConfirmation = async (payload) => {
                 },
                 {
                     model: db.orders,
-                    attributes: ['quantity', 'price'],
+                    attributes: [
+                        'id',
+                        'status',
+                        'quantity',
+                        'price',
+                        'discountType',
+                        'discountValue',
+                        'discountAmount',
+                        'cgstAmount',
+                        'sgstAmount',
+                        'tipAmount',
+                        'finalAmount',
+                        'paymentStatus',
+                        'razorpayOrderId'
+                    ],
                     include: [
                         {
                             model: db.menu,
@@ -401,50 +598,104 @@ const paymentConfirmation = async (payload) => {
         });
         customerDetails = customerDetails[0];
 
-        const orderOptions = {
-            options: { where: { customerId } },
-            data: {
-                status: ORDER_STATUS[3]
-            }
-        };
-
-        if (!payload.manual) {
-            orderOptions.data.razorpayOrderId = payload.orderId;
-            orderOptions.data.razorpayPaymentId = payload.paymentId;
-        } else {
-            orderOptions.data.razorpayOrderId = 'manual';
-            orderOptions.data.razorpayPaymentId = 'manual';
+        if (!customerDetails) {
+            throw CustomError(STATUS_CODE.NOT_FOUND, 'Customer not found');
+        }
+        if (payload.hotelId && String(customerDetails.hotel?.id) !== String(payload.hotelId)) {
+            throw CustomError(STATUS_CODE.FORBIDDEN, 'Access denied to this cafe');
         }
 
-        const orderRes = await orderRepo.update(orderOptions.options, orderOptions.data);
-        logger('debug', 'Order updated response', orderRes);
+        const payableOrders = customerDetails.orders.filter(
+            (order) =>
+                order.status === ORDER_STATUS[1] &&
+                order.paymentStatus !== 'PAID' &&
+                (payload.manual || String(order.razorpayOrderId || '') === String(payload.orderId || ''))
+        );
+        if (!payableOrders.length) {
+            throw CustomError(STATUS_CODE.BAD_REQUEST, 'No served orders are awaiting payment');
+        }
 
-        const tableOptions = {
-            options: { where: { customerId } },
-            data: { status: TABLE_STATUS[0], customerId: null }
-        };
-        const tableRes = await tableRepo.update(tableOptions.options, tableOptions.data);
-        logger('debug', 'Table details updated', tableRes);
+        const transaction = await db.orders.sequelize.transaction();
+        try {
+            const payableIds = payableOrders.map((order) => order.id);
+            const [paidCount] = await orderRepo.update(
+                {
+                    where: {
+                        id: { [Op.in]: payableIds },
+                        customerId,
+                        status: ORDER_STATUS[1],
+                        paymentStatus: { [Op.ne]: 'PAID' }
+                    },
+                    transaction
+                },
+                {
+                    status: ORDER_STATUS[3],
+                    paymentStatus: 'PAID',
+                    paymentMethod: payload.manual ? 'CASH' : 'UPI'
+                }
+            );
+            if (!paidCount) {
+                throw CustomError(STATUS_CODE.CONFLICT, 'Payment was already confirmed');
+            }
+
+            if (!payload.manual) {
+                await db.orders.update(
+                    { razorpayPaymentId: payload.paymentId },
+                    { where: { id: payableOrders[0].id }, transaction }
+                );
+            }
+
+            // Prepaid served batches do not belong in this settlement amount,
+            // but they can be closed with the same table checkout.
+            await orderRepo.update(
+                {
+                    where: { customerId, status: ORDER_STATUS[1], paymentStatus: 'PAID' },
+                    transaction
+                },
+                { status: ORDER_STATUS[3] }
+            );
+
+            const remainingActiveOrders = await db.orders.count({
+                where: { customerId, status: { [Op.in]: [ORDER_STATUS[0], ORDER_STATUS[1]] } },
+                transaction
+            });
+            if (!remainingActiveOrders) {
+                await tableRepo.update(
+                    { where: { customerId }, transaction },
+                    { status: TABLE_STATUS[0], customerId: null }
+                );
+            }
+
+            await transaction.commit();
+        } catch (transactionError) {
+            await transaction.rollback();
+            throw transactionError;
+        }
 
         const invoicePdfData = [['Item', 'Quantity', 'Price']];
-        let price = 0;
-        customerDetails.orders.forEach((order) => {
+        payableOrders.forEach((order) => {
             invoicePdfData.push([order.menu.name, String(order.quantity), String(order.price)]);
-            price += order.price;
         });
 
-        const firstOrder = customerDetails.orders?.[0] || {};
+        const firstOrder = payableOrders[0] || {};
         const discountType = firstOrder.discountType || '';
         const discountValue = Number(firstOrder.discountValue || 0);
-        const discountAmount = Number(firstOrder.discountAmount || 0);
+        const discountAmount = payableOrders.reduce(
+            (total, order) => total + Number(order.discountAmount || 0),
+            0
+        );
 
         if (discountAmount > 0) {
             const discountLabel = discountType === 'PERCENT' ? `Discount (${discountValue}%)` : 'Discount';
             invoicePdfData.push(['', discountLabel, `-${discountAmount}`]);
         }
 
-        const { sgst, cgst, totalPrice } = calculateBill(price);
+        const totalPrice = getSettlementTotal(payableOrders);
+        const sgst = payableOrders.reduce((total, order) => total + Number(order.sgstAmount || 0), 0);
+        const cgst = payableOrders.reduce((total, order) => total + Number(order.cgstAmount || 0), 0);
+        const tip = payableOrders.reduce((total, order) => total + Number(order.tipAmount || 0), 0);
         [
+            { label: 'Tip', value: tip },
             { label: 'SGST', value: sgst },
             { label: 'CGST', value: cgst },
             { label: 'Total', value: totalPrice }
@@ -452,39 +703,44 @@ const paymentConfirmation = async (payload) => {
             invoicePdfData.push(['', obj.label, String(obj.value)]);
         });
 
-        if (payload.manual) {
-            await notificationService.sendNotification(
-                undefined,
-                {
-                    title: 'Payment Confirmed',
-                    message: `Payment successfully confirmed`,
+        try {
+            if (payload.manual) {
+                await notificationService.sendNotification(
+                    undefined,
+                    {
+                        title: 'Payment Confirmed',
+                        message: `Payment successfully confirmed`,
+                        meta: {
+                            action: NOTIFICATION_ACTIONS.MANUAL_PAYMENT_CONFIRMED,
+                            tableNumber: customerDetails.table.tableNumber
+                        }
+                    },
+                    customerId
+                );
+            } else {
+                const userIds = await orderService.getNotificationUserIds(customerDetails.hotel.id);
+                await notificationService.sendNotification(userIds, {
+                    title: 'Payment Received',
+                    message: `Payment received for Table ${customerDetails.table.tableNumber}: ₹${totalPrice}`,
                     meta: {
-                        action: NOTIFICATION_ACTIONS.MANUAL_PAYMENT_CONFIRMED,
-                        tableNumber: customerDetails.table.tableNumber
+                        tableNumber: customerDetails.table.tableNumber,
+                        action: NOTIFICATION_ACTIONS.ONLINE_PAYMENT_CONFIRMED,
+                        hotelId: customerDetails.hotel.id
                     }
-                },
-                customerId
-            );
-        } else {
-            const userIds = await orderService.getNotificationUserIds(customerDetails.hotel.id);
-            await notificationService.sendNotification(userIds, {
-                title: 'Payment Received',
-                message: `Payment recieved successfully for Table Number-${customerDetails.table.tableNumber} of amount ${totalPrice}rs`,
-                meta: {
-                    tableNumber: customerDetails.table.tableNumber,
-                    action: NOTIFICATION_ACTIONS.ONLINE_PAYMENT_CONFIRMED,
-                    hotelId: customerDetails.hotel.id
-                }
-            });
+                });
+            }
+        } catch (notificationError) {
+            logger('warn', 'Payment completed, but confirmation notification failed', { notificationError });
         }
 
         // send mail to customer
         try {
+            const invoiceReference = payload.orderId || `manual-${customerId}-${Date.now()}`;
             const pdfData = await createInvoicePdf({
                 title: customerDetails.hotel.name,
                 hotelId: customerDetails.hotel.id,
-                invoiceNumber: payload.orderId,
-                orderId: payload.orderId,
+                invoiceNumber: invoiceReference,
+                orderId: invoiceReference,
                 date: moment().format('DD-MMM-YYYY HH:mm:ss'),
                 tableNumber: String(customerDetails.table.tableNumber),
                 totalAmount: String(totalPrice),
@@ -503,7 +759,7 @@ const paymentConfirmation = async (payload) => {
             };
             await sendEmail(emailOptions, customerDetails.email, EMAIL_ACTIONS.INVOICE_EMAIL, [
                 {
-                    filename: `invoice-${payload.orderId}.pdf`,
+                    filename: `invoice-${invoiceReference}.pdf`,
                     content: pdfData,
                     encoding: 'base64'
                 }
@@ -526,14 +782,15 @@ const calculateRefundAmount = (subscription, plan) => {
             .startOf('day')
             .diff(moment(subscription.startDate, 'YYYY-MM-DD hh:mm:ss').startOf('day'), 'days');
         const remainingDays = moment(subscription.endDate, 'YYYY-MM-DD hh:mm:ss').startOf('day').diff(moment(), 'days');
-        return Math.round(remainingDays * (amount / totalDays));
+        if (!Number.isFinite(amount) || totalDays <= 0 || remainingDays <= 0) return 0;
+        return Math.max(0, Math.min(Math.round(amount), Math.round(remainingDays * (amount / totalDays))));
     } catch (error) {
         logger('error', 'Error while calculate refund amount', { error });
         throw CustomError(error.code, error.message);
     }
 };
 
-const cancel = async (payload) => {
+const cancel = async (ownerId, payload) => {
     try {
         const { subscriptionId, cancelImmediately } = payload;
         logger('debug', `Payload for cancel subscription`, payload);
@@ -548,7 +805,15 @@ const cancel = async (payload) => {
         if (!subscription) {
             throw CustomError(STATUS_CODE.NOT_FOUND, 'Subscription not found');
         }
-        await razorpayService.cancel(subscriptionId, cancelImmediately);
+        const ownership = await hotelUserRelationRepo.find({
+            where: { userId: ownerId, hotelId: subscription.hotelId },
+            limit: 1
+        });
+        if (!ownership.count) {
+            throw CustomError(STATUS_CODE.FORBIDDEN, 'Access denied to this subscription');
+        }
+
+        await razorpayService.cancel(subscriptionId, !cancelImmediately);
         logger('debug', `Subscription cancelled successfully`);
 
         if (cancelImmediately) {
@@ -561,7 +826,9 @@ const cancel = async (payload) => {
 
             const refundAmount = calculateRefundAmount(subscription, plan);
             logger('debug', `Refund amount`, { refundAmount });
-            await razorpayService.refund(subscription.paymentId, refundAmount);
+            if (refundAmount > 0 && subscription.paymentId) {
+                await razorpayService.refund(subscription.paymentId, refundAmount * 100);
+            }
 
             const options = { where: { id: subscription.id } };
             const data = {
@@ -591,6 +858,7 @@ export default {
     subscribe,
     success,
     payment,
+    verifyPaymentConfirmation,
     paymentConfirmation,
     cancel
 };

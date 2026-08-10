@@ -1,13 +1,12 @@
 import moment from 'moment';
 import { Op } from 'sequelize';
-import { getAdminSettings, saveAdminSettings } from '../../config/adminSettings.js';
 import { db } from '../../config/database.js';
 import logger from '../../config/logger.js';
-import { normalizeActiveQrTemplateIds } from '../../config/qrTemplates.js';
 import { USER_ROLES } from '../models/user.model.js';
 import subscriptionPlanRepo from '../repositories/subscriptionPlan.repository.js';
 import userRepo from '../repositories/user.repository.js';
 import { CustomError, STATUS_CODE } from '../utils/common.js';
+import appSettingsService from './appSettings.service.js';
 import userService from './user.service.js';
 
 const sanitizeOwner = (owner) => {
@@ -35,23 +34,34 @@ const sanitizeOwner = (owner) => {
 
 const dashboard = async () => {
     try {
-        const [ownerCount, managerCount, hotelCount, activeSubscriptions, expiredSubscriptions, subscribedOwners] =
-            await Promise.all([
-                db.users.count({ where: { role: USER_ROLES[0] } }),
-                db.users.count({ where: { role: USER_ROLES[1] } }),
-                db.hotel.count(),
-                db.users.count({ where: { role: USER_ROLES[0], subscriptionStatus: 'ACTIVE' } }),
-                db.users.count({ where: { role: USER_ROLES[0], subscriptionStatus: 'EXPIRED' } }),
-                db.users.findAll({
-                    where: {
-                        role: USER_ROLES[0],
-                        subscriptionPlan: { [Op.ne]: null }
-                    }
-                })
-            ]);
+        const [
+            ownerCount,
+            managerCount,
+            hotelCount,
+            activeSubscriptions,
+            expiredSubscriptions,
+            subscribedOwners,
+            recordedRevenue
+        ] = await Promise.all([
+            db.users.count({ where: { role: USER_ROLES[0] } }),
+            db.users.count({ where: { role: USER_ROLES[1] } }),
+            db.hotel.count(),
+            db.users.count({ where: { role: USER_ROLES[0], subscriptionStatus: 'ACTIVE' } }),
+            db.users.count({ where: { role: USER_ROLES[0], subscriptionStatus: 'EXPIRED' } }),
+            db.users.findAll({
+                where: {
+                    role: USER_ROLES[0],
+                    subscriptionPlan: { [Op.ne]: null }
+                }
+            }),
+            db.subscriptionPayments.sum('amount')
+        ]);
 
-        const activePlans = getAdminSettings().plans;
-        const totalRevenue = subscribedOwners.reduce((sum, owner) => {
+        const activePlans = (await subscriptionPlanRepo.findAll()).reduce((result, plan) => {
+            result[plan.code] = { amount: Number(plan.amount), days: Number(plan.days) };
+            return result;
+        }, {});
+        const legacyRevenueEstimate = subscribedOwners.reduce((sum, owner) => {
             const planInfo = activePlans[owner.subscriptionPlan] || { amount: 0 };
             return sum + (planInfo.amount || 0);
         }, 0);
@@ -62,7 +72,7 @@ const dashboard = async () => {
             hotelCount,
             activeSubscriptions,
             expiredSubscriptions,
-            revenue: totalRevenue
+            revenue: Number(recordedRevenue || 0) || legacyRevenueEstimate
         };
     } catch (error) {
         logger('error', 'Error while fetching admin dashboard data', { error });
@@ -198,27 +208,54 @@ const sendOwnerPasswordResetLink = async (ownerId) => {
 
 const revenue = async () => {
     try {
-        const owners = await db.users.findAll({
-            where: { role: USER_ROLES[0], subscriptionPlan: { [Op.ne]: null } },
-            order: [['subscriptionStartAt', 'DESC']]
-        });
+        const [paymentRows, owners] = await Promise.all([
+            db.subscriptionPayments.findAll({
+                include: [
+                    {
+                        model: db.users,
+                        as: 'user',
+                        attributes: ['id', 'firstName', 'lastName', 'subscriptionStatus']
+                    }
+                ],
+                order: [['createdAt', 'DESC']]
+            }),
+            db.users.findAll({
+                where: { role: USER_ROLES[0], subscriptionPlan: { [Op.ne]: null } },
+                order: [['subscriptionStartAt', 'DESC']]
+            })
+        ]);
 
-        const activePlans = getAdminSettings().plans;
-        const purchases = owners.map((owner) => {
-            const plan = owner.subscriptionPlan;
-            const planInfo = activePlans[plan] || { days: 0, amount: 0 };
-            return {
-                id: owner.id,
-                ownerName: `${owner.firstName} ${owner.lastName}`,
-                planName: plan,
-                daysPurchased: planInfo.days,
-                amountPaid: planInfo.amount,
-                purchaseDate: owner.subscriptionStartAt,
-                expiryDate: owner.subscriptionEndAt,
-                paymentReference: owner.razorpayPaymentId || owner.razorpayOrderId,
-                status: owner.subscriptionStatus
-            };
-        });
+        const activePlans = (await subscriptionPlanRepo.findAll()).reduce((result, plan) => {
+            result[plan.code] = { amount: Number(plan.amount), days: Number(plan.days) };
+            return result;
+        }, {});
+        const purchases = paymentRows.length
+            ? paymentRows.map((payment) => ({
+                id: payment.id,
+                ownerName: `${payment.user?.firstName || ''} ${payment.user?.lastName || ''}`.trim(),
+                planName: payment.planCode,
+                daysPurchased: Number(payment.days),
+                amountPaid: Number(payment.amount),
+                purchaseDate: payment.createdAt,
+                expiryDate: payment.subscriptionEndAt,
+                paymentReference: payment.razorpayPaymentId,
+                status: payment.user?.subscriptionStatus || 'ACTIVE'
+            }))
+            : owners.map((owner) => {
+                const plan = owner.subscriptionPlan;
+                const planInfo = activePlans[plan] || { days: 0, amount: 0 };
+                return {
+                    id: owner.id,
+                    ownerName: `${owner.firstName} ${owner.lastName}`,
+                    planName: plan,
+                    daysPurchased: planInfo.days,
+                    amountPaid: planInfo.amount,
+                    purchaseDate: owner.subscriptionStartAt,
+                    expiryDate: owner.subscriptionEndAt,
+                    paymentReference: owner.razorpayPaymentId || owner.razorpayOrderId,
+                    status: owner.subscriptionStatus
+                };
+            });
 
         const todayStart = moment().startOf('day');
         const weekStart = moment().startOf('week');
@@ -252,7 +289,7 @@ const getSettings = async (adminId) => {
         const admin = await db.users.findOne({ where: { id: adminId } });
         if (!admin) throw CustomError(STATUS_CODE.NOT_FOUND, 'Admin not found');
 
-        const settings = getAdminSettings();
+        const settings = await appSettingsService.get();
         let maskedSecret = '';
         if (settings.razorpay.keySecret) {
             const len = settings.razorpay.keySecret.length;
@@ -310,13 +347,6 @@ const updateSettings = async (adminId, payload) => {
             await userRepo.update({ where: { id: adminId } }, updateData);
         }
 
-        const currentSettings = getAdminSettings();
-        if (razorpay) {
-            if (razorpay.keyId) currentSettings.razorpay.keyId = razorpay.keyId;
-            if (razorpay.keySecret && !razorpay.keySecret.includes('*') && razorpay.keySecret.trim() !== '') {
-                currentSettings.razorpay.keySecret = razorpay.keySecret;
-            }
-        }
         if (plans) {
             const allowedCodes = ['MONTHLY', 'HALF_YEARLY', 'YEARLY'];
             for (const code of allowedCodes) {
@@ -326,13 +356,7 @@ const updateSettings = async (adminId, payload) => {
                 }
             }
         }
-        if (Array.isArray(qrTemplates?.activeIds)) {
-            currentSettings.qrTemplates = {
-                activeIds: normalizeActiveQrTemplateIds(qrTemplates.activeIds)
-            };
-        }
-
-        saveAdminSettings(currentSettings);
+        await appSettingsService.update({ razorpay, qrTemplates });
         return { success: true, message: 'Settings updated successfully' };
     } catch (error) {
         logger('error', 'Error while updating admin settings service', { error });
@@ -341,7 +365,7 @@ const updateSettings = async (adminId, payload) => {
 };
 
 const getActiveQrTemplates = async () => {
-    const settings = getAdminSettings();
+    const settings = await appSettingsService.get();
     return { activeIds: settings.qrTemplates.activeIds };
 };
 

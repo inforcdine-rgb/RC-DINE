@@ -27,6 +27,10 @@ const orderPlacementSlice = createSlice({
         setViewOrderDetails(state, action) {
             const { count, rows } = action.payload;
             const firstBillRow = rows?.find((obj) => Number(obj.finalAmount || 0) > 0) || rows?.[0] || {};
+            const hasPendingOrder = rows?.some((obj) => obj.status === ORDER_STATUS[0]);
+            const hasOutstandingPayment = rows?.some(
+                (obj) => obj.status !== 'CANCELLED' && obj.paymentStatus !== 'PAID'
+            );
             const subtotal =
                 rows?.reduce((cur, next) => {
                     cur += Number(next.price || 0);
@@ -36,8 +40,8 @@ const orderPlacementSlice = createSlice({
                 count,
                 title: 'View Order',
                 data: rows,
-                submitText: !rows?.find((obj) => obj.status === ORDER_STATUS[0]) ? 'Pay' : 'Update',
-                closeText: !rows?.find((obj) => obj.status === ORDER_STATUS[0]) ? 'Pay Manually' : 'Close',
+                submitText: hasPendingOrder ? 'Update' : hasOutstandingPayment ? 'Pay' : undefined,
+                closeText: !hasPendingOrder && hasOutstandingPayment ? 'Pay Manually' : 'Close',
                 updated: {},
                 totalPrice: subtotal,
                 finalAmount: Number(firstBillRow.finalAmount || 0),

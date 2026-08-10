@@ -20,6 +20,10 @@ export const getAssignedHotelId = async (userId) => {
  * Managers are always scoped to their assigned hotel (client hotelId is ignored).
  */
 export const resolveHotelAccess = async (user, requestedHotelId) => {
+    if (!user?.id || !user?.role) {
+        throw CustomError(STATUS_CODE.UNAUTHORIZED, 'Authentication required');
+    }
+
     if (user.role === USER_ROLES[1]) {
         const assignedHotelId = user.hotelId || (await getAssignedHotelId(user.id));
         if (!assignedHotelId) {

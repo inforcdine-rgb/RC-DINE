@@ -39,7 +39,7 @@ const createPasswordResetToken = (user) =>
         { expiresIn: '1h' }
     );
 
-const sendPasswordResetLink = async ({ email, userId, role } = {}) => {
+const sendPasswordResetLink = async ({ email, userId, role, suppressNotFound = false } = {}) => {
     if (!email && !userId) {
         throw CustomError(STATUS_CODE.BAD_REQUEST, 'Invalid password reset request.');
     }
@@ -56,6 +56,9 @@ const sendPasswordResetLink = async ({ email, userId, role } = {}) => {
     });
 
     if (!user) {
+        if (suppressNotFound) {
+            return { message: 'If an account exists for this email, a recovery link has been sent.' };
+        }
         throw CustomError(STATUS_CODE.BAD_REQUEST, 'Invalid Email');
     }
 
@@ -187,7 +190,7 @@ const create = async (payload) => {
         if (!payload.invite) {
             user.recoveryCodeHash = await hashRecoveryCode(payload.recoveryCode);
             user.trialStartAt = moment().toISOString();
-            user.trialEndAt = moment().add(2, 'minutes').toISOString();
+            user.trialEndAt = moment().add(env.trialDays, 'days').toISOString();
             user.subscriptionStatus = 'TRIAL';
         }
 
@@ -242,20 +245,20 @@ const login = async (payload) => {
             .trim()
             .toLowerCase();
 
-        logger('debug', `Login request received for email: ${email}`);
+        logger('debug', 'Login request received');
         // tokenVersion is intentionally hidden by User.toJSON(). Use a raw
         // internal record so the newly issued session matches the live user.
         const user = await userRepo.findOne({ where: { email }, raw: true });
 
         if (!user) {
-            logger('error', `Email ${email} not registered.`);
-            throw CustomError(STATUS_CODE.NOT_FOUND, 'Email not registered');
+            logger('warn', 'Login rejected');
+            throw CustomError(STATUS_CODE.UNAUTHORIZED, 'Invalid email, password, or role');
         }
 
         const isValidPassword = await comparePassword(password, user.password);
         if (!isValidPassword) {
-            logger('error', 'Invalid password provided.');
-            throw CustomError(STATUS_CODE.UNAUTHORIZED, 'Invalid password');
+            logger('warn', 'Login rejected');
+            throw CustomError(STATUS_CODE.UNAUTHORIZED, 'Invalid email, password, or role');
         }
 
         // Migrate old AES-encrypted passwords to bcrypt after a successful login.
@@ -265,9 +268,8 @@ const login = async (payload) => {
 
         // Validate that selected role matches user's actual role (case-insensitive)
         if (String(user.role).toUpperCase() !== String(role).toUpperCase()) {
-            logger('error', `Role mismatch for user ${email}. Selected: ${role}, Actual: ${user.role}`);
-            // Return a clear, actionable message to the client
-            throw CustomError(STATUS_CODE.FORBIDDEN, `You are not authorized as ${role}`);
+            logger('warn', 'Login rejected due to role mismatch');
+            throw CustomError(STATUS_CODE.UNAUTHORIZED, 'Invalid email, password, or role');
         }
 
         // Verification checks are removed; users can login immediately.
@@ -374,9 +376,10 @@ const forget = async (payload) => {
         const email = String(payload.email || '')
             .trim()
             .toLowerCase();
-        logger('debug', `Initiating forgot password for email: ${email}`);
+        logger('debug', 'Initiating forgot password');
         logger('info', 'Sending verification email for forgot password');
-        return await sendPasswordResetLink({ email });
+        const result = await sendPasswordResetLink({ email, suppressNotFound: true });
+        return { ...result, message: 'If an account exists for this email, a recovery link has been sent.' };
     } catch (error) {
         logger('error', `Error occurred during forgot password process: ${error.message}`);
         throw CustomError(error.code, error.message);
@@ -622,12 +625,12 @@ const listInvites = async (payload) => {
     }
 };
 
-const removeInvite = async (id) => {
+const removeInvite = async (id, ownerId) => {
     try {
-        const data = await inviteRepo.find({ where: { id } });
+        const scopedWhere = { id, ownerId };
+        const data = await inviteRepo.find({ where: scopedWhere });
         if (!data.rows.length) {
             logger('error', 'Invited user not found', { id });
-            await inviteRepo.remove({ where: { id } });
             throw CustomError(STATUS_CODE.NOT_FOUND, 'Invited user not found');
         }
 
@@ -639,6 +642,7 @@ const removeInvite = async (id) => {
         const options = {
             where: {
                 id,
+                ownerId,
                 status: INVITE_STATUS[0]
             }
         };

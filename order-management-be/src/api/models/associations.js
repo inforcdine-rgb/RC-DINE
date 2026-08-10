@@ -17,6 +17,7 @@ function defineAssociations(db) {
         notifications,
         paymentGatewayEntities,
         subscriptions,
+        subscriptionPayments,
         diningSessions,
         sessionJoinRequests,
         sessionMembers
@@ -169,6 +170,9 @@ function defineAssociations(db) {
     // paymentGatewayEntities and user relation
     users.hasOne(paymentGatewayEntities, { foreignKey: 'userId' });
     paymentGatewayEntities.belongsTo(users, { foreignKey: 'userId' });
+
+    users.hasMany(subscriptionPayments, { foreignKey: 'userId', as: 'subscriptionPayments' });
+    subscriptionPayments.belongsTo(users, { foreignKey: 'userId', as: 'user' });
 
     // notification and user relation
     hotel.hasOne(subscriptions, { foreignKey: 'hotelId' });

@@ -29,48 +29,80 @@ const getNotificationUserIds = async (hotelId) => {
 };
 
 const register = async (payload) => {
+    let transaction;
     try {
-        logger('debug', `Registering a customer with payload: ${JSON.stringify(payload)}`);
-        const customer = {
-            id: uuidv4(),
-            ...payload
-        };
-
-        logger('debug', `Save customer with details ${JSON.stringify(customer)}`);
-        const data = await customerRepo.save(customer);
-
-        const tableOptions = {
-            options: { where: { id: payload.tableId } },
-            data: { status: TABLE_STATUS[1], customerId: data.id }
-        };
-        logger('debug', `Updating table status with `, tableOptions);
-        await tableRepo.update(tableOptions.options, tableOptions.data);
-
-        if (payload.subscription?.endpoint) {
-            await notificationService.subscribe({
-                customerId: customer.id,
-                phoneNumber: String(payload.phoneNumber),
-                deviceId: payload.subscription.deviceId,
-                platform: payload.subscription.platform,
-                endpoint: payload.subscription.endpoint,
-                expirationTime: payload.subscription.expirationTime,
-                keys: {
-                    p256dh: payload.subscription.keys.p256dh,
-                    auth: payload.subscription.keys.auth
-                }
-            });
+        transaction = await db.customer.sequelize.transaction();
+        const table = await db.tables.findOne({
+            where: { id: payload.tableId, hotelId: payload.hotelId },
+            attributes: ['id', 'hotelId', 'tableNumber', 'status', 'customerId'],
+            transaction,
+            lock: transaction.LOCK.UPDATE
+        });
+        if (!table) throw CustomError(STATUS_CODE.NOT_FOUND, 'Table not found');
+        if (table.status !== TABLE_STATUS[0] || table.customerId) {
+            throw CustomError(STATUS_CODE.CONFLICT, 'This table is already occupied');
         }
 
-        const userIds = await getNotificationUserIds(payload.hotelId);
-        notificationService.sendNotification(userIds, {
-            title: `Table-${payload.tableNumber} Booked`,
-            message: `Table-${payload.tableNumber} is booked. Please assist the customer accordingly.`,
-            path: '/orders',
-            meta: {
-                action: NOTIFICATION_ACTIONS.CUSTOMER_REGISTERATION,
-                hotelId: payload.hotelId
+        const { subscription: _subscription, ...customerPayload } = payload;
+        const customer = {
+            id: uuidv4(),
+            ...customerPayload,
+            tableNumber: table.tableNumber
+        };
+
+        const data = await db.customer.create(customer, { transaction });
+        const [updatedRows] = await db.tables.update(
+            { status: TABLE_STATUS[1], customerId: data.id },
+            {
+                where: {
+                    id: payload.tableId,
+                    hotelId: payload.hotelId,
+                    status: TABLE_STATUS[0],
+                    customerId: null
+                },
+                transaction
             }
-        });
+        );
+        if (updatedRows !== 1) {
+            throw CustomError(STATUS_CODE.CONFLICT, 'This table was booked by another customer');
+        }
+
+        await transaction.commit();
+        transaction = null;
+
+        try {
+            if (payload.subscription?.endpoint) {
+                await notificationService.subscribe({
+                    customerId: customer.id,
+                    phoneNumber: String(payload.phoneNumber),
+                    deviceId: payload.subscription.deviceId,
+                    platform: payload.subscription.platform,
+                    endpoint: payload.subscription.endpoint,
+                    expirationTime: payload.subscription.expirationTime,
+                    keys: {
+                        p256dh: payload.subscription.keys.p256dh,
+                        auth: payload.subscription.keys.auth
+                    }
+                });
+            }
+
+            const userIds = await getNotificationUserIds(payload.hotelId);
+            await notificationService.sendNotification(userIds, {
+                title: `Table-${table.tableNumber} Booked`,
+                message: `Table-${table.tableNumber} is booked. Please assist the customer accordingly.`,
+                path: '/orders',
+                meta: {
+                    action: NOTIFICATION_ACTIONS.CUSTOMER_REGISTERATION,
+                    hotelId: payload.hotelId
+                }
+            });
+        } catch (notificationError) {
+            logger('warn', 'Customer registered, but registration notification delivery failed', {
+                customerId: data.id,
+                hotelId: payload.hotelId,
+                error: notificationError
+            });
+        }
 
         const notificationToken = jwt.sign(
             {
@@ -86,6 +118,7 @@ const register = async (payload) => {
 
         return { ...data.toJSON(), notificationToken };
     } catch (error) {
+        if (transaction) await transaction.rollback();
         logger('error', `Error while creating customer ${JSON.stringify({ error })}`);
         throw CustomError(error.code, error.message);
     }
@@ -368,7 +401,7 @@ const getMenuDetails = async (hotelId) => {
 
 const placeOrder = async (payload) => {
     try {
-        const { customerId, menus, hotelId, tableId } = payload;
+        const { customerId, menus: requestedMenus, hotelId, tableId } = payload;
         const tipAmount = Math.max(0, Number(payload.tipAmount) || 0);
 
         const table = await tableRepo.findOne({
@@ -376,7 +409,7 @@ const placeOrder = async (payload) => {
                 id: tableId,
                 hotelId
             },
-            attributes: ['id', 'status', 'customerId']
+            attributes: ['id', 'tableNumber', 'status', 'customerId']
         });
 
         if (!table) {
@@ -390,10 +423,15 @@ const placeOrder = async (payload) => {
             );
         }
 
+        if (table.status !== TABLE_STATUS[1] || String(table.customerId || '') !== String(customerId)) {
+            throw CustomError(STATUS_CODE.FORBIDDEN, 'This customer is no longer assigned to the table');
+        }
+
         const customer = await customerRepo.findOne({
             where: {
                 id: customerId,
-                hotelId
+                hotelId,
+                tableId
             },
             attributes: ['id']
         });
@@ -404,6 +442,36 @@ const placeOrder = async (payload) => {
                 'Customer not found'
             );
         }
+
+        const menuIds = [...new Set(requestedMenus.map((item) => String(item.menuId)))];
+        const liveMenuItems = await db.menu.findAll({
+            where: {
+                id: { [Op.in]: menuIds },
+                hotelId,
+                status: MENU_STATUS[0]
+            },
+            attributes: ['id', 'name', 'price', 'status']
+        });
+        const liveMenuById = new Map(liveMenuItems.map((item) => [String(item.id), item]));
+
+        const menus = requestedMenus.map((item) => {
+            const liveMenu = liveMenuById.get(String(item.menuId));
+            if (!liveMenu) {
+                throw CustomError(STATUS_CODE.BAD_REQUEST, 'One or more menu items are unavailable');
+            }
+
+            const quantity = Number(item.quantity);
+            if (!Number.isInteger(quantity) || quantity < 1 || quantity > 99) {
+                throw CustomError(STATUS_CODE.BAD_REQUEST, `Invalid quantity for ${liveMenu.name}`);
+            }
+
+            return {
+                menuId: liveMenu.id,
+                menuName: liveMenu.name,
+                price: Number(liveMenu.price),
+                quantity
+            };
+        });
 
         logger('info', 'QR order validation successful', {
             hotelId,
@@ -460,8 +528,10 @@ const placeOrder = async (payload) => {
                 description: `${edited}-ADD:Incoming order: ${quantity} x ${menuName}. Let's get cooking!`,
                 edited,
                 orderNumber,
-                razorpayOrderId: payload.razorpayOrderId || null,
-                razorpayPaymentId: payload.razorpayPaymentId || null,
+                razorpayOrderId: isFirstItem ? payload.razorpayOrderId || null : null,
+                razorpayPaymentId: isFirstItem ? payload.razorpayPaymentId || null : null,
+                paymentStatus: payload.razorpayPaymentId ? 'PAID' : 'UNPAID',
+                paymentMethod: payload.razorpayPaymentId ? 'UPI' : null,
                 subtotalAmount: isFirstItem ? subtotal : 0,
                 cgstAmount: isFirstItem ? cgst : 0,
                 sgstAmount: isFirstItem ? sgst : 0,
@@ -526,7 +596,7 @@ const placeOrder = async (payload) => {
         const orderId = `${customerId}-${edited}`;
         notificationService
             .sendNotification(userIds, {
-                title: `New QR Order • Table ${payload.tableNumber}`,
+                title: `New QR Order • Table ${table.tableNumber}`,
                 message: `Order ${orderNumber} • ₹${Number(totalPrice).toFixed(2)}`,
                 image: notificationImage,
                 path: '/orders',
@@ -542,7 +612,7 @@ const placeOrder = async (payload) => {
                     orderId,
                     tableId: payload.tableId,
                     orderNumber,
-                    tableNumber: payload.tableNumber,
+                    tableNumber: table.tableNumber,
                     totalAmount: totalPrice,
                     hotelId
                 }
@@ -607,7 +677,7 @@ const placeOrder = async (payload) => {
             invoiceNumber: orderNumber,
             orderId,
             date: orderDateTime ? new Date(orderDateTime).toLocaleString() : new Date().toLocaleString(),
-            tableNumber: String(payload.tableNumber),
+            tableNumber: String(table.tableNumber),
             tableData: invoiceTableData,
             totalAmount: String(totalPrice),
             paymentMode: payload.razorpayPaymentId ? 'ONLINE' : 'PENDING',
@@ -625,7 +695,7 @@ const placeOrder = async (payload) => {
                 orderDateTime,
                 hotelName: hotel?.name || '',
                 hotelId: hotel?.id || hotelId,
-                tableNumber: payload.tableNumber,
+                tableNumber: table.tableNumber,
                 items: orderedItems,
                 subtotal,
                 discountType,
@@ -1580,7 +1650,7 @@ const generateInvoice = async (hotelId, orderId) => {
     }
 };
 
-const getOrderStatus = async (orderId) => {
+const getOrderStatus = async (orderId, authenticatedCustomerId) => {
     try {
         logger('debug', `Fetching order status for orderId: ${orderId}`);
 
@@ -1616,7 +1686,7 @@ const getOrderStatus = async (orderId) => {
     }
 };
 
-const getPublicOrderDetails = async (orderId) => {
+const getPublicOrderDetails = async (orderId, authenticatedCustomerId) => {
     try {
         logger('debug', `Fetching public order details for orderId: ${orderId}`);
 
@@ -1626,6 +1696,14 @@ const getPublicOrderDetails = async (orderId) => {
         }
         const customerId = orderId.substring(0, lastDashIndex);
         const editedVersion = Number(orderId.substring(lastDashIndex + 1));
+
+        if (!authenticatedCustomerId || String(authenticatedCustomerId) !== String(customerId)) {
+            throw CustomError(STATUS_CODE.FORBIDDEN, 'Access denied to this order');
+        }
+
+        if (!authenticatedCustomerId || String(authenticatedCustomerId) !== String(customerId)) {
+            throw CustomError(STATUS_CODE.FORBIDDEN, 'Access denied to this order');
+        }
 
         const order = await db.orders.findOne({
             where: {

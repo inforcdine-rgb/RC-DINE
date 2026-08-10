@@ -1,6 +1,6 @@
 import http from 'http';
 import initDb from './config/database.js';
-import env from './config/env.js';
+import env, { validateEnvironment } from './config/env.js';
 import app from './config/express.js';
 import logger from './config/logger.js';
 import { initNotifications } from './config/notification.js';
@@ -8,6 +8,7 @@ import { initializeSocket } from './config/socket.js';
 
 const startServer = async () => {
     try {
+        validateEnvironment();
         logger('info', 'Starting R&C Dine server...');
         logger('info', 'Establishing database connection...');
         await initDb();

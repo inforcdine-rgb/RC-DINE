@@ -15,7 +15,14 @@ const initialForm = {
 };
 
 export default function Contact() {
-    const [form, setForm] = useState(initialForm);
+    const [form, setForm] = useState(() => {
+        const query = new URLSearchParams(window.location.search);
+        return {
+            ...initialForm,
+            restaurantName: query.get('restaurantName') || '',
+            message: query.get('message') || ''
+        };
+    });
     const [submitting, setSubmitting] = useState(false);
     const [submitError, setSubmitError] = useState('');
 

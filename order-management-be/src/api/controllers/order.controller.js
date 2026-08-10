@@ -3,6 +3,7 @@ import { emitToHotel, emitToOrder } from '../../config/socket.js';
 import orderService from '../services/order.service.js';
 import { STATUS_CODE, CustomError } from '../utils/common.js';
 import { resolveHotelAccess, resolveHotelAccessByTableId } from '../utils/hotelAccess.js';
+import { verifyTableQrToken } from '../utils/tableQr.js';
 import {
     customerRegistrationValidation,
     feedbackValidation,
@@ -21,7 +22,13 @@ const register = async (req, res) => {
             return res.status(STATUS_CODE.BAD_REQUEST).send({ message: validation.error.message });
         }
 
-        const result = await orderService.register(body);
+        const qr = verifyTableQrToken(validation.value.qrToken);
+        if (qr.tableId !== validation.value.tableId || qr.hotelId !== validation.value.hotelId) {
+            throw CustomError(STATUS_CODE.FORBIDDEN, 'Table QR does not match this cafe or table');
+        }
+
+        const { qrToken: _qrToken, ...registrationPayload } = validation.value;
+        const result = await orderService.register(registrationPayload);
         logger('info', 'Customer registration successful', { customerId: result.id });
 
         return res.status(STATUS_CODE.CREATED).send(result);
@@ -34,7 +41,17 @@ const register = async (req, res) => {
 const getTableDetails = async (req, res) => {
     try {
         const { id } = req.params;
-        const result = await orderService.getTableDetails(id);
+        let tableId;
+
+        try {
+            tableId = verifyTableQrToken(id).tableId;
+        } catch (qrError) {
+            const customerTableId = String(req.customer?.tableId || '');
+            if (!customerTableId || customerTableId !== String(id)) throw qrError;
+            tableId = customerTableId;
+        }
+
+        const result = await orderService.getTableDetails(tableId);
         return res.status(STATUS_CODE.OK).send(result);
     } catch (error) {
         logger('error', `Error while fetching table by id ${error}`);
@@ -45,6 +62,12 @@ const getTableDetails = async (req, res) => {
 const getMenuDetails = async (req, res) => {
     try {
         const { hotelId, customerId } = req.query;
+        if (String(req.customer?.customerId || '') !== String(customerId || '')) {
+            throw CustomError(STATUS_CODE.FORBIDDEN, 'Access denied to this customer');
+        }
+        if (req.customer?.hotelId && String(req.customer.hotelId) !== String(hotelId || '')) {
+            throw CustomError(STATUS_CODE.FORBIDDEN, 'Access denied to this cafe');
+        }
         logger('debug', `Fetching hotel details for cutomer ${hotelId}`);
 
         const result = await orderService.getMenuDetails(hotelId, customerId);
@@ -70,14 +93,24 @@ const placeOrder = async (req, res) => {
             });
         }
 
-        const result = await orderService.placeOrder(payload);
+        if (String(req.customer?.customerId || '') !== String(valid.value.customerId)) {
+            throw CustomError(STATUS_CODE.FORBIDDEN, 'Access denied to this customer');
+        }
+        if (req.customer?.hotelId && String(req.customer.hotelId) !== String(valid.value.hotelId)) {
+            throw CustomError(STATUS_CODE.FORBIDDEN, 'Access denied to this cafe');
+        }
+        if (req.customer?.tableId && String(req.customer.tableId) !== String(valid.value.tableId)) {
+            throw CustomError(STATUS_CODE.FORBIDDEN, 'Access denied to this table');
+        }
 
-        emitToHotel(payload.hotelId, 'new-order', {
+        const result = await orderService.placeOrder(valid.value);
+
+        emitToHotel(valid.value.hotelId, 'new-order', {
             type: 'CUSTOMER_QR',
-            hotelId: payload.hotelId,
-            tableId: payload.tableId,
-            tableNumber: payload.tableNumber,
-            customerId: payload.customerId,
+            hotelId: valid.value.hotelId,
+            tableId: valid.value.tableId,
+            tableNumber: valid.value.tableNumber,
+            customerId: valid.value.customerId,
             orderId: result?.order?.orderId,
             orderNumber: result?.order?.orderNumber,
             order: result?.order,
@@ -157,6 +190,9 @@ const createWalkInOrder = async (req, res) => {
 const getOrder = async (req, res) => {
     try {
         const { customerId } = req.params;
+        if (String(req.customer?.customerId || '') !== String(customerId || '')) {
+            throw CustomError(STATUS_CODE.FORBIDDEN, 'Access denied to this customer');
+        }
         logger('debug', `Get order details for customer ${customerId}`);
 
         const result = await orderService.getOrder(customerId);
@@ -172,6 +208,9 @@ const getOrder = async (req, res) => {
 const feedback = async (req, res) => {
     try {
         const payload = req.body;
+        if (String(req.customer?.customerId || '') !== String(payload.customerId || '')) {
+            throw CustomError(STATUS_CODE.FORBIDDEN, 'Access denied to this customer');
+        }
         logger('debug', `Request for feedback for customer`, payload);
 
         const valid = feedbackValidation(payload);
@@ -303,6 +342,11 @@ const downloadInvoice = async (req, res) => {
 
         if (req.user) {
             hotelId = await resolveHotelAccess(req.user, hotelId);
+        } else {
+            const orderDetails = await orderService.getPublicOrderDetails(orderId, req.customer?.customerId);
+            if (String(orderDetails.hotelId) !== String(hotelId)) {
+                throw CustomError(STATUS_CODE.FORBIDDEN, 'Access denied to this invoice');
+            }
         }
 
         logger('debug', `Request to download invoice - hotelId: ${hotelId}, orderId: ${orderId}`);
@@ -324,7 +368,7 @@ const getPublicOrderDetails = async (req, res) => {
         const { orderId } = req.params;
         logger('debug', `Request for fetching public order details - orderId: ${orderId}`);
 
-        const result = await orderService.getPublicOrderDetails(orderId);
+        const result = await orderService.getPublicOrderDetails(orderId, req.customer?.customerId);
         logger('debug', `Public order details fetched successfully`);
 
         return res.status(STATUS_CODE.OK).send(result);
@@ -337,7 +381,7 @@ const getPublicOrderDetails = async (req, res) => {
 const getOrderStatus = async (req, res) => {
     try {
         const { orderId } = req.params;
-        const result = await orderService.getOrderStatus(orderId);
+        const result = await orderService.getOrderStatus(orderId, req.customer?.customerId);
         return res.status(STATUS_CODE.OK).send(result);
     } catch (error) {
         logger('error', `Error occurred during fetching order status: ${error.message}`);

@@ -91,7 +91,7 @@ describe('Notification service', () => {
         expect(result.vapidPublicKey).toBe('test-public-key');
     });
 
-    test('stores once and uses Socket.IO instead of Push for a visible device', async () => {
+    test('stores once and uses Web Push for a visible device', async () => {
         const subscription = makeSubscription();
         pushSubscriptionRepo.find.mockResolvedValue({ rows: [subscription] });
         isPushEndpointVisible.mockReturnValue(true);
@@ -104,16 +104,17 @@ describe('Notification service', () => {
         });
 
         expect(notificationRepo.save).toHaveBeenCalledTimes(1);
-        expect(emitToPushEndpoint).toHaveBeenCalledTimes(1);
-        expect(webpush.sendNotification).not.toHaveBeenCalled();
+        expect(emitToPushEndpoint).not.toHaveBeenCalled();
+        expect(webpush.sendNotification).toHaveBeenCalledTimes(1);
         expect(result).toEqual({ successCount: 1, failureCount: 0 });
     });
 
-    test('falls back to Web Push when visible presence does not acknowledge Socket.IO delivery', async () => {
+    test('falls back to Socket.IO when Web Push fails for a visible device', async () => {
         const subscription = makeSubscription();
         pushSubscriptionRepo.find.mockResolvedValue({ rows: [subscription] });
         isPushEndpointVisible.mockReturnValue(true);
-        emitToPushEndpoint.mockResolvedValue(false);
+        webpush.sendNotification.mockRejectedValue({ statusCode: 503, message: 'Unavailable' });
+        emitToPushEndpoint.mockResolvedValue(true);
 
         const result = await notificationService.sendNotification(['user-1'], {
             title: 'Order ready',

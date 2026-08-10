@@ -11,11 +11,44 @@ import hotelService from '../services/hotel.service.js';
 import orderService from '../services/order.service.js';
 import { CustomError, STATUS_CODE, calculateBill, calculateDiscount } from '../utils/common.js';
 
+const assertCustomerClaims = (req, { customerId, hotelId, tableId }) => {
+    if (!req.customer?.customerId || String(req.customer.customerId) !== String(customerId)) {
+        throw CustomError(STATUS_CODE.FORBIDDEN, 'Access denied to this customer');
+    }
+    if (req.customer.hotelId && String(req.customer.hotelId) !== String(hotelId)) {
+        throw CustomError(STATUS_CODE.FORBIDDEN, 'Access denied to this cafe');
+    }
+    if (req.customer.tableId && String(req.customer.tableId) !== String(tableId)) {
+        throw CustomError(STATUS_CODE.FORBIDDEN, 'Access denied to this table');
+    }
+};
+
 const createOrder = async (req, res) => {
     try {
         const { hotelId, customerId, tableId, tableNumber, menus, tipAmount = 0 } = req.body;
         if (!hotelId || !customerId || !tableId || !tableNumber || !menus || !menus.length) {
             throw CustomError(STATUS_CODE.BAD_REQUEST, 'Missing required fields');
+        }
+
+        assertCustomerClaims(req, { customerId, hotelId, tableId });
+        const safeTipAmount = Number(tipAmount);
+        if (!Number.isFinite(safeTipAmount) || safeTipAmount < 0 || safeTipAmount > 100000) {
+            throw CustomError(STATUS_CODE.BAD_REQUEST, 'Invalid tip amount');
+        }
+
+        const customer = await customerRepo.findOne({
+            where: { id: customerId, hotelId, tableId }
+        });
+        if (!customer) {
+            throw CustomError(STATUS_CODE.NOT_FOUND, 'Customer not found');
+        }
+
+        const activeTable = await db.tables.findOne({
+            where: { id: tableId, hotelId, customerId, status: 'BOOKED' },
+            attributes: ['id', 'tableNumber']
+        });
+        if (!activeTable || Number(activeTable.tableNumber) !== Number(tableNumber)) {
+            throw CustomError(STATUS_CODE.CONFLICT, 'This table session is no longer active');
         }
 
         const menuIds = menus.map((item) => item.menuId).filter(Boolean);
@@ -48,7 +81,7 @@ const createOrder = async (req, res) => {
 
             const quantity = Number(item.quantity);
 
-            if (!Number.isInteger(quantity) || quantity <= 0) {
+            if (!Number.isInteger(quantity) || quantity <= 0 || quantity > 99) {
                 throw CustomError(
                     STATUS_CODE.BAD_REQUEST,
                     `Invalid quantity for ${liveItem.name}`
@@ -77,6 +110,9 @@ const createOrder = async (req, res) => {
                 'razorpayKeySecret'
             ]
         });
+        if (!hotel) {
+            throw CustomError(STATUS_CODE.NOT_FOUND, 'Hotel not found');
+        }
         const gstEnabled = !!hotel?.gstEnabled;
         const gstPercent = gstEnabled ? Number(hotel?.gstPercent || 0) : 0;
 
@@ -86,24 +122,30 @@ const createOrder = async (req, res) => {
         const discountValue = Number(hotel?.discountValue || 0);
         const discountAmount = calculateDiscount(subtotal, discountEnabled, discountType, discountValue);
         const taxableAmount = Math.max(0, subtotal - discountAmount);
-        const { sgst, cgst, totalPrice } = calculateBill(taxableAmount, tipAmount, gstPercent, gstEnabled);
+        const { sgst, cgst, totalPrice } = calculateBill(taxableAmount, safeTipAmount, gstPercent, gstEnabled);
 
         if (!hotel?.paymentEnabled) {
-            throw CustomError(STATUS_CODE.BAD_REQUEST, 'Online payment is disabled for this hotel');
+            return res.status(STATUS_CODE.OK).json({
+                success: true,
+                paymentRequired: false,
+                totalPrice,
+                sgst,
+                cgst,
+                gstEnabled,
+                gstPercent,
+                discountEnabled,
+                discountType,
+                discountValue,
+                discountAmount,
+                subtotal,
+                taxableAmount,
+                tipAmount: safeTipAmount,
+                menus: verifiedMenus
+            });
         }
 
         const razorpayKeyId = hotel?.razorpayKeyId;
         const razorpayKeySecret = hotelService.decrypt(hotel?.razorpayKeySecret);
-
-        logger(
-            'info',
-            'Razorpay credentials loaded',
-            {
-                keyId: razorpayKeyId,
-
-                secretLength: razorpayKeySecret ? razorpayKeySecret.length : 0
-            }
-        );
 
         if (!razorpayKeyId || !razorpayKeySecret) {
             throw CustomError(STATUS_CODE.BAD_REQUEST, 'Hotel Razorpay settings are incomplete');
@@ -126,7 +168,8 @@ const createOrder = async (req, res) => {
             rzpOrder = await hotelRazorpay.orders.create({
                 amount,
                 currency: 'INR',
-                receipt: `cust_pay_${Date.now()}`
+                receipt: `cust_pay_${Date.now()}`,
+                notes: { customerId, hotelId, tableId }
             });
 
             logger('info', 'Razorpay order created', {
@@ -149,13 +192,9 @@ const createOrder = async (req, res) => {
             orderId: rzpOrder.id
         });
 
-        const customer = await customerRepo.findOne({ where: { id: customerId } });
-        if (!customer) {
-            throw CustomError(STATUS_CODE.NOT_FOUND, 'Customer not found');
-        }
-
         return res.status(STATUS_CODE.OK).json({
             success: true,
+            paymentRequired: true,
             orderId: rzpOrder.id,
             amount: rzpOrder.amount,
             key: razorpayKeyId,
@@ -170,7 +209,7 @@ const createOrder = async (req, res) => {
             discountAmount,
             subtotal,
             taxableAmount,
-            tipAmount: Number(tipAmount) || 0,
+            tipAmount: safeTipAmount,
             menus: verifiedMenus,
             customer: {
                 name: customer.name,
@@ -212,6 +251,8 @@ const verifyPayment = async (req, res) => {
             throw CustomError(STATUS_CODE.BAD_REQUEST, 'Missing verification details');
         }
 
+        assertCustomerClaims(req, { customerId, hotelId, tableId });
+
         /*
          * 1. Duplicate payment block
          *
@@ -221,12 +262,17 @@ const verifyPayment = async (req, res) => {
             where: {
                 razorpayPaymentId
             },
-            attributes: ['id', 'orderNumber', 'razorpayPaymentId']
+            attributes: [
+                'id',
+                'customerId',
+                'hotelId',
+                'tableId',
+                'edited',
+                'orderNumber',
+                'razorpayOrderId',
+                'razorpayPaymentId'
+            ]
         });
-
-        if (existingPaidOrder) {
-            throw CustomError(STATUS_CODE.CONFLICT, 'This payment has already been used');
-        }
 
         /*
          * 2. Hotel aur uski Razorpay settings fetch karo.
@@ -315,6 +361,62 @@ const verifyPayment = async (req, res) => {
             throw CustomError(STATUS_CODE.BAD_REQUEST, 'Invalid payment currency');
         }
 
+        if (String(razorpayOrder.currency || '').toUpperCase() !== 'INR') {
+            throw CustomError(STATUS_CODE.BAD_REQUEST, 'Invalid order currency');
+        }
+
+        const orderNotes = razorpayOrder.notes || {};
+        if (
+            String(orderNotes.customerId || '') !== String(customerId) ||
+            String(orderNotes.hotelId || '') !== String(hotelId) ||
+            String(orderNotes.tableId || '') !== String(tableId)
+        ) {
+            throw CustomError(STATUS_CODE.FORBIDDEN, 'Razorpay order ownership does not match this customer');
+        }
+
+        if (existingPaidOrder) {
+            const belongsToThisOrder =
+                String(existingPaidOrder.customerId) === String(customerId) &&
+                String(existingPaidOrder.hotelId) === String(hotelId) &&
+                String(existingPaidOrder.tableId) === String(tableId) &&
+                String(existingPaidOrder.razorpayOrderId) === String(razorpayOrderId);
+            if (!belongsToThisOrder) {
+                throw CustomError(STATUS_CODE.CONFLICT, 'This payment has already been used');
+            }
+
+            const existingOrderId = `${customerId}-${existingPaidOrder.edited}`;
+            const existingOrder = await orderService.getPublicOrderDetails(existingOrderId, customerId);
+            return res.status(STATUS_CODE.OK).json({ ...existingOrder, duplicate: true });
+        }
+
+        const activeTable = await db.tables.findOne({
+            where: { id: tableId, hotelId, customerId, status: 'BOOKED' },
+            attributes: ['id', 'tableNumber']
+        });
+        if (!activeTable || Number(activeTable.tableNumber) !== Number(tableNumber)) {
+            if (String(razorpayPayment.status || '').toLowerCase() === 'captured') {
+                try {
+                    await hotelRazorpay.payments.refund(razorpayPaymentId, {
+                        amount: Number(razorpayPayment.amount)
+                    });
+                } catch (refundError) {
+                    logger('error', 'Stale table payment requires manual refund', {
+                        razorpayPaymentId,
+                        customerId,
+                        refundError
+                    });
+                    throw CustomError(
+                        STATUS_CODE.INTERNAL_SERVER_ERROR,
+                        'Table session expired after payment. Please contact support with the payment ID.'
+                    );
+                }
+            }
+            throw CustomError(
+                STATUS_CODE.CONFLICT,
+                'Table session expired. Any captured payment has been sent for refund.'
+            );
+        }
+
         /*
          * 5. Menu prices frontend par trust nahi karenge.
          *
@@ -353,7 +455,7 @@ const verifyPayment = async (req, res) => {
 
             const quantity = Number(item.quantity);
 
-            if (!Number.isInteger(quantity) || quantity <= 0) {
+            if (!Number.isInteger(quantity) || quantity <= 0 || quantity > 99) {
                 throw CustomError(STATUS_CODE.BAD_REQUEST, `Invalid quantity for ${liveMenuItem.name}`);
             }
 
@@ -385,9 +487,9 @@ const verifyPayment = async (req, res) => {
 
         const gstPercent = gstEnabled ? Number(paymentHotel.gstPercent || 0) : 0;
 
-        const safeTipAmount = Number(tipAmount) || 0;
+        const safeTipAmount = Number(tipAmount);
 
-        if (safeTipAmount < 0) {
+        if (!Number.isFinite(safeTipAmount) || safeTipAmount < 0 || safeTipAmount > 100000) {
             throw CustomError(STATUS_CODE.BAD_REQUEST, 'Invalid tip amount');
         }
 
@@ -457,16 +559,60 @@ const verifyPayment = async (req, res) => {
             amountInPaise: expectedAmountInPaise
         });
 
-        const result = await orderService.placeOrder({
-            customerId,
-            menus: verifiedMenus,
-            hotelId,
-            tableId,
-            tableNumber,
-            tipAmount: safeTipAmount,
-            razorpayOrderId,
-            razorpayPaymentId
-        });
+        let result;
+        try {
+            result = await orderService.placeOrder({
+                customerId,
+                menus: verifiedMenus,
+                hotelId,
+                tableId,
+                tableNumber,
+                tipAmount: safeTipAmount,
+                razorpayOrderId,
+                razorpayPaymentId
+            });
+        } catch (placementError) {
+            const concurrentlyCreatedOrder = await db.orders.findOne({
+                where: { razorpayPaymentId },
+                attributes: ['customerId', 'hotelId', 'tableId', 'edited', 'razorpayOrderId']
+            });
+            if (
+                concurrentlyCreatedOrder &&
+                String(concurrentlyCreatedOrder.customerId) === String(customerId) &&
+                String(concurrentlyCreatedOrder.hotelId) === String(hotelId) &&
+                String(concurrentlyCreatedOrder.tableId) === String(tableId) &&
+                String(concurrentlyCreatedOrder.razorpayOrderId) === String(razorpayOrderId)
+            ) {
+                const existingOrderId = `${customerId}-${concurrentlyCreatedOrder.edited}`;
+                const existingOrder = await orderService.getPublicOrderDetails(existingOrderId, customerId);
+                return res.status(STATUS_CODE.OK).json({ ...existingOrder, duplicate: true });
+            }
+
+            try {
+                await hotelRazorpay.payments.refund(razorpayPaymentId, { amount: expectedAmountInPaise });
+            } catch (refundError) {
+                logger('error', 'Paid order placement failed and automatic refund failed', {
+                    razorpayPaymentId,
+                    customerId,
+                    placementError,
+                    refundError
+                });
+                throw CustomError(
+                    STATUS_CODE.INTERNAL_SERVER_ERROR,
+                    'Order creation failed after payment. Please contact support with the payment ID.'
+                );
+            }
+
+            logger('warn', 'Paid order placement failed; automatic refund initiated', {
+                razorpayPaymentId,
+                customerId,
+                placementError
+            });
+            throw CustomError(
+                STATUS_CODE.CONFLICT,
+                'Order could not be placed. The captured payment has been sent for refund.'
+            );
+        }
 
         const createdOrder = result?.order || result;
 

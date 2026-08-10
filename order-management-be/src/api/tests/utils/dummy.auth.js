@@ -14,8 +14,8 @@ export const register = {
             phoneNumber: '1234567890',
             email: 'test$test.vi', // invalid email
             password: encrypt('Test@1234'),
-            recoveryCode: '4829',
-            confirmRecoveryCode: '4829'
+            recoveryCode: '482901',
+            confirmRecoveryCode: '482901'
         },
         res: {
             code: STATUS_CODE.BAD_REQUEST,
@@ -29,8 +29,8 @@ export const register = {
             phoneNumber: '1234567890',
             email: 'test@test.com',
             password: encrypt('Test1234'), // invalid password Test1234
-            recoveryCode: '4829',
-            confirmRecoveryCode: '4829'
+            recoveryCode: '482901',
+            confirmRecoveryCode: '482901'
         },
         res: {
             code: STATUS_CODE.BAD_REQUEST,
@@ -47,8 +47,8 @@ export const register = {
             phoneNumber: '123456789', // invalid phone with 9 digits
             email: 'test@test.com',
             password: encrypt('Test@1234'),
-            recoveryCode: '4829',
-            confirmRecoveryCode: '4829'
+            recoveryCode: '482901',
+            confirmRecoveryCode: '482901'
         },
         res: {
             code: STATUS_CODE.BAD_REQUEST,
@@ -62,8 +62,8 @@ export const register = {
             phoneNumber: '1234567890',
             email: 'test@test.com',
             password: encrypt('Test@1234'),
-            recoveryCode: '4829',
-            confirmRecoveryCode: '4829'
+            recoveryCode: '482901',
+            confirmRecoveryCode: '482901'
         },
         res: {
             code: STATUS_CODE.BAD_REQUEST,
@@ -77,8 +77,8 @@ export const register = {
             phoneNumber: '1234567890',
             email: 'test@test.com',
             password: encrypt('Test@1234'),
-            recoveryCode: '4829',
-            confirmRecoveryCode: '4829'
+            recoveryCode: '482901',
+            confirmRecoveryCode: '482901'
         },
         db: {
             id: '60c688d6-5442-4569-9c8c-3f973b3ba554',
@@ -103,8 +103,8 @@ export const login = {
             role: 'OWNER'
         },
         res: {
-            code: STATUS_CODE.NOT_FOUND,
-            data: { message: 'Email not registered' }
+            code: STATUS_CODE.UNAUTHORIZED,
+            data: { message: 'Invalid email, password, or role' }
         }
     },
     incorrectPasswordData: {
@@ -120,7 +120,7 @@ export const login = {
         },
         res: {
             code: STATUS_CODE.UNAUTHORIZED,
-            data: { message: 'Invalid password' }
+            data: { message: 'Invalid email, password, or role' }
         }
     },
     inActiveData: {
@@ -150,7 +150,8 @@ export const login = {
             email: 'valid-email@test.com',
             password: encrypt('Test@1234'), // Test@1234
             status: USER_STATUS[0],
-            role: 'OWNER'
+            role: 'OWNER',
+            tokenVersion: 0
         },
         res: {
             code: STATUS_CODE.OK,
@@ -228,7 +229,7 @@ export const forget = {
         },
         res: {
             code: STATUS_CODE.OK,
-            data: { message: 'Recover password link sent. Please check your email.' }
+            data: { message: 'If an account exists for this email, a recovery link has been sent.' }
         }
     }
 };

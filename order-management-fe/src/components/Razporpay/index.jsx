@@ -100,8 +100,6 @@ function Razorpay({
     };
 
     const onSuccess = (response) => {
-        console.log('Razorpay payment success response:', response);
-
         const razorpayPaymentId = response.razorpay_payment_id;
         const razorpaySignature = response.razorpay_signature;
         const razorpayOrderId = response.razorpay_order_id || orderId;

@@ -119,7 +119,7 @@ describe('test invite cases', () => {
 
         expect(res.status).toHaveBeenCalledWith(remove.error.errorInviteUser.status);
         expect(db.invites.findAndCountAll).toHaveBeenCalled();
-        expect(db.invites.destroy).toHaveBeenCalled();
+        expect(db.invites.destroy).not.toHaveBeenCalled();
 
         const data = res.send.mock.calls[0][0];
         expect(data.message).toEqual(remove.error.errorInviteUser.message);

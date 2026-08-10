@@ -51,6 +51,7 @@ function* registerCustomerRequestSaga(action) {
         const result = yield service.registerCustomer(payload);
         if (result?.notificationToken) {
             localStorage.setItem('rcCustomerPushToken', result.notificationToken);
+            localStorage.setItem('rcCustomerToken', result.notificationToken);
             if ('Notification' in window && Notification.permission === 'granted') {
                 try {
                     yield initializeWebPush({ audience: 'customer', token: result.notificationToken });
@@ -126,7 +127,13 @@ function* paymentOrderRequestSaga(action) {
         if (payload.manual) {
             toast.info(`Please pay manually and wait until your request is approved`);
         } else {
-            yield put(setOrderPaymentData(res));
+            yield put(
+                setOrderPaymentData({
+                    ...res,
+                    keyId: res.key,
+                    isSettlementPayment: true
+                })
+            );
         }
     } catch (error) {
         console.error('Failed to process payment request', error);
@@ -136,18 +143,19 @@ function* paymentOrderRequestSaga(action) {
 
 function* paymentConfirmationRequestSaga(action) {
     try {
-        const { hotelId, ...payload } = action.payload;
+        const payload = action.payload;
 
         yield checkoutService.paymentConfirmation(payload);
 
         if (!payload.manual) {
-            toast.info(`🥂 Payment confirmed, thank you for choosing us! 🌟 Your feedback means the world to us.`);
+            toast.info(`Payment confirmed. Thank you for choosing us! Your feedback means a lot.`);
+            yield put(setOrderPaymentData(false));
             yield put(setViewOrderDetails({}));
             yield put(setFeedback(true));
         } else {
             toast.success(`Payment confirmed successfully`);
             yield put(setPaymentRequest(false));
-            yield put(getTablesRequest({ hotelId, location: 'orders', active: true }));
+            yield put(getTablesRequest({ hotelId: payload.hotelId, location: 'orders', active: true }));
         }
     } catch (error) {
         console.error('Failed to process payment request', error);
@@ -176,6 +184,17 @@ function* customerPrePaymentRequestSaga(action) {
     try {
         const payload = action.payload;
         const res = yield service.createCustomerPaymentOrder(payload);
+        if (res.paymentRequired === false) {
+            yield put({
+                type: PLACE_ORDER_REQUEST,
+                payload: {
+                    ...payload,
+                    menus: res.menus,
+                    tipAmount: Number(res.tipAmount) || 0
+                }
+            });
+            return;
+        }
         const paymentData = {
             email: res.customer.email,
             name: res.customer.name,

@@ -2,6 +2,7 @@ import logger from '../../config/logger.js';
 import tableService from '../services/table.service.js';
 import { STATUS_CODE } from '../utils/common.js';
 import { resolveHotelAccess } from '../utils/hotelAccess.js';
+import { createTableQrToken } from '../utils/tableQr.js';
 import { tableNameValidation, tableValidation } from '../validations/table.validation.js';
 
 const create = async (req, res) => {
@@ -84,9 +85,29 @@ const updateName = async (req, res) => {
     }
 };
 
+const createQrToken = async (req, res) => {
+    try {
+        const hotelId = await resolveHotelAccess(req.user, req.params.hotelId);
+        const tableId = String(req.params.tableId || '');
+        const table = await tableService.findById(hotelId, tableId);
+
+        if (!table) {
+            return res.status(STATUS_CODE.NOT_FOUND).send({ message: 'Table not found' });
+        }
+
+        return res.status(STATUS_CODE.OK).send({
+            token: createTableQrToken({ tableId, hotelId })
+        });
+    } catch (error) {
+        logger('error', 'Error while creating table QR token', { error });
+        return res.status(error.code || 500).send({ message: error.message });
+    }
+};
+
 export default {
     create,
     fetch,
     remove,
-    updateName
+    updateName,
+    createQrToken
 };

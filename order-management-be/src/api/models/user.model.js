@@ -102,7 +102,8 @@ const userModel = (sequelize) => {
             },
             razorpayPaymentId: {
                 type: DataTypes.STRING,
-                allowNull: true
+                allowNull: true,
+                unique: true
             },
             deletedAt: {
                 type: DataTypes.DATE,

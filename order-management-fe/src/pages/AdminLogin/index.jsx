@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import CryptoJS from 'crypto-js';
 import { Form, Formik } from 'formik';
 import { useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
@@ -7,7 +6,6 @@ import { toast } from 'react-toastify';
 import AuthContainer from '../../components/AuthContainer';
 import CustomButton from '../../components/CustomButton';
 import CustomFormGroup from '../../components/CustomFormGroup';
-import env from '../../config/env';
 import * as adminAuthService from '../../services/adminAuth.service';
 import { getUserRequest } from '../../store/slice';
 import { loginSchema } from '../../validations/auth';
@@ -29,8 +27,7 @@ function AdminLogin() {
 
     const handleCredentials = async (values, { setSubmitting }) => {
         try {
-            const password = CryptoJS.AES.encrypt(values.password, env.cryptoSecret).toString();
-            const response = await adminAuthService.startLogin({ email: values.email, password });
+            const response = await adminAuthService.startLogin({ email: values.email, password: values.password });
             setChallenge(response);
             setCooldown(response.resendAfterSeconds || 45);
             setOtp('');

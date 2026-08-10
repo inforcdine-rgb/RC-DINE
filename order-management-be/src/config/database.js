@@ -3,6 +3,7 @@ import { Sequelize } from 'sequelize';
 import { v4 as uuidv4 } from 'uuid';
 
 import adminOtpChallengeModel from '../api/models/adminOtpChallenge.model.js';
+import appSettingsModel from '../api/models/appSettings.model.js';
 import defineAssociations from '../api/models/associations.js';
 import categoryModel from '../api/models/category.model.js';
 import contactEnquiryModel from '../api/models/contactEnquiry.model.js';
@@ -23,6 +24,7 @@ import preferencesModel from '../api/models/preferences.model.js';
 import pushSubscriptionsModel from '../api/models/pushSubscriptions.model.js';
 import sessionJoinRequestModel from '../api/models/sessionJoinRequest.model.js';
 import sessionMemberModel from '../api/models/sessionMember.model.js';
+import subscriptionPaymentModel from '../api/models/subscriptionPayment.model.js';
 import subscriptionPlanModel from '../api/models/subscriptionPlan.model.js';
 import subscriptionModel from '../api/models/subscriptions.js';
 import tableModel from '../api/models/table.model.js';
@@ -31,8 +33,14 @@ import websiteSettingsModel from '../api/models/websiteSettings.model.js';
 import subscriptionPlanRepo from '../api/repositories/subscriptionPlan.repository.js';
 import { CustomError } from '../api/utils/common.js';
 import { hashPassword } from '../api/utils/password.js';
+import {
+    decryptServerSecret,
+    encryptServerSecret,
+    isEncryptedWithServerKey
+} from '../api/utils/secretEncryption.js';
 import env from './env.js';
 import logger from './logger.js';
+import { DEFAULT_ACTIVE_QR_TEMPLATE_IDS } from './qrTemplates.js';
 
 const isProduction = env.app.env === 'production';
 
@@ -197,7 +205,44 @@ const defineModels = (sequelize) => {
     db.paymentGatewayEntities = paymentGatewayEntitiesModel(sequelize);
     db.subscriptions = subscriptionModel(sequelize);
     db.subscriptionPlans = subscriptionPlanModel(sequelize);
+    db.subscriptionPayments = subscriptionPaymentModel(sequelize);
     db.websiteSettings = websiteSettingsModel(sequelize);
+    db.appSettings = appSettingsModel(sequelize);
+};
+
+const ensureAppSettings = async () => {
+    const encryptedSecret = encryptServerSecret(env.razorpay.keySecret);
+    await db.appSettings.findOrCreate({
+        where: { id: 1 },
+        defaults: {
+            id: 1,
+            razorpayKeyId: env.razorpay.keyId || null,
+            razorpayKeySecret: encryptedSecret,
+            activeQrTemplateIds: DEFAULT_ACTIVE_QR_TEMPLATE_IDS
+        }
+    });
+};
+
+const rotateLegacyPaymentSecrets = async () => {
+    if (!env.serverEncryptionKey) return;
+
+    const [appSettingsRows, hotelRows] = await Promise.all([
+        db.appSettings.findAll({ attributes: ['id', 'razorpayKeySecret'] }),
+        db.hotel.findAll({ attributes: ['id', 'razorpayKeySecret'] })
+    ]);
+    const rows = [...appSettingsRows, ...hotelRows].filter(
+        (row) => row.razorpayKeySecret && !isEncryptedWithServerKey(row.razorpayKeySecret)
+    );
+
+    let rotated = 0;
+    for (const row of rows) {
+        const plainText = decryptServerSecret(row.razorpayKeySecret);
+        if (!plainText) continue;
+        await row.update({ razorpayKeySecret: encryptServerSecret(plainText) });
+        rotated += 1;
+    }
+
+    if (rotated) logger('info', `Rotated ${rotated} legacy payment credential(s) to the server-only key`);
 };
 
 const addOrModifyColumn = async ({ sequelize, tableName, columnName, columnType }) => {
@@ -222,6 +267,57 @@ const addOrModifyColumn = async ({ sequelize, tableName, columnName, columnType 
     }
 };
 
+const ensurePaymentReplayIndexes = async (sequelize) => {
+    const queryInterface = sequelize.getQueryInterface();
+    const definitions = [
+        {
+            tableName: 'users',
+            indexName: 'users_razorpay_payment_id_unique',
+            cleanup: `
+                UPDATE users AS duplicate_user
+                INNER JOIN users AS keeper
+                    ON duplicate_user.razorpayPaymentId = keeper.razorpayPaymentId
+                    AND duplicate_user.id > keeper.id
+                SET duplicate_user.razorpayPaymentId = NULL
+                WHERE duplicate_user.razorpayPaymentId IS NOT NULL
+            `
+        },
+        {
+            tableName: 'orders',
+            indexName: 'orders_razorpay_payment_id_unique',
+            cleanup: `
+                UPDATE orders AS duplicate_order
+                INNER JOIN orders AS keeper
+                    ON duplicate_order.razorpayPaymentId = keeper.razorpayPaymentId
+                    AND duplicate_order.id > keeper.id
+                SET duplicate_order.razorpayPaymentId = NULL,
+                    duplicate_order.razorpayOrderId = NULL
+                WHERE duplicate_order.razorpayPaymentId IS NOT NULL
+            `
+        }
+    ];
+
+    for (const definition of definitions) {
+        const indexes = await queryInterface.showIndex(definition.tableName);
+        const hasPaymentIdUniqueIndex = indexes.some(
+            (index) =>
+                index.unique &&
+                index.fields?.length === 1 &&
+                ['razorpayPaymentId', 'razorpay_payment_id'].includes(
+                    index.fields[0]?.attribute || index.fields[0]?.name
+                )
+        );
+        if (hasPaymentIdUniqueIndex) continue;
+
+        await sequelize.query(definition.cleanup);
+        await queryInterface.addIndex(definition.tableName, ['razorpayPaymentId'], {
+            name: definition.indexName,
+            unique: true
+        });
+        logger('info', `Payment replay protection enabled for ${definition.tableName}`);
+    }
+};
+
 const initDb = async () => {
     try {
         logger('info', '🚀 Initializing database...');
@@ -238,6 +334,9 @@ const initDb = async () => {
         await sequelize.sync({
             force: false
         });
+        await ensurePaymentReplayIndexes(sequelize);
+        await ensureAppSettings();
+        await rotateLegacyPaymentSecrets();
 
         await subscriptionPlanRepo.ensureDefaults();
         logger('info', '✅ Default subscription plans verified');

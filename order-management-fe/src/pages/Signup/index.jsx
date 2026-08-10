@@ -73,7 +73,7 @@ function Signup() {
         try {
             const data = {
                 ...values,
-                password: CryptoJS.AES.encrypt(values.password, env.cryptoSecret).toString()
+                password: values.password
             };
             delete data.confirmPassword;
 

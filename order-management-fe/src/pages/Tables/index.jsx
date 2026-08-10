@@ -1,5 +1,4 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import CryptoJS from 'crypto-js';
 import { QRCodeSVG } from 'qrcode.react';
 import { MdDeleteForever, MdEdit } from 'react-icons/md';
 import { TiPlus } from 'react-icons/ti';
@@ -51,6 +50,7 @@ function Tables() {
     const [templateTable, setTemplateTable] = useState(null);
     const [selectedTemplateId, setSelectedTemplateId] = useState(DEFAULT_ACTIVE_QR_TEMPLATE_IDS[0]);
     const [downloadingTemplate, setDownloadingTemplate] = useState(false);
+    const [qrTokens, setQrTokens] = useState({});
     const refreshSnapshotRef = useRef('');
     refreshSnapshotRef.current = JSON.stringify(tablesData);
 
@@ -94,9 +94,39 @@ function Tables() {
         [dispatch, hotelId, sessionTable?.value]
     );
 
+    useEffect(() => {
+        let active = true;
+
+        const loadQrTokens = async () => {
+            if (!hotelId || !tablesData.length) {
+                if (active) setQrTokens({});
+                return;
+            }
+
+            const entries = await Promise.all(
+                tablesData.map(async (table) => {
+                    try {
+                        const response = await tableService.createQrToken(hotelId, table.value);
+                        return [table.value, response.token];
+                    } catch (error) {
+                        console.error(`Unable to create QR token for table ${table.value}`, error);
+                        return [table.value, ''];
+                    }
+                })
+            );
+
+            if (active) setQrTokens(Object.fromEntries(entries));
+        };
+
+        loadQrTokens();
+        return () => {
+            active = false;
+        };
+    }, [hotelId, tablesData]);
+
     const makeTableUrl = (tableId) => {
-        const token = CryptoJS.AES.encrypt(JSON.stringify({ tableId }), env.cryptoSecret).toString();
-        return `${env.appUrl}/place/${encodeURIComponent(token)}`;
+        const signedToken = qrTokens[tableId];
+        return signedToken ? `${env.appUrl}/place/${encodeURIComponent(signedToken)}` : '';
     };
 
     const filteredTables = useMemo(() => {
@@ -226,6 +256,7 @@ function Tables() {
 
     const handleDownloadQr = async (table) => {
         try {
+            if (!qrTokens[table.value]) throw new Error('Secure QR is still loading. Please try again.');
             const filename = buildQrFilename(cafeName, table.label);
             await downloadSvgQrAsPng(qrRefs.current[table.value], filename);
         } catch (error) {
@@ -296,7 +327,7 @@ function Tables() {
                     className="tables-download-all"
                     type="button"
                     onClick={handleDownloadAllQr}
-                    disabled={!filteredTables.length}
+                    disabled={!filteredTables.length || filteredTables.some((table) => !qrTokens[table.value])}
                 >
                     ↓ Download All QR
                 </button>
@@ -329,7 +360,11 @@ function Tables() {
                                     }}
                                     className="table-qr-box"
                                 >
-                                    <QRCodeSVG value={tableUrl} size={170} level="H" className="table-qr" />
+                                    {tableUrl ? (
+                                        <QRCodeSVG value={tableUrl} size={170} level="H" className="table-qr" />
+                                    ) : (
+                                        <span>Preparing secure QR…</span>
+                                    )}
                                 </div>
 
                                 {features.managerSessionControls && (
@@ -345,6 +380,7 @@ function Tables() {
                                     className="table-download-btn"
                                     type="button"
                                     onClick={() => handleDownloadQr(table)}
+                                    disabled={!tableUrl}
                                 >
                                     ↓ Download QR
                                 </button>
@@ -353,6 +389,7 @@ function Tables() {
                                         className="table-template-download-btn"
                                         type="button"
                                         onClick={() => openTemplatePicker(table)}
+                                        disabled={!tableUrl}
                                     >
                                         ✦ Download with Template
                                     </button>

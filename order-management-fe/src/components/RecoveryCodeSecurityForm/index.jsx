@@ -1,10 +1,8 @@
 import React from 'react';
-import CryptoJS from 'crypto-js';
 import { Form, Formik } from 'formik';
 import { Form as BootstrapForm } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import env from '../../config/env';
 import { updateOwnerRecoveryCode } from '../../services/auth.service';
 import { recoveryCodeUpdateSchema } from '../../validations/auth';
 import CustomButton from '../CustomButton';
@@ -17,7 +15,7 @@ const RecoveryCodeSecurityForm = ({ configured = false, onSuccess = () => {} }) 
     const handleSubmit = async (values, { resetForm, setSubmitting }) => {
         try {
             const response = await updateOwnerRecoveryCode({
-                currentPassword: CryptoJS.AES.encrypt(values.currentPassword, env.cryptoSecret).toString(),
+                currentPassword: values.currentPassword,
                 recoveryCode: values.recoveryCode,
                 confirmRecoveryCode: values.confirmRecoveryCode,
                 invalidateSessions: values.invalidateSessions

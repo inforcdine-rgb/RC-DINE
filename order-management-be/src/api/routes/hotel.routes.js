@@ -35,7 +35,7 @@ const handleHotelLogoUpload = (req, res, next) => {
     });
 };
 
-router.put('/:id', authenticate, checkSubscriptionAccess, hotelController.update);
+router.put('/:id', authenticate, checkSubscriptionAccess, ownerAuthentication, hotelController.update);
 router.post('/:id/logo', authenticate, ownerAuthentication, handleHotelLogoUpload, hotelController.uploadLogo);
 
 router.delete('/:id/logo', authenticate, ownerAuthentication, hotelController.removeLogo);

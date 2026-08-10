@@ -128,7 +128,11 @@ export const connectSocket = () => {
 
             auth: (callback) => {
                 callback({
-                    token: localStorage.getItem('token') || localStorage.getItem('rcCustomerToken') || ''
+                    token:
+                        localStorage.getItem('token') ||
+                        localStorage.getItem('rcCustomerToken') ||
+                        localStorage.getItem('rcCustomerPushToken') ||
+                        ''
                 });
             },
 

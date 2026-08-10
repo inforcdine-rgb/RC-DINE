@@ -1,21 +1,35 @@
 /* eslint-disable camelcase */
+import crypto from 'crypto';
 import Razorpay from 'razorpay';
-import { getAdminSettings } from '../../config/adminSettings.js';
-import env from '../../config/env.js';
 import logger from '../../config/logger.js';
 import { CustomError, STATUS_CODE } from '../utils/common.js';
+import appSettingsService from './appSettings.service.js';
 
-const getRazorpayInstance = () => {
-    const settings = getAdminSettings();
+const getRazorpayInstance = async () => {
+    const settings = await appSettingsService.get();
+    if (!settings.razorpay.keyId || !settings.razorpay.keySecret) {
+        throw CustomError(STATUS_CODE.SERVICE_UNAVAILABLE, 'Razorpay is not configured');
+    }
     return new Razorpay({
-        key_id: settings.razorpay.keyId || env.razorpay.keyId,
-        key_secret: settings.razorpay.keySecret || env.razorpay.keySecret
+        key_id: settings.razorpay.keyId,
+        key_secret: settings.razorpay.keySecret
     });
+};
+
+const getKeyId = async () => (await appSettingsService.get()).razorpay.keyId;
+
+const verifyPaymentSignature = async (orderId, paymentId, receivedSignature) => {
+    const { keySecret } = (await appSettingsService.get()).razorpay;
+    if (!keySecret) throw CustomError(STATUS_CODE.SERVICE_UNAVAILABLE, 'Razorpay is not configured');
+    const generated = crypto.createHmac('sha256', keySecret).update(`${orderId}|${paymentId}`).digest('hex');
+    const generatedBuffer = Buffer.from(generated, 'utf8');
+    const receivedBuffer = Buffer.from(String(receivedSignature || ''), 'utf8');
+    return generatedBuffer.length === receivedBuffer.length && crypto.timingSafeEqual(generatedBuffer, receivedBuffer);
 };
 
 const createLinkedAccount = async (payload) => {
     try {
-        const linkedAccount = await getRazorpayInstance().accounts.create(payload);
+        const linkedAccount = await (await getRazorpayInstance()).accounts.create(payload);
         return linkedAccount;
     } catch (error) {
         logger('error', 'Error while creating linked account', { error });
@@ -25,7 +39,7 @@ const createLinkedAccount = async (payload) => {
 
 const createStakeholder = async (accountId, payload) => {
     try {
-        const stakeholder = await getRazorpayInstance().stakeholders.create(accountId, payload);
+        const stakeholder = await (await getRazorpayInstance()).stakeholders.create(accountId, payload);
         return stakeholder;
     } catch (error) {
         logger('error', 'Error while creating stakeholder', { error });
@@ -35,7 +49,7 @@ const createStakeholder = async (accountId, payload) => {
 
 const requestProduct = async (accountId, payload) => {
     try {
-        const product = await getRazorpayInstance().products.requestProductConfiguration(accountId, payload);
+        const product = await (await getRazorpayInstance()).products.requestProductConfiguration(accountId, payload);
         return product;
     } catch (error) {
         logger('error', 'Error while requesting product', { error });
@@ -45,7 +59,7 @@ const requestProduct = async (accountId, payload) => {
 
 const updateProduct = async (accountId, productId, payload) => {
     try {
-        const product = await getRazorpayInstance().products.edit(accountId, productId, payload);
+        const product = await (await getRazorpayInstance()).products.edit(accountId, productId, payload);
         return product;
     } catch (error) {
         logger('error', 'Error while updating product', { error });
@@ -55,7 +69,7 @@ const updateProduct = async (accountId, productId, payload) => {
 
 const subscribe = async (payload) => {
     try {
-        const subscription = await getRazorpayInstance().subscriptions.create(payload);
+        const subscription = await (await getRazorpayInstance()).subscriptions.create(payload);
         return subscription;
     } catch (error) {
         logger('error', 'Error while creating subscription product', { error });
@@ -65,7 +79,7 @@ const subscribe = async (payload) => {
 
 const fetch = async (subscriptionId) => {
     try {
-        const subscription = await getRazorpayInstance().subscriptions.fetch(subscriptionId);
+        const subscription = await (await getRazorpayInstance()).subscriptions.fetch(subscriptionId);
         return subscription;
     } catch (error) {
         logger('error', 'Error while fetching subscription product', { error });
@@ -75,7 +89,7 @@ const fetch = async (subscriptionId) => {
 
 const order = async (data) => {
     try {
-        const order = await getRazorpayInstance().orders.create(data);
+        const order = await (await getRazorpayInstance()).orders.create(data);
         return order;
     } catch (error) {
         logger('error', 'Error while creating order', { error });
@@ -95,9 +109,33 @@ const order = async (data) => {
     }
 };
 
+const fetchOrder = async (orderId) => {
+    try {
+        return await (await getRazorpayInstance()).orders.fetch(orderId);
+    } catch (error) {
+        throw CustomError(Number(error?.statusCode) || STATUS_CODE.BAD_GATEWAY, 'Unable to verify Razorpay order');
+    }
+};
+
+const fetchPayment = async (paymentId) => {
+    try {
+        return await (await getRazorpayInstance()).payments.fetch(paymentId);
+    } catch (error) {
+        throw CustomError(Number(error?.statusCode) || STATUS_CODE.BAD_GATEWAY, 'Unable to verify Razorpay payment');
+    }
+};
+
+const capturePayment = async (paymentId, amount, currency = 'INR') => {
+    try {
+        return await (await getRazorpayInstance()).payments.capture(paymentId, amount, currency);
+    } catch (error) {
+        throw CustomError(Number(error?.statusCode) || STATUS_CODE.BAD_GATEWAY, 'Unable to capture Razorpay payment');
+    }
+};
+
 const cancel = async (subscriptionId, cancelAtCycleEnd = false) => {
     try {
-        const cancelResponse = await getRazorpayInstance().subscriptions.cancel(subscriptionId, cancelAtCycleEnd);
+        const cancelResponse = await (await getRazorpayInstance()).subscriptions.cancel(subscriptionId, cancelAtCycleEnd);
         return cancelResponse;
     } catch (error) {
         logger('error', 'Error while canceling subscription', { error });
@@ -107,7 +145,7 @@ const cancel = async (subscriptionId, cancelAtCycleEnd = false) => {
 
 const getPlan = async (planId) => {
     try {
-        const data = await getRazorpayInstance().plans.fetch(planId);
+        const data = await (await getRazorpayInstance()).plans.fetch(planId);
         return data;
     } catch (error) {
         logger('error', 'Error while fetching plan', { error });
@@ -117,7 +155,7 @@ const getPlan = async (planId) => {
 
 const refund = async (paymentId, amount) => {
     try {
-        const data = await getRazorpayInstance().payments.refund(paymentId, { amount });
+        const data = await (await getRazorpayInstance()).payments.refund(paymentId, { amount });
         return data;
     } catch (error) {
         logger('error', 'Error while fetching plan', { error });
@@ -133,7 +171,12 @@ export default {
     subscribe,
     fetch,
     order,
+    fetchOrder,
+    fetchPayment,
+    capturePayment,
     cancel,
     getPlan,
-    refund
+    refund,
+    getKeyId,
+    verifyPaymentSignature
 };

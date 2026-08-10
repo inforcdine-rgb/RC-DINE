@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import CryptoJS from 'crypto-js';
 import { Form, Formik } from 'formik';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
@@ -8,7 +7,6 @@ import CustomButton from '../../components/CustomButton';
 import CustomFormGroup from '../../components/CustomFormGroup';
 import CustomLink from '../../components/CustomLink';
 import RecoveryCodeField from '../../components/RecoveryCodeField';
-import env from '../../config/env';
 import { forgotPasswordUser, resetOwnerPassword } from '../../services/auth.service';
 import { emailSchema, ownerRecoveryResetSchema } from '../../validations/auth';
 
@@ -26,8 +24,8 @@ const ForgotPassword = () => {
             const response = await resetOwnerPassword({
                 email: values.email.trim().toLowerCase(),
                 recoveryCode: values.recoveryCode,
-                newPassword: CryptoJS.AES.encrypt(values.newPassword, env.cryptoSecret).toString(),
-                confirmNewPassword: CryptoJS.AES.encrypt(values.confirmNewPassword, env.cryptoSecret).toString()
+                newPassword: values.newPassword,
+                confirmNewPassword: values.confirmNewPassword
             });
             toast.success(response.message);
             navigate('/login', { replace: true });

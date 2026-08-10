@@ -1,5 +1,6 @@
 import jwt from 'jsonwebtoken';
 import { Server } from 'socket.io';
+import { db } from './database.js';
 import env from './env.js';
 import logger from './logger.js';
 
@@ -74,7 +75,7 @@ const getAllowedOrigins = () => {
     return [...new Set(origins)];
 };
 
-const verifyStaffSocketToken = (socket) => {
+const verifyStaffSocketToken = async (socket) => {
     const token = socket.handshake.auth?.token;
 
     if (!token) {
@@ -82,7 +83,14 @@ const verifyStaffSocketToken = (socket) => {
     }
 
     try {
-        return jwt.verify(token, env.jwtSecret);
+        const payload = jwt.verify(token, env.jwtSecret);
+        if (payload.type || !payload.id) return null;
+        const currentUser = await db.users.findOne({
+            where: { id: payload.id },
+            attributes: ['id', 'tokenVersion']
+        });
+        if (!currentUser || Number(currentUser.tokenVersion || 0) !== Number(payload.tokenVersion || 0)) return null;
+        return payload;
     } catch (error) {
         logger('warn', 'Invalid Socket.IO staff token', {
             socketId: socket.id,
@@ -93,7 +101,18 @@ const verifyStaffSocketToken = (socket) => {
     }
 };
 
-const canJoinHotelRoom = (user, requestedHotelId) => {
+const verifyCustomerSocketToken = (socket) => {
+    const token = socket.handshake.auth?.token;
+    if (!token) return null;
+    try {
+        const payload = jwt.verify(token, env.customerAuth.jwtSecret);
+        return ['CUSTOMER', 'CUSTOMER_PUSH'].includes(payload.type) ? payload : null;
+    } catch (_error) {
+        return null;
+    }
+};
+
+const canJoinHotelRoom = async (user, requestedHotelId) => {
     if (!user || !requestedHotelId) {
         return false;
     }
@@ -105,16 +124,35 @@ const canJoinHotelRoom = (user, requestedHotelId) => {
         return String(user.hotelId || '') === hotelId;
     }
 
-    /*
-     * Owner/Admin ke token me fixed hotelId nahi hota.
-     * Unke liye database ownership verification next improvement me
-     * add karenge. Abhi arbitrary room join allow mat karo.
-     */
-    if (role === 'OWNER' || role === 'ADMIN') {
-        return false;
+    if (role === 'ADMIN') return true;
+
+    if (role === 'OWNER') {
+        const relation = await db.hotelUserRelation.findOne({
+            where: { userId: user.id, hotelId },
+            attributes: ['id']
+        });
+        return Boolean(relation);
     }
 
     return false;
+};
+
+const canJoinRcSessionRoom = async (customer, sessionId) => {
+    if (!customer || !sessionId) return false;
+    const where = { sessionId, status: 'ACTIVE' };
+    if (customer.customerId) where.customerId = customer.customerId;
+    else if (customer.phoneNumber) where.mobileNumber = String(customer.phoneNumber);
+    else return false;
+    return Boolean(await db.sessionMembers.findOne({ where, attributes: ['id'] }));
+};
+
+const canJoinRcRequestRoom = async (customer, requestId) => {
+    if (!customer || !requestId) return false;
+    const where = { id: requestId };
+    if (customer.customerId) where.customerId = customer.customerId;
+    else if (customer.phoneNumber) where.mobileNumber = String(customer.phoneNumber);
+    else return false;
+    return Boolean(await db.sessionJoinRequests.findOne({ where, attributes: ['id'] }));
 };
 
 export const initializeSocket = (httpServer) => {
@@ -142,8 +180,9 @@ export const initializeSocket = (httpServer) => {
         pingTimeout: 20000
     });
 
-    io.on('connection', (socket) => {
-        socket.data.staffUser = verifyStaffSocketToken(socket);
+    io.on('connection', async (socket) => {
+        socket.data.staffUser = await verifyStaffSocketToken(socket);
+        socket.data.customerUser = verifyCustomerSocketToken(socket);
 
         logger('info', 'Socket connected', {
             socketId: socket.id,
@@ -151,7 +190,7 @@ export const initializeSocket = (httpServer) => {
             role: socket.data.staffUser?.role || null
         });
 
-        socket.on('join-hotel', (hotelId, acknowledge = () => {}) => {
+        socket.on('join-hotel', async (hotelId, acknowledge = () => {}) => {
             try {
                 const user = socket.data.staffUser;
 
@@ -167,7 +206,7 @@ export const initializeSocket = (httpServer) => {
                     });
                 }
 
-                if (!canJoinHotelRoom(user, hotelId)) {
+                if (!(await canJoinHotelRoom(user, hotelId))) {
                     logger('warn', 'Unauthorized hotel room join blocked', {
                         socketId: socket.id,
                         userId: user.id,
@@ -209,10 +248,10 @@ export const initializeSocket = (httpServer) => {
             }
         });
 
-        socket.on('leave-hotel', (hotelId) => {
+        socket.on('leave-hotel', async (hotelId) => {
             const user = socket.data.staffUser;
 
-            if (!canJoinHotelRoom(user, hotelId)) {
+            if (!(await canJoinHotelRoom(user, hotelId))) {
                 return;
             }
 
@@ -221,6 +260,11 @@ export const initializeSocket = (httpServer) => {
 
         socket.on('join-order', (orderId) => {
             if (!orderId) return;
+
+            const customer = socket.data.customerUser;
+            const lastDashIndex = String(orderId).lastIndexOf('-');
+            const orderCustomerId = lastDashIndex > 0 ? String(orderId).slice(0, lastDashIndex) : '';
+            if (!customer?.customerId || String(customer.customerId) !== orderCustomerId) return;
 
             const roomName = `order:${orderId}`;
             socket.join(roomName);
@@ -235,8 +279,9 @@ export const initializeSocket = (httpServer) => {
             socket.leave(roomName);
         });
 
-        socket.on('join-rc-session', (sessionId) => {
+        socket.on('join-rc-session', async (sessionId) => {
             if (!sessionId) return;
+            if (!(await canJoinRcSessionRoom(socket.data.customerUser, sessionId))) return;
 
             const roomName = `rc-session:${sessionId}`;
             socket.join(roomName);
@@ -248,8 +293,9 @@ export const initializeSocket = (httpServer) => {
             socket.leave(`rc-session:${sessionId}`);
         });
 
-        socket.on('join-rc-request', (requestId) => {
+        socket.on('join-rc-request', async (requestId) => {
             if (!requestId) return;
+            if (!(await canJoinRcRequestRoom(socket.data.customerUser, requestId))) return;
 
             const roomName = `rc-request:${requestId}`;
             socket.join(roomName);

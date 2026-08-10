@@ -42,7 +42,7 @@ const update = async (req, res) => {
             return res.status(STATUS_CODE.BAD_REQUEST).send({ message: validation.error.message });
         }
 
-        const { id } = params;
+        const id = await resolveHotelAccess(req.user, params.id);
         const result = await hotelService.update(body, id);
         logger('info', 'Hotel update successful', { result });
 
@@ -70,10 +70,10 @@ const list = async (req, res) => {
 
 const remove = async (req, res) => {
     try {
-        const { params } = req;
-        logger('debug', `Received request to remove hotel with ID: ${params.id}`);
+        const id = await resolveHotelAccess(req.user, req.params.id);
+        logger('debug', `Received request to remove hotel with ID: ${id}`);
 
-        const result = await hotelService.remove(params.id);
+        const result = await hotelService.remove(id);
         logger('info', 'Hotel removed successfully', { result });
 
         return res.status(STATUS_CODE.OK).send(result);
