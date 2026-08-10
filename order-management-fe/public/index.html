@@ -8,6 +8,141 @@
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta name="theme-color" content="#ff6b2c" />
 
+        <script>
+            (function () {
+                var RECOVERY_KEY = 'rcdineAutomaticCacheRecovery';
+                var RECOVERY_WINDOW_MS = 2 * 60 * 1000;
+                var recoveryStarted = false;
+
+                var readPreviousAttempt = function () {
+                    try {
+                        return JSON.parse(window.sessionStorage.getItem(RECOVERY_KEY) || 'null');
+                    } catch (_error) {
+                        return null;
+                    }
+                };
+
+                var showRecoveryHelp = function () {
+                    var render = function () {
+                        document.body.innerHTML =
+                            '<main style="min-height:100vh;display:grid;place-items:center;padding:24px;background:#fff7f2;font-family:Arial,sans-serif;color:#241b17;text-align:center">' +
+                            '<section><h1 style="margin:0 0 10px">RC Dine is reconnecting</h1>' +
+                            '<p style="margin:0 0 18px;color:#6d5b52">Please check your internet connection and try again.</p>' +
+                            '<button id="rcdine-retry" style="border:0;border-radius:12px;padding:12px 20px;background:#ff6b2c;color:white;font-weight:700">Try again</button></section></main>';
+                        document.getElementById('rcdine-retry').addEventListener('click', function () {
+                            window.sessionStorage.removeItem(RECOVERY_KEY);
+                            window.location.reload();
+                        });
+                    };
+
+                    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', render);
+                    else render();
+                };
+
+                var repairCache = function (reason) {
+                    if (recoveryStarted) return;
+                    recoveryStarted = true;
+
+                    var now = Date.now();
+                    var previousAttempt = readPreviousAttempt();
+                    if (previousAttempt && now - Number(previousAttempt.at || 0) < RECOVERY_WINDOW_MS) {
+                        showRecoveryHelp();
+                        return;
+                    }
+
+                    try {
+                        window.sessionStorage.setItem(RECOVERY_KEY, JSON.stringify({ at: now, reason: reason }));
+                    } catch (_error) {
+                        // Recovery still works when session storage is unavailable.
+                    }
+
+                    var clearAppCaches =
+                        'caches' in window
+                            ? window.caches
+                                  .keys()
+                                  .then(function (keys) {
+                                      return Promise.all(
+                                          keys
+                                              .filter(function (key) {
+                                                  return key.indexOf('rcdine-') === 0;
+                                              })
+                                              .map(function (key) {
+                                                  return window.caches.delete(key);
+                                              })
+                                      );
+                                  })
+                                  .catch(function () {})
+                            : Promise.resolve();
+
+                    var refreshWorkers =
+                        'serviceWorker' in navigator
+                            ? navigator.serviceWorker
+                                  .getRegistrations()
+                                  .then(function (registrations) {
+                                      return Promise.allSettled(
+                                          registrations.map(function (registration) {
+                                              return registration.update();
+                                          })
+                                      );
+                                  })
+                                  .catch(function () {})
+                            : Promise.resolve();
+
+                    Promise.allSettled([clearAppCaches, refreshWorkers]).finally(function () {
+                        var recoveryUrl = new URL(window.location.href);
+                        recoveryUrl.searchParams.set('rcRecover', String(now));
+                        window.location.replace(recoveryUrl.href);
+                    });
+                };
+
+                window.addEventListener(
+                    'error',
+                    function (event) {
+                        var target = event.target;
+                        var assetUrl = target && (target.src || target.href);
+                        if (!assetUrl || !target || !['SCRIPT', 'LINK'].includes(target.tagName)) return;
+
+                        try {
+                            var url = new URL(assetUrl, window.location.href);
+                            if (url.origin === window.location.origin && url.pathname.indexOf('/static/') === 0) {
+                                repairCache('static-asset-load-failed');
+                            }
+                        } catch (_error) {
+                            // Ignore invalid third-party asset URLs.
+                        }
+                    },
+                    true
+                );
+
+                window.addEventListener('unhandledrejection', function (event) {
+                    var message = String((event.reason && event.reason.message) || event.reason || '');
+                    if (
+                        /ChunkLoadError|Loading chunk .* failed|dynamically imported module|module script failed/i.test(
+                            message
+                        )
+                    ) {
+                        repairCache('javascript-chunk-load-failed');
+                    }
+                });
+
+                window.setTimeout(function () {
+                    var root = document.getElementById('root');
+                    if (!root || root.childElementCount === 0) repairCache('empty-application-root');
+                }, 12000);
+
+                window.setTimeout(function () {
+                    var root = document.getElementById('root');
+                    if (root && root.childElementCount > 0) {
+                        try {
+                            window.sessionStorage.removeItem(RECOVERY_KEY);
+                        } catch (_error) {
+                            // No action is required when session storage is unavailable.
+                        }
+                    }
+                }, 15000);
+            })();
+        </script>
+
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />

@@ -1,12 +1,13 @@
-/* global caches, clients */
+/* global AbortController, caches, clients */
 
-// Keep this worker stable between regular app deployments. New frontend builds
-// are activated explicitly through APPLY_APP_UPDATE so users may defer safely.
-const CACHE_VERSION = 'v11-self-healing-updates';
+// Open a verified complete snapshot immediately for speed. If any hashed asset
+// is missing, repair the whole snapshot atomically before returning its HTML.
+const CACHE_VERSION = 'v12-atomic-cache-recovery';
 const APP_SHELL_CACHE = `rcdine-shell-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `rcdine-runtime-${CACHE_VERSION}`;
+const NAVIGATION_TIMEOUT_MS = 6000;
+const ASSET_TIMEOUT_MS = 12000;
 const APP_SHELL = [
-    '/',
     '/offline.html',
     '/manifest.json',
     '/icons/icon-192.png',
@@ -83,23 +84,20 @@ self.addEventListener('install', (event) => {
 });
 
 self.addEventListener('activate', (event) => {
-    event.waitUntil(
-        Promise.all([
-            caches
-                .keys()
-                .then((keys) =>
-                    Promise.all(
-                        keys
-                            .filter(
-                                (key) => key.startsWith('rcdine-') && ![APP_SHELL_CACHE, RUNTIME_CACHE].includes(key)
-                            )
-                            .map((key) => caches.delete(key))
-                    )
-                ),
-            clients.claim()
-        ])
-    );
+    // Keep the previous complete snapshot until the first v12 network refresh
+    // succeeds. It gives users a working fallback during a slow deployment.
+    event.waitUntil(clients.claim());
 });
+
+const fetchWithTimeout = async (input, options = {}, timeoutMs = NAVIGATION_TIMEOUT_MS) => {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+        return await fetch(input, { ...options, signal: controller.signal });
+    } finally {
+        clearTimeout(timeout);
+    }
+};
 
 const cacheSuccessfulResponse = async (request, response) => {
     if (!response || !response.ok || response.type === 'opaque') return response;
@@ -147,93 +145,65 @@ const hasCompleteCachedShell = async (shellResponse) => {
     return cachedAssets.every((response, index) => isUsableStaticAsset(assetUrls[index], response));
 };
 
-const fetchAndCacheFreshShell = async (request) => {
-    const shellUrl = new URL(request?.url || '/', self.location.origin);
-    shellUrl.pathname = '/';
-    shellUrl.search = '';
-    shellUrl.searchParams.set('rcCacheRecovery', String(Date.now()));
+const getCompleteCachedShell = async () => {
+    const cacheKeys = await caches.keys();
+    const shellCacheKeys = [
+        APP_SHELL_CACHE,
+        ...cacheKeys.filter((key) => key.startsWith('rcdine-shell-') && key !== APP_SHELL_CACHE)
+    ];
 
-    const shellResponse = await fetch(shellUrl.href, {
-        cache: 'no-store',
-        credentials: 'same-origin'
-    });
-    if (!shellResponse.ok) throw new Error(`Fresh app shell returned ${shellResponse.status}`);
+    for (const cacheKey of shellCacheKeys) {
+        const cache = await caches.open(cacheKey);
+        const shellResponse = await cache.match('/');
+        if (shellResponse && (await hasCompleteCachedShell(shellResponse))) return shellResponse;
+    }
 
+    return null;
+};
+
+const cleanupOldCaches = async () => {
+    const cacheKeys = await caches.keys();
+    await Promise.all(
+        cacheKeys
+            .filter((key) => key.startsWith('rcdine-') && ![APP_SHELL_CACHE, RUNTIME_CACHE].includes(key))
+            .map((key) => caches.delete(key))
+    );
+};
+
+const cacheCompleteShellSnapshot = async (shellResponse, expectedVersion) => {
     const assetUrls = await getShellAssets(shellResponse);
     if (!assetUrls.length) throw new Error('Fresh app shell does not contain static assets');
 
-    const downloadedAssets = await Promise.all(
+    let versionVerified = !expectedVersion;
+    const verifiedAssets = await Promise.all(
         assetUrls.map(async (assetUrl) => {
-            const assetRequest = new Request(assetUrl, { cache: 'no-store', credentials: 'same-origin' });
-            const response = await fetch(assetRequest);
+            let response = await caches.match(assetUrl);
+
+            if (!isUsableStaticAsset(assetUrl, response)) {
+                const request = new Request(assetUrl, { cache: 'no-store', credentials: 'same-origin' });
+                response = await fetchWithTimeout(request, {}, ASSET_TIMEOUT_MS);
+            }
+
             if (!isUsableStaticAsset(assetUrl, response)) {
                 throw new Error(`Fresh app asset is unavailable: ${new URL(assetUrl).pathname}`);
             }
-            return { assetRequest, response };
+
+            if (expectedVersion && new URL(assetUrl).pathname.endsWith('.js')) {
+                const source = await response.clone().text();
+                if (source.includes(expectedVersion)) versionVerified = true;
+            }
+
+            return { assetUrl, response };
         })
     );
 
+    if (!versionVerified) throw new Error('New deployment is still propagating. Please try again shortly.');
+
     const runtimeCache = await caches.open(RUNTIME_CACHE);
-    await Promise.all(
-        downloadedAssets.map(({ assetRequest, response }) => runtimeCache.put(assetRequest, response.clone()))
-    );
+    await Promise.all(verifiedAssets.map(({ assetUrl, response }) => runtimeCache.put(assetUrl, response.clone())));
 
     const shellCache = await caches.open(APP_SHELL_CACHE);
     await shellCache.put('/', shellResponse.clone());
-    return shellResponse;
-};
-
-const handleNavigationRequest = async (request) => {
-    const shellCache = await caches.open(APP_SHELL_CACHE);
-    const currentShell = await shellCache.match('/');
-
-    if (currentShell && (await hasCompleteCachedShell(currentShell))) {
-        return currentShell;
-    }
-
-    try {
-        // A cached HTML shell without all of its hashed JS/CSS files renders a
-        // blank screen. Recover atomically by downloading the current shell and
-        // every referenced static asset before replacing the cached version.
-        return await fetchAndCacheFreshShell(request);
-    } catch (_error) {
-        return (
-            (await caches.match(request)) || (await caches.match('/offline.html')) || currentShell || Response.error()
-        );
-    }
-};
-
-const prepareAppUpdate = async (version) => {
-    const updateUrl = new URL('/', self.location.origin);
-    updateUrl.searchParams.set('rcAppUpdate', version || String(Date.now()));
-    const shellResponse = await fetch(updateUrl.href, {
-        cache: 'no-store',
-        credentials: 'same-origin'
-    });
-    if (!shellResponse.ok) throw new Error(`New app shell returned ${shellResponse.status}`);
-
-    const html = await shellResponse.clone().text();
-    const assetUrls = getStaticAssetUrls(html);
-    if (!assetUrls.length) throw new Error('New app assets were not found');
-
-    const runtimeCache = await caches.open(RUNTIME_CACHE);
-    let versionVerified = !version;
-    await Promise.all(
-        assetUrls.map(async (assetUrl) => {
-            const request = new Request(assetUrl, { cache: 'no-store', credentials: 'same-origin' });
-            const response = await fetch(request);
-            if (!response.ok) throw new Error(`App asset returned ${response.status}`);
-            if (version && new URL(assetUrl).pathname.endsWith('.js')) {
-                const source = await response.clone().text();
-                if (source.includes(version)) versionVerified = true;
-            }
-            await runtimeCache.put(assetUrl, response);
-        })
-    );
-    if (!versionVerified) throw new Error('New deployment is still propagating. Please try again shortly.');
-
-    const shellCache = await caches.open(APP_SHELL_CACHE);
-    await shellCache.put('/', shellResponse);
 
     const currentAssets = new Set(assetUrls);
     const cachedRequests = await runtimeCache.keys();
@@ -246,15 +216,57 @@ const prepareAppUpdate = async (version) => {
             .map((request) => runtimeCache.delete(request))
     );
 
-    return { version, assetCount: assetUrls.length };
+    await cleanupOldCaches();
+    return assetUrls.length;
+};
+
+const fetchAndCacheFreshShell = async (request, expectedVersion) => {
+    const shellUrl = new URL(request?.url || '/', self.location.origin);
+    shellUrl.pathname = '/';
+    shellUrl.search = '';
+    shellUrl.searchParams.set(expectedVersion ? 'rcAppUpdate' : 'rcNavigation', expectedVersion || String(Date.now()));
+
+    const shellResponse = await fetchWithTimeout(
+        shellUrl.href,
+        {
+            cache: 'no-store',
+            credentials: 'same-origin'
+        },
+        NAVIGATION_TIMEOUT_MS
+    );
+    if (!shellResponse.ok) throw new Error(`Fresh app shell returned ${shellResponse.status}`);
+    const contentType = String(shellResponse.headers.get('content-type') || '').toLowerCase();
+    if (!contentType.includes('text/html')) throw new Error('Fresh app shell did not return HTML');
+
+    const assetCount = await cacheCompleteShellSnapshot(shellResponse, expectedVersion);
+    return { shellResponse, assetCount };
+};
+
+const handleNavigationRequest = async (request) => {
+    const completeCachedShell = await getCompleteCachedShell();
+    if (completeCachedShell) return completeCachedShell;
+
+    try {
+        // Return network HTML only after every referenced hashed asset is
+        // available, so an incomplete/blank application is never shown.
+        const { shellResponse } = await fetchAndCacheFreshShell(request);
+        return shellResponse;
+    } catch (_error) {
+        return (await caches.match('/offline.html')) || Response.error();
+    }
+};
+
+const prepareAppUpdate = async (version) => {
+    const { assetCount } = await fetchAndCacheFreshShell(null, version);
+    return { version, assetCount };
 };
 
 const handleStaticAssetRequest = async (request) => {
     const cachedResponse = await caches.match(request);
-    const networkResponse = fetch(request)
-        .then((response) => cacheSuccessfulResponse(request, response))
-        .catch(() => null);
-    return cachedResponse || networkResponse;
+    if (cachedResponse) return cachedResponse;
+
+    const networkResponse = await fetch(request);
+    return cacheSuccessfulResponse(request, networkResponse);
 };
 
 self.addEventListener('fetch', (event) => {
