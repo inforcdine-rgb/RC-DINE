@@ -245,6 +245,16 @@ const rotateLegacyPaymentSecrets = async () => {
     if (rotated) logger('info', `Rotated ${rotated} legacy payment credential(s) to the server-only key`);
 };
 
+const ensureQrTablesStayOpen = async (sequelize) => {
+    await sequelize.query(`
+        UPDATE \`tables\`
+        SET \`status\` = 'OPEN', \`customerId\` = NULL
+        WHERE \`activeSessionId\` IS NULL
+          AND \`status\` IN ('BOOKED', 'PAYMENT_PENDING');
+    `);
+    logger('info', 'QR tables normalized to OPEN status');
+};
+
 const addOrModifyColumn = async ({ sequelize, tableName, columnName, columnType }) => {
     try {
         await sequelize.query(
@@ -334,6 +344,7 @@ const initDb = async () => {
         await sequelize.sync({
             force: false
         });
+        await ensureQrTablesStayOpen(sequelize);
         await ensurePaymentReplayIndexes(sequelize);
         await ensureAppSettings();
         await rotateLegacyPaymentSecrets();

@@ -29,72 +29,46 @@ const getNotificationUserIds = async (hotelId) => {
 };
 
 const register = async (payload) => {
-    let transaction;
     try {
-        transaction = await db.customer.sequelize.transaction();
         const table = await db.tables.findOne({
             where: { id: payload.tableId, hotelId: payload.hotelId },
-            attributes: ['id', 'hotelId', 'tableNumber', 'status', 'customerId'],
-            transaction,
-            lock: transaction.LOCK.UPDATE
+            attributes: ['id', 'hotelId', 'tableNumber']
         });
         if (!table) throw CustomError(STATUS_CODE.NOT_FOUND, 'Table not found');
 
         let data;
-        let reusedTableCustomer = false;
-
-        if (table.customerId) {
+        let reusedCustomerSession = false;
+        if (payload.existingCustomerId) {
             data = await db.customer.findOne({
                 where: {
-                    id: table.customerId,
+                    id: payload.existingCustomerId,
                     hotelId: payload.hotelId
-                },
-                transaction
+                }
             });
+            reusedCustomerSession = Boolean(data);
+        }
 
-            if (!data) {
-                throw CustomError(
-                    STATUS_CODE.CONFLICT,
-                    'This table session needs to be reset by restaurant staff'
-                );
-            }
-
-            reusedTableCustomer = true;
-        } else {
-            if (table.status !== TABLE_STATUS[0]) {
-                throw CustomError(
-                    STATUS_CODE.CONFLICT,
-                    'This table session needs to be reset by restaurant staff'
-                );
-            }
-
-            const { subscription: _subscription, ...customerPayload } = payload;
+        if (!data) {
+            const {
+                subscription: _subscription,
+                existingCustomerId: _existingCustomerId,
+                ...customerPayload
+            } = payload;
             const customer = {
                 id: uuidv4(),
                 ...customerPayload,
                 tableNumber: table.tableNumber
             };
 
-            data = await db.customer.create(customer, { transaction });
-            const [updatedRows] = await db.tables.update(
-                { status: TABLE_STATUS[1], customerId: data.id },
-                {
-                    where: {
-                        id: payload.tableId,
-                        hotelId: payload.hotelId,
-                        status: TABLE_STATUS[0],
-                        customerId: null
-                    },
-                    transaction
-                }
-            );
-            if (updatedRows !== 1) {
-                throw CustomError(STATUS_CODE.CONFLICT, 'This table was booked by another customer');
-            }
+            data = await db.customer.create(customer);
         }
 
-        await transaction.commit();
-        transaction = null;
+        // QR tables are shared ordering points, not reservations. Keeping the
+        // table OPEN lets multiple phones order independently from the same QR.
+        await db.tables.update(
+            { status: TABLE_STATUS[0], customerId: null },
+            { where: { id: payload.tableId, hotelId: payload.hotelId } }
+        );
 
         try {
             if (payload.subscription?.endpoint) {
@@ -112,11 +86,11 @@ const register = async (payload) => {
                 });
             }
 
-            if (!reusedTableCustomer) {
+            if (!reusedCustomerSession) {
                 const userIds = await getNotificationUserIds(payload.hotelId);
                 await notificationService.sendNotification(userIds, {
-                    title: `Table-${table.tableNumber} Booked`,
-                    message: `Table-${table.tableNumber} is booked. Please assist the customer accordingly.`,
+                    title: `Table-${table.tableNumber} QR Opened`,
+                    message: `A guest opened the menu for Table-${table.tableNumber}.`,
                     path: '/orders',
                     meta: {
                         action: NOTIFICATION_ACTIONS.CUSTOMER_REGISTERATION,
@@ -144,9 +118,8 @@ const register = async (payload) => {
             { expiresIn: env.customerAuth.tokenExpiry }
         );
 
-        return { ...data.toJSON(), notificationToken, reusedTableCustomer };
+        return { ...data.toJSON(), notificationToken, reusedCustomerSession };
     } catch (error) {
-        if (transaction) await transaction.rollback();
         logger('error', `Error while creating customer ${JSON.stringify({ error })}`);
         throw CustomError(error.code, error.message);
     }
@@ -444,15 +417,8 @@ const placeOrder = async (payload) => {
             throw CustomError(STATUS_CODE.NOT_FOUND, 'Table not found');
         }
 
-        if (table.status === 'PAYMENT_PENDING') {
-            throw CustomError(
-                STATUS_CODE.CONFLICT,
-                'Payment is pending for this table'
-            );
-        }
-
-        if (table.status !== TABLE_STATUS[1] || String(table.customerId || '') !== String(customerId)) {
-            throw CustomError(STATUS_CODE.FORBIDDEN, 'This customer is no longer assigned to the table');
+        if (Number(table.tableNumber) !== Number(payload.tableNumber)) {
+            throw CustomError(STATUS_CODE.FORBIDDEN, 'Table number does not match this QR');
         }
 
         const customer = await customerRepo.findOne({
@@ -571,18 +537,6 @@ const placeOrder = async (payload) => {
         });
 
         const res = await orderRepo.save(data);
-        await tableRepo.update(
-            {
-                where: {
-                    id: tableId,
-                    hotelId
-                }
-            },
-            {
-                status: TABLE_STATUS[1],
-                customerId
-            }
-        );
         logger('info', 'order operations successful', res);
 
         const orderedMenuIds = menus
@@ -821,10 +775,6 @@ const createWalkInOrder = async (payload) => {
             phoneNumber: String(payload.phoneNumber || '9999999999'),
             hotelId: payload.hotelId
         });
-
-        if (payload.tableId && !['parcel', 'take-away'].includes(payload.tableId)) {
-            await tableRepo.update({ where: { id: payload.tableId } }, { status: TABLE_STATUS[1], customerId });
-        }
 
         const data = payload.menus
             .filter((item) => Number(item.quantity) > 0)

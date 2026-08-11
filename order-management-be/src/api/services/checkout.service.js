@@ -10,7 +10,6 @@ import logger from '../../config/logger.js';
 import { ORDER_STATUS } from '../models/order.model.js';
 import { PAYMENT_PREFERENCE } from '../models/preferences.model.js';
 import { SUBSCRIPTION_STATUS } from '../models/subscriptions.js';
-import { TABLE_STATUS } from '../models/table.model.js';
 import { USER_ROLES } from '../models/user.model.js';
 import customerRepo from '../repositories/customer.repository.js';
 import hotelUserRelationRepo from '../repositories/hotelUserRelation.repository.js';
@@ -18,7 +17,6 @@ import orderRepo from '../repositories/order.repository.js';
 import paymentGatewayEntitiesRepo from '../repositories/paymentGatewayEntities.repository.js';
 import preferencesRepo from '../repositories/preferences.repository.js';
 import subscriptionRepo from '../repositories/subscription.repository.js';
-import tableRepo from '../repositories/table.repository.js';
 import notificationService from '../services/notification.service.js';
 import {
     CustomError,
@@ -371,27 +369,22 @@ const payment = async ({ customerId, hotelId, manual }) => {
         });
         const customer = rows[0];
         if (!customer) throw CustomError(STATUS_CODE.NOT_FOUND, 'Customer not found');
-        const activeTable = customer.table
+        const orderTableId = orders.find((order) => order.tableId)?.tableId || customer.table?.id;
+        const activeTable = orderTableId
             ? await db.tables.findOne({
                 where: {
-                    id: customer.table.id,
-                    hotelId,
-                    customerId,
-                    status: { [Op.in]: [TABLE_STATUS[1], TABLE_STATUS[4]] }
+                    id: orderTableId,
+                    hotelId
                 }
             })
             : null;
-        if (!activeTable) throw CustomError(STATUS_CODE.CONFLICT, 'This table session is no longer active');
+        if (!activeTable) throw CustomError(STATUS_CODE.NOT_FOUND, 'Order table not found');
         if (!orders.length) throw CustomError(STATUS_CODE.BAD_REQUEST, 'No served orders are awaiting payment');
         logger('debug', 'Customer details', customer);
 
         const totalPrice = getSettlementTotal(orders);
         logger('info', `total price for ${customerId} - ${totalPrice}`);
         if (manual) {
-            await tableRepo.update(
-                { where: { id: activeTable.id, hotelId, customerId } },
-                { status: TABLE_STATUS[4] }
-            );
             try {
                 const userIds = await orderService.getNotificationUserIds(hotelId);
                 await notificationService.sendNotification(userIds, {
@@ -581,7 +574,8 @@ const paymentConfirmation = async (payload) => {
                         'tipAmount',
                         'finalAmount',
                         'paymentStatus',
-                        'razorpayOrderId'
+                        'razorpayOrderId',
+                        'tableId'
                     ],
                     include: [
                         {
@@ -614,6 +608,17 @@ const paymentConfirmation = async (payload) => {
         if (!payableOrders.length) {
             throw CustomError(STATUS_CODE.BAD_REQUEST, 'No served orders are awaiting payment');
         }
+
+        const settlementTableId = payableOrders.find((order) => order.tableId)?.tableId;
+        const settlementTable =
+            customerDetails.table ||
+            (settlementTableId
+                ? await db.tables.findOne({
+                    where: { id: settlementTableId, hotelId: customerDetails.hotel.id },
+                    attributes: ['id', 'tableNumber']
+                })
+                : null);
+        const settlementTableNumber = settlementTable?.tableNumber || '-';
 
         const transaction = await db.orders.sequelize.transaction();
         try {
@@ -654,17 +659,6 @@ const paymentConfirmation = async (payload) => {
                 },
                 { status: ORDER_STATUS[3] }
             );
-
-            const remainingActiveOrders = await db.orders.count({
-                where: { customerId, status: { [Op.in]: [ORDER_STATUS[0], ORDER_STATUS[1]] } },
-                transaction
-            });
-            if (!remainingActiveOrders) {
-                await tableRepo.update(
-                    { where: { customerId }, transaction },
-                    { status: TABLE_STATUS[0], customerId: null }
-                );
-            }
 
             await transaction.commit();
         } catch (transactionError) {
@@ -712,7 +706,7 @@ const paymentConfirmation = async (payload) => {
                         message: `Payment successfully confirmed`,
                         meta: {
                             action: NOTIFICATION_ACTIONS.MANUAL_PAYMENT_CONFIRMED,
-                            tableNumber: customerDetails.table.tableNumber
+                            tableNumber: settlementTableNumber
                         }
                     },
                     customerId
@@ -721,9 +715,9 @@ const paymentConfirmation = async (payload) => {
                 const userIds = await orderService.getNotificationUserIds(customerDetails.hotel.id);
                 await notificationService.sendNotification(userIds, {
                     title: 'Payment Received',
-                    message: `Payment received for Table ${customerDetails.table.tableNumber}: ₹${totalPrice}`,
+                    message: `Payment received for Table ${settlementTableNumber}: ₹${totalPrice}`,
                     meta: {
-                        tableNumber: customerDetails.table.tableNumber,
+                        tableNumber: settlementTableNumber,
                         action: NOTIFICATION_ACTIONS.ONLINE_PAYMENT_CONFIRMED,
                         hotelId: customerDetails.hotel.id
                     }
@@ -742,7 +736,7 @@ const paymentConfirmation = async (payload) => {
                 invoiceNumber: invoiceReference,
                 orderId: invoiceReference,
                 date: moment().format('DD-MMM-YYYY HH:mm:ss'),
-                tableNumber: String(customerDetails.table.tableNumber),
+                tableNumber: String(settlementTableNumber),
                 totalAmount: String(totalPrice),
                 discountType,
                 discountValue,

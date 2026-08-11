@@ -28,7 +28,7 @@ import {
     customerPaymentConfirmationRequest,
     verifyCustomerPaymentRequest
 } from '../../store/slice';
-import { NOTIFICATION_ACTIONS, ORDER_STATUS, PAYMENT_PREFERENCE, TABLE_STATUS } from '../../utils/constants';
+import { NOTIFICATION_ACTIONS, ORDER_STATUS, PAYMENT_PREFERENCE } from '../../utils/constants';
 import { getBackgroundRequestVersion, registerRefreshHandler, waitForBackgroundRequests } from '../../utils/refreshBus';
 
 function OrderPlacement() {
@@ -460,7 +460,7 @@ function OrderPlacement() {
         );
     }
 
-    return tableDetails.status === TABLE_STATUS[0] ? (
+    return !menuCard?.id ? (
         <Loader />
     ) : (
         <>

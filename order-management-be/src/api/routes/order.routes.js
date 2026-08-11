@@ -10,7 +10,7 @@ const router = Router();
 
 router.post('/', customerSessionAuth, orderController.placeOrder);
 router.post('/walk-in', authenticate, checkSubscriptionAccess, orderController.createWalkInOrder);
-router.post('/customer', orderController.register);
+router.post('/customer', optionalCustomerSessionAuth, orderController.register);
 
 router.put('/pending', authenticate, checkSubscriptionAccess, orderController.updatePending);
 

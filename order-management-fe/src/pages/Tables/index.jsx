@@ -13,7 +13,6 @@ import env from '../../config/env';
 import features from '../../config/features';
 
 import * as managerRcSessionService from '../../services/managerRcSession.service';
-import * as orderService from '../../services/order.service';
 import * as qrTemplateService from '../../services/qrTemplate.service';
 import * as tableService from '../../services/tables.service';
 
@@ -41,7 +40,6 @@ function Tables() {
     const [editTable, setEditTable] = useState(null);
     const [editName, setEditName] = useState('');
     const [deleteTable, setDeleteTable] = useState(null);
-    const [tableToReset, setTableToReset] = useState(null);
     const [loadingAction, setLoadingAction] = useState(false);
     const [sessionTable, setSessionTable] = useState(null);
     const [sessionDetails, setSessionDetails] = useState(null);
@@ -205,21 +203,6 @@ function Tables() {
             dispatch(getTablesRequest({ hotelId }));
         } catch (error) {
             toast.error(`Failed to delete table ${error.message}`);
-        } finally {
-            setLoadingAction(false);
-        }
-    };
-
-    const handleResetTable = async () => {
-        if (!hotelId || !tableToReset?.value) return;
-        try {
-            setLoadingAction(true);
-            await orderService.resetTable(tableToReset.value);
-            toast.success(`${tableToReset.label} is ready for a new QR order`);
-            setTableToReset(null);
-            dispatch(getTablesRequest({ hotelId }));
-        } catch (error) {
-            toast.error(error.message || 'Failed to free table');
         } finally {
             setLoadingAction(false);
         }
@@ -415,15 +398,6 @@ function Tables() {
                                         disabled={!tableUrl}
                                     >
                                         ✦ Download with Template
-                                    </button>
-                                )}
-                                {table.status !== 'OPEN' && (
-                                    <button
-                                        className="table-reset-btn"
-                                        type="button"
-                                        onClick={() => setTableToReset(table)}
-                                    >
-                                        Free Table for New Customer
                                     </button>
                                 )}
                                 <button
@@ -639,26 +613,6 @@ function Tables() {
                                 )}
                             </div>
                         )}
-                    </div>
-                </div>
-            )}
-
-            {tableToReset && (
-                <div className="table-modal-backdrop">
-                    <div className="table-modal">
-                        <h3>Free {tableToReset.label}?</h3>
-                        <p>
-                            Use this only after the current customer has finished. Active orders must be completed or
-                            cancelled first. The printed QR will remain the same.
-                        </p>
-                        <div className="table-modal-actions">
-                            <button type="button" onClick={() => setTableToReset(null)} disabled={loadingAction}>
-                                Cancel
-                            </button>
-                            <button type="button" className="save" onClick={handleResetTable} disabled={loadingAction}>
-                                {loadingAction ? 'Freeing...' : 'Free Table'}
-                            </button>
-                        </div>
                     </div>
                 </div>
             )}

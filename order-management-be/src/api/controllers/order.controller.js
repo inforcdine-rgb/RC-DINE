@@ -27,7 +27,12 @@ const register = async (req, res) => {
             throw CustomError(STATUS_CODE.FORBIDDEN, 'Table QR does not match this cafe or table');
         }
 
+        const canReuseCustomer =
+            req.customer?.customerId &&
+            String(req.customer.hotelId || '') === String(qr.hotelId) &&
+            String(req.customer.tableId || '') === String(qr.tableId);
         const { qrToken: _qrToken, ...registrationPayload } = validation.value;
+        if (canReuseCustomer) registrationPayload.existingCustomerId = req.customer.customerId;
         const result = await orderService.register(registrationPayload);
         logger('info', 'Customer registration successful', { customerId: result.id });
 
@@ -52,6 +57,13 @@ const getTableDetails = async (req, res) => {
         }
 
         const result = await orderService.getTableDetails(tableId);
+        const hasMatchingCustomerSession =
+            req.customer?.customerId &&
+            String(req.customer.tableId || '') === String(result.id) &&
+            String(req.customer.hotelId || '') === String(result.hotel?.id || '');
+        if (hasMatchingCustomerSession) {
+            result.customer = { id: req.customer.customerId };
+        }
         return res.status(STATUS_CODE.OK).send(result);
     } catch (error) {
         logger('error', `Error while fetching table by id ${error}`);

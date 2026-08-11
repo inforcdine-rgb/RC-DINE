@@ -24,7 +24,7 @@ jest.mock('../../services/order.service.js', () => ({ getNotificationUserIds: je
 describe('checkout settlement security', () => {
     beforeEach(() => {
         jest.clearAllMocks();
-        orderRepo.find.mockResolvedValue({ rows: [{ id: 'order-1', finalAmount: 250 }] });
+        orderRepo.find.mockResolvedValue({ rows: [{ id: 'order-1', finalAmount: 250, tableId: 'table-1' }] });
         customerRepo.find.mockResolvedValue({
             rows: [
                 {
@@ -48,9 +48,6 @@ describe('checkout settlement security', () => {
         const query = orderRepo.find.mock.calls[0][0];
         expect(query.where.customerId).toBe('customer-1');
         expect(query.where.paymentStatus[Op.ne]).toBe('PAID');
-        expect(tableRepo.update).toHaveBeenCalledWith(
-            { where: { id: 'table-1', hotelId: 'hotel-1', customerId: 'customer-1' } },
-            { status: 'PAYMENT_PENDING' }
-        );
+        expect(tableRepo.update).not.toHaveBeenCalled();
     });
 });

@@ -44,7 +44,7 @@ const createOrder = async (req, res) => {
         }
 
         const activeTable = await db.tables.findOne({
-            where: { id: tableId, hotelId, customerId, status: 'BOOKED' },
+            where: { id: tableId, hotelId },
             attributes: ['id', 'tableNumber']
         });
         if (!activeTable || Number(activeTable.tableNumber) !== Number(tableNumber)) {
@@ -390,7 +390,7 @@ const verifyPayment = async (req, res) => {
         }
 
         const activeTable = await db.tables.findOne({
-            where: { id: tableId, hotelId, customerId, status: 'BOOKED' },
+            where: { id: tableId, hotelId },
             attributes: ['id', 'tableNumber']
         });
         if (!activeTable || Number(activeTable.tableNumber) !== Number(tableNumber)) {

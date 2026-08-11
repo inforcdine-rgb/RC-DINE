@@ -54,12 +54,19 @@ const isCacheableRequest = (config = {}) => {
     const path = String(config.url || '').replace(instance.defaults.baseURL || '', '');
     return isGetRequest(config) && CACHEABLE_PATHS.some((pattern) => pattern.test(path));
 };
-const getCacheKey = (config = {}) => {
-    const token =
-        localStorage.getItem('token') ||
+const isCustomerOrderingPage = () =>
+    window.location.pathname.startsWith('/place/') || window.location.pathname.startsWith('/cart/');
+const getActiveAuthToken = () => {
+    const staffToken = localStorage.getItem('token');
+    const customerToken =
         localStorage.getItem('rcCustomerToken') ||
         localStorage.getItem('rcCustomerPushToken') ||
-        'public';
+        localStorage.getItem('customerToken');
+
+    return isCustomerOrderingPage() ? customerToken || staffToken : staffToken || customerToken;
+};
+const getCacheKey = (config = {}) => {
+    const token = getActiveAuthToken() || 'public';
     const scope = CryptoJS.SHA256(token).toString().slice(0, 12);
     return `${CACHE_PREFIX}${scope}:${config.url || ''}:${JSON.stringify(config.params || {})}`;
 };
@@ -164,13 +171,7 @@ instance.interceptors.request.use(
         config.__backgroundRequest = Boolean(window.__rcdineBackgroundRefresh);
         config.__showGlobalLoader = !config.__backgroundRequest && !cached;
         startRequest(config);
-        const staffToken = localStorage.getItem('token');
-        const customerToken =
-            localStorage.getItem('rcCustomerToken') ||
-            localStorage.getItem('rcCustomerPushToken') ||
-            localStorage.getItem('customerToken');
-
-        const token = staffToken || customerToken;
+        const token = getActiveAuthToken();
         const requestPath = getRequestPath(config);
 
         if (token && !PUBLIC_AUTH_PATHS.has(requestPath) && !config.headers.Authorization) {
@@ -230,9 +231,7 @@ instance.interceptors.response.use(
             localStorage.removeItem('user');
             sessionStorage.removeItem('token');
 
-            const isCustomerPage =
-                window.location.pathname.includes('/order-placement') ||
-                window.location.pathname.includes('/order-tracking');
+            const isCustomerPage = isCustomerOrderingPage();
 
             if (!isCustomerPage) {
                 window.location.replace('/login');

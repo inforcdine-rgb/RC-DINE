@@ -33,7 +33,6 @@
 .table-session-btn,
 .table-download-btn,
 .table-template-download-btn,
-.table-reset-btn,
 .table-delete-btn,
 .table-edit-btn,
 .table-modal-actions button,
@@ -234,7 +233,6 @@
 .table-session-btn,
 .table-download-btn,
 .table-template-download-btn,
-.table-reset-btn,
 .table-delete-btn {
     display: flex;
     align-items: center;
@@ -298,20 +296,6 @@
     border-color: #9f86df;
     background: linear-gradient(135deg, #f1ebff, #e6f2ff);
     color: #482890;
-}
-
-.table-reset-btn {
-    gap: 7px;
-    margin-bottom: 10px;
-    border: 1px solid #f5cf7a;
-    background: #fffaf0;
-    color: #9a5b08;
-}
-
-.table-reset-btn:hover {
-    transform: translateY(-1px);
-    border-color: #e7ad32;
-    background: #fff4d6;
 }
 
 .table-delete-btn {
