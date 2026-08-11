@@ -116,7 +116,7 @@ function OrderPlacement() {
         if (token) {
             dispatch(getTableDetailsRequest(token));
         }
-    }, [token]);
+    }, [dispatch, token]);
 
     useEffect(() => {
         if (!token || !tableDetails.id || !tableDetails.hotel?.id) return;
@@ -124,6 +124,16 @@ function OrderPlacement() {
         const bootstrapKey = `${token}:${tableDetails.hotel.id}:${tableDetails.id}`;
         if (customerBootstrapRef.current === bootstrapKey) return;
         customerBootstrapRef.current = bootstrapKey;
+
+        if (tableDetails.customer?.id) {
+            dispatch(
+                getMenuDetailsRequest({
+                    hotelId: tableDetails.hotel.id,
+                    customerId: tableDetails.customer.id
+                })
+            );
+            return;
+        }
 
         const payload = {
             name: 'Guest',
@@ -135,7 +145,7 @@ function OrderPlacement() {
             qrToken: token
         };
         dispatch(registerCustomerRequest(payload));
-    }, [token, tableDetails.id, tableDetails.hotel?.id, tableDetails.tableNumber, dispatch]);
+    }, [token, tableDetails.customer?.id, tableDetails.id, tableDetails.hotel?.id, tableDetails.tableNumber, dispatch]);
 
     useEffect(() => {
         if (updateRefs && updateRefs.current[viewOrderDetails?.updated?.last]) {
@@ -460,7 +470,7 @@ function OrderPlacement() {
         );
     }
 
-    return !menuCard?.id ? (
+    return !menuCard?.id || !tableDetails?.customer?.id ? (
         <Loader />
     ) : (
         <>

@@ -10,7 +10,21 @@ const orderPlacementSlice = createSlice({
         },
         getTableDetailsRequest() {},
         getTableDetailsSuccess(state, action) {
-            state.tableDetails = action.payload;
+            const nextTableDetails = action.payload || {};
+            const isSameTable =
+                state.tableDetails?.id && String(state.tableDetails.id) === String(nextTableDetails?.id || '');
+            const currentCustomer = isSameTable ? state.tableDetails.customer : null;
+
+            state.tableDetails = {
+                ...nextTableDetails,
+                customer: nextTableDetails.customer || currentCustomer || null
+            };
+        },
+        setTableCustomer(state, action) {
+            const { tableId, customer } = action.payload || {};
+            if (!tableId || !customer?.id || String(state.tableDetails?.id || '') !== String(tableId)) return;
+
+            state.tableDetails.customer = customer;
         },
         registerCustomerRequest() {},
         getMenuDetailsRequest() {},
@@ -92,6 +106,7 @@ export const {
     setCurrentPage,
     getTableDetailsRequest,
     getTableDetailsSuccess,
+    setTableCustomer,
     registerCustomerRequest,
     getMenuDetailsRequest,
     getMenuDetailsSuccess,

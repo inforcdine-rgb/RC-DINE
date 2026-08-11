@@ -26,6 +26,7 @@ export {
     setCurrentPage,
     getTableDetailsRequest,
     getTableDetailsSuccess,
+    setTableCustomer,
     registerCustomerRequest,
     getMenuDetailsRequest,
     getMenuDetailsSuccess,

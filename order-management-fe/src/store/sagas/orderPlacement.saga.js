@@ -17,6 +17,7 @@ import {
     setOrderDetails,
     setOrderPaymentData,
     setPaymentRequest,
+    setTableCustomer,
     setViewOrderDetails,
     setTrackingOrder
 } from '../slice';
@@ -38,6 +39,9 @@ function* getTablesDetailsRequestSaga(action) {
         const id = action.payload;
         const res = yield service.getTableDetail(id);
 
+        if (res?.id && id && String(id) !== String(res.id)) {
+            localStorage.setItem(`rcTableRouteToken:${res.id}`, id);
+        }
         yield put(getTableDetailsSuccess(res));
     } catch (error) {
         console.error('Failed to get table by id ', error);
@@ -52,22 +56,33 @@ function* registerCustomerRequestSaga(action) {
         if (result?.notificationToken) {
             localStorage.setItem('rcCustomerPushToken', result.notificationToken);
             localStorage.setItem('rcCustomerToken', result.notificationToken);
-            if ('Notification' in window && Notification.permission === 'granted') {
-                try {
-                    yield initializeWebPush({ audience: 'customer', token: result.notificationToken });
-                } catch (notificationError) {
-                    console.warn('Customer Web Push synchronization skipped:', notificationError);
-                }
-            }
         }
-        yield put(getTableDetailsRequest(payload.tableId));
         if (result?.id) {
+            yield put(
+                setTableCustomer({
+                    tableId: payload.tableId,
+                    customer: {
+                        id: result.id,
+                        name: result.name,
+                        phoneNumber: result.phoneNumber,
+                        email: result.email
+                    }
+                })
+            );
+            yield put(getTableDetailsRequest(payload.tableId));
             yield put(
                 getMenuDetailsRequest({
                     hotelId: payload.hotelId,
                     customerId: result.id
                 })
             );
+        }
+        if (result?.notificationToken && 'Notification' in window && Notification.permission === 'granted') {
+            try {
+                yield initializeWebPush({ audience: 'customer', token: result.notificationToken });
+            } catch (notificationError) {
+                console.warn('Customer Web Push synchronization skipped:', notificationError);
+            }
         }
     } catch (error) {
         console.error('Failed to register customer', error);

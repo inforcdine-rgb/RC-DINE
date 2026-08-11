@@ -207,8 +207,8 @@ function OrderTracking() {
     };
 
     const getCustomerOrderRoute = () => {
-        const storedToken = localStorage.getItem('rcCustomerToken') || localStorage.getItem('customerToken');
-        if (storedToken) return `/place/${encodeURIComponent(storedToken)}`;
+        const storedTableToken = order?.tableId ? localStorage.getItem(`rcTableRouteToken:${order.tableId}`) : null;
+        if (storedTableToken) return `/place/${encodeURIComponent(storedTableToken)}`;
         if (order?.tableId) return `/place/${encodeURIComponent(order.tableId)}`;
         return '/';
     };
