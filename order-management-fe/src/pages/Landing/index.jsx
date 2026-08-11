@@ -6,37 +6,60 @@ import { saveSelectedPlan, setPageSeo } from '../../utils/seo';
 
 import './style.css';
 
-const workflowSteps = [
-    {
-        icon: '📱',
-        title: 'Customer scans QR',
-        subtitle: 'Menu opens instantly',
-        screen: 'customer'
+const liveDemoItems = [
+    { id: 'pizza', icon: '🍕', name: 'Farmhouse Pizza', detail: 'Cheese · Veggies', price: 249 },
+    { id: 'burger', icon: '🍔', name: 'Classic Burger', detail: 'Crispy · Loaded', price: 179 },
+    { id: 'coffee', icon: '🥤', name: 'Cold Coffee', detail: 'Creamy · Chilled', price: 129 }
+];
+
+const liveDemoTimeline = [
+    { key: 'NEW', label: 'Sent' },
+    { key: 'ACCEPTED', label: 'Accepted' },
+    { key: 'PREPARING', label: 'Preparing' },
+    { key: 'READY', label: 'Ready' }
+];
+
+const liveDemoStatus = {
+    BROWSING: {
+        label: 'Waiting for order',
+        customerLabel: 'Build your order',
+        helper: 'Customer phone se item add karke order place karein.'
     },
-    {
-        icon: '🧾',
-        title: 'Order received',
-        subtitle: 'Manager notified',
-        screen: 'order'
+    NEW: {
+        label: 'New order',
+        customerLabel: 'Order sent',
+        helper: 'Manager ko instant live notification mil gaya.',
+        action: 'Accept order',
+        next: 'ACCEPTED'
     },
-    {
-        icon: '👨‍🍳',
-        title: 'Kitchen preparing',
-        subtitle: 'Status updates live',
-        screen: 'kitchen'
+    ACCEPTED: {
+        label: 'Accepted',
+        customerLabel: 'Restaurant accepted',
+        helper: 'Customer screen par status turant update ho gaya.',
+        action: 'Send to kitchen',
+        next: 'PREPARING'
     },
-    {
-        icon: '💳',
-        title: 'Payment complete',
-        subtitle: 'Secure verification',
-        screen: 'payment'
+    PREPARING: {
+        label: 'Preparing',
+        customerLabel: 'Preparing · 12 min',
+        helper: 'Kitchen order prepare kar raha hai.',
+        action: 'Mark ready',
+        next: 'READY'
     },
-    {
-        icon: '📈',
-        title: 'Analytics updated',
-        subtitle: 'Revenue reflected instantly',
-        screen: 'analytics'
+    READY: {
+        label: 'Ready to serve',
+        customerLabel: 'Your order is ready',
+        helper: 'Order complete—customer ko live update mil gaya.',
+        action: 'Run demo again'
     }
+};
+
+const workflowSteps = [
+    { icon: '📱', title: 'Customer scans QR', subtitle: 'Menu opens instantly' },
+    { icon: '🧾', title: 'Order received', subtitle: 'Manager notified' },
+    { icon: '👨‍🍳', title: 'Kitchen preparing', subtitle: 'Status updates live' },
+    { icon: '💳', title: 'Payment complete', subtitle: 'Secure verification' },
+    { icon: '📈', title: 'Analytics updated', subtitle: 'Revenue reflected instantly' }
 ];
 
 const features = [
@@ -224,8 +247,24 @@ function Landing() {
     const [website, setWebsite] = useState({});
     const [plansLoading, setPlansLoading] = useState(true);
     const [plansError, setPlansError] = useState('');
+    const [demoCart, setDemoCart] = useState({});
+    const [demoOrder, setDemoOrder] = useState(null);
+    const [demoOrderStatus, setDemoOrderStatus] = useState('BROWSING');
 
     const activeDemo = demoTabs[activeTab];
+    const demoCartCount = useMemo(
+        () => liveDemoItems.reduce((total, item) => total + (demoCart[item.id] || 0), 0),
+        [demoCart]
+    );
+    const demoCartTotal = useMemo(
+        () => liveDemoItems.reduce((total, item) => total + item.price * (demoCart[item.id] || 0), 0),
+        [demoCart]
+    );
+    const demoStatusMeta = liveDemoStatus[demoOrderStatus];
+    const demoTimelineIndex = Math.max(
+        0,
+        liveDemoTimeline.findIndex((step) => step.key === demoOrderStatus)
+    );
 
     const stats = useMemo(
         () => [
@@ -347,6 +386,57 @@ function Landing() {
 
     const resetFeatureTilt = (event) => {
         event.currentTarget.style.transform = '';
+    };
+
+    const updateDemoQuantity = (itemId, change) => {
+        if (demoOrder) return;
+
+        setDemoCart((current) => {
+            const nextQuantity = Math.min(5, Math.max(0, (current[itemId] || 0) + change));
+            const nextCart = { ...current };
+
+            if (nextQuantity === 0) delete nextCart[itemId];
+            else nextCart[itemId] = nextQuantity;
+
+            return nextCart;
+        });
+    };
+
+    const placeDemoOrder = () => {
+        if (!demoCartCount || demoOrder) return;
+
+        setDemoOrder({
+            number: '#RC-DEMO-24',
+            itemCount: demoCartCount,
+            total: demoCartTotal,
+            items: liveDemoItems
+                .filter((item) => demoCart[item.id])
+                .map((item) => ({ ...item, quantity: demoCart[item.id] }))
+        });
+        setDemoOrderStatus('NEW');
+        showToast('🔔 Demo order manager screen par receive ho gaya');
+    };
+
+    const resetLiveDemo = () => {
+        setDemoCart({});
+        setDemoOrder(null);
+        setDemoOrderStatus('BROWSING');
+    };
+
+    const advanceDemoOrder = () => {
+        if (demoOrderStatus === 'READY') {
+            resetLiveDemo();
+            return;
+        }
+
+        if (!demoStatusMeta.next) return;
+
+        setDemoOrderStatus(demoStatusMeta.next);
+        showToast(
+            demoStatusMeta.next === 'READY'
+                ? '✅ Customer ko “Order ready” update mil gaya'
+                : '⚡ Status customer screen par live update ho gaya'
+        );
     };
 
     return (
@@ -547,12 +637,311 @@ function Landing() {
                     </div>
                 </section>
 
-                <section id="demo">
+                <section id="demo" className="live-demo-section">
                     <div className="landing-wrap">
                         <div className="section-heading reveal">
-                            <span className="landing-tag">LIVE PRODUCT PREVIEW</span>
-                            <h2>See every order move in real time</h2>
-                            <p>From QR scan to analytics update, RC Dine keeps your entire restaurant synchronized.</p>
+                            <span className="landing-tag">TRY IT—NO LOGIN NEEDED</span>
+                            <h2>Place an order. Watch RC Dine work.</h2>
+                            <p>
+                                Customer phone se item add karein, order place karein aur manager dashboard par live
+                                status update khud try karein.
+                            </p>
+                        </div>
+
+                        <div className="live-demo-guide reveal" aria-label="Interactive demo steps">
+                            <span>
+                                <b>1</b> Add an item
+                            </span>
+                            <i aria-hidden="true">→</i>
+                            <span>
+                                <b>2</b> Place demo order
+                            </span>
+                            <i aria-hidden="true">→</i>
+                            <span>
+                                <b>3</b> Update it as manager
+                            </span>
+                        </div>
+
+                        <div className="live-demo-shell reveal">
+                            <section className="live-demo-customer" aria-label="Customer ordering demo">
+                                <div className="live-demo-panel-title">
+                                    <div>
+                                        <span className="live-demo-panel-icon">📱</span>
+                                        <span>
+                                            <small>CUSTOMER VIEW</small>
+                                            <strong>QR Menu · Table 4</strong>
+                                        </span>
+                                    </div>
+                                    <span className="live-demo-online">Online</span>
+                                </div>
+
+                                <div className="live-demo-phone">
+                                    <div className="live-demo-phone-notch" />
+                                    <div className="live-demo-phone-screen" aria-live="polite">
+                                        <div className="live-demo-restaurant-row">
+                                            <div className="live-demo-restaurant-mark">R</div>
+                                            <div>
+                                                <strong>RC Bistro</strong>
+                                                <small>Premium café experience</small>
+                                            </div>
+                                            <span>Table 4</span>
+                                        </div>
+
+                                        {!demoOrder ? (
+                                            <>
+                                                <div className="live-demo-offer">
+                                                    <span>CHEF’S PICK</span>
+                                                    <strong>Freshly made. Ready in 15 min.</strong>
+                                                </div>
+
+                                                <div className="live-demo-menu-heading">
+                                                    <div>
+                                                        <strong>Popular right now</strong>
+                                                        <small>Tap + to build your demo order</small>
+                                                    </div>
+                                                    <span>🔥</span>
+                                                </div>
+
+                                                <div className="live-demo-menu-list">
+                                                    {liveDemoItems.map((item) => {
+                                                        const quantity = demoCart[item.id] || 0;
+
+                                                        return (
+                                                            <article className="live-demo-food" key={item.id}>
+                                                                <span className="live-demo-food-icon">{item.icon}</span>
+                                                                <div>
+                                                                    <strong>{item.name}</strong>
+                                                                    <small>{item.detail}</small>
+                                                                    <b>₹{item.price}</b>
+                                                                </div>
+                                                                {quantity > 0 ? (
+                                                                    <div className="live-demo-quantity">
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() =>
+                                                                                updateDemoQuantity(item.id, -1)
+                                                                            }
+                                                                            aria-label={`Remove one ${item.name}`}
+                                                                        >
+                                                                            −
+                                                                        </button>
+                                                                        <span>{quantity}</span>
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() =>
+                                                                                updateDemoQuantity(item.id, 1)
+                                                                            }
+                                                                            aria-label={`Add one more ${item.name}`}
+                                                                        >
+                                                                            +
+                                                                        </button>
+                                                                    </div>
+                                                                ) : (
+                                                                    <button
+                                                                        type="button"
+                                                                        className="live-demo-add"
+                                                                        onClick={() => updateDemoQuantity(item.id, 1)}
+                                                                        aria-label={`Add ${item.name}`}
+                                                                    >
+                                                                        ADD
+                                                                    </button>
+                                                                )}
+                                                            </article>
+                                                        );
+                                                    })}
+                                                </div>
+
+                                                <button
+                                                    type="button"
+                                                    className="live-demo-cart-button"
+                                                    onClick={placeDemoOrder}
+                                                    disabled={!demoCartCount}
+                                                >
+                                                    <span>
+                                                        {demoCartCount
+                                                            ? `${demoCartCount} item${demoCartCount > 1 ? 's' : ''}`
+                                                            : 'Add an item'}
+                                                    </span>
+                                                    <strong>
+                                                        {demoCartCount
+                                                            ? `Place demo order · ₹${demoCartTotal}`
+                                                            : 'Start ordering'}
+                                                    </strong>
+                                                </button>
+                                            </>
+                                        ) : (
+                                            <div className="live-demo-customer-tracking">
+                                                <div
+                                                    className={`live-demo-success status-${demoOrderStatus.toLowerCase()}`}
+                                                >
+                                                    <span>{demoOrderStatus === 'READY' ? '✓' : '⌁'}</span>
+                                                </div>
+                                                <small>{demoOrder.number}</small>
+                                                <h3>{demoStatusMeta.customerLabel}</h3>
+                                                <p>
+                                                    {demoOrder.itemCount} items · ₹{demoOrder.total} · Table 4
+                                                </p>
+
+                                                <div className="live-demo-timeline">
+                                                    {liveDemoTimeline.map((step, index) => (
+                                                        <div
+                                                            className={`${index <= demoTimelineIndex ? 'complete' : ''} ${
+                                                                step.key === demoOrderStatus ? 'current' : ''
+                                                            }`}
+                                                            key={step.key}
+                                                        >
+                                                            <i>{index < demoTimelineIndex ? '✓' : index + 1}</i>
+                                                            <span>{step.label}</span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+
+                                                <div className="live-demo-customer-note">
+                                                    <span className="live-demo-pulse" />
+                                                    Status manager dashboard se live sync ho raha hai
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            </section>
+
+                            <section className="live-demo-manager" aria-label="Manager dashboard demo">
+                                <div className="live-demo-manager-bar">
+                                    <div>
+                                        <span className="live-demo-brand-mark">R</span>
+                                        <span>
+                                            <small>RC DINE</small>
+                                            <strong>Manager Dashboard</strong>
+                                        </span>
+                                    </div>
+                                    <span className="live-demo-connected">
+                                        <i /> Live connected
+                                    </span>
+                                </div>
+
+                                <div className="live-demo-kpis">
+                                    <article>
+                                        <small>Today’s orders</small>
+                                        <strong>{24 + (demoOrder ? 1 : 0)}</strong>
+                                        <span>↗ 12%</span>
+                                    </article>
+                                    <article>
+                                        <small>Revenue</small>
+                                        <strong>₹{(12840 + (demoOrder?.total || 0)).toLocaleString('en-IN')}</strong>
+                                        <span>Live</span>
+                                    </article>
+                                    <article>
+                                        <small>Active tables</small>
+                                        <strong>{demoOrder ? '9 / 12' : '8 / 12'}</strong>
+                                        <span>Normal</span>
+                                    </article>
+                                </div>
+
+                                <div className="live-demo-manager-workspace" aria-live="polite">
+                                    <div className="live-demo-manager-heading">
+                                        <div>
+                                            <small>LIVE ORDER QUEUE</small>
+                                            <h3>{demoOrder ? 'Table 4 order' : 'Waiting for your demo order'}</h3>
+                                        </div>
+                                        {demoOrder && (
+                                            <span
+                                                className={`live-demo-order-status status-${demoOrderStatus.toLowerCase()}`}
+                                            >
+                                                {demoStatusMeta.label}
+                                            </span>
+                                        )}
+                                    </div>
+
+                                    {!demoOrder ? (
+                                        <div className="live-demo-empty-state">
+                                            <div className="live-demo-radar">
+                                                <i />
+                                                <span>🧾</span>
+                                            </div>
+                                            <h4>No demo order yet</h4>
+                                            <p>
+                                                Left side ke customer phone par item add karke “Place demo order”
+                                                dabayein.
+                                            </p>
+                                            <span className="live-demo-empty-hint">← Start from customer view</span>
+                                        </div>
+                                    ) : (
+                                        <div className="live-demo-order-wrap">
+                                            <div className={`live-demo-event status-${demoOrderStatus.toLowerCase()}`}>
+                                                <span className="live-demo-pulse" />
+                                                <div>
+                                                    <small>LIVE EVENT</small>
+                                                    <strong>{demoStatusMeta.helper}</strong>
+                                                </div>
+                                            </div>
+
+                                            <article className="live-demo-order-card">
+                                                <header>
+                                                    <div>
+                                                        <span>TABLE 4</span>
+                                                        <h3>{demoOrder.number}</h3>
+                                                        <small>Dine-in · Just now</small>
+                                                    </div>
+                                                    <strong>₹{demoOrder.total}</strong>
+                                                </header>
+
+                                                <div className="live-demo-order-items">
+                                                    {demoOrder.items.map((item) => (
+                                                        <div key={item.id}>
+                                                            <span>
+                                                                <b>{item.quantity}×</b> {item.name}
+                                                            </span>
+                                                            <strong>₹{item.price * item.quantity}</strong>
+                                                        </div>
+                                                    ))}
+                                                </div>
+
+                                                <footer>
+                                                    <span>{demoOrder.itemCount} items</span>
+                                                    <strong>Total ₹{demoOrder.total}</strong>
+                                                </footer>
+                                            </article>
+
+                                            <div className="live-demo-manager-actions">
+                                                <button type="button" onClick={advanceDemoOrder}>
+                                                    {demoStatusMeta.action}
+                                                    <span>{demoOrderStatus === 'READY' ? '↻' : '→'}</span>
+                                                </button>
+                                                {demoOrderStatus !== 'READY' && (
+                                                    <button
+                                                        type="button"
+                                                        className="live-demo-reset"
+                                                        onClick={resetLiveDemo}
+                                                    >
+                                                        Reset demo
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            </section>
+
+                            <div className="live-demo-conversion">
+                                <div>
+                                    <span>✨ That’s the real RC Dine flow</span>
+                                    <strong>Ready to try it with your own menu?</strong>
+                                </div>
+                                <button type="button" onClick={goToSignup}>
+                                    Build my QR menu <span>→</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="workflow">
+                    <div className="landing-wrap">
+                        <div className="section-heading reveal">
+                            <span className="landing-tag">BEHIND THE LIVE DEMO</span>
+                            <h2>One order. Every screen synchronized.</h2>
+                            <p>See how RC Dine connects the customer, manager, kitchen, payment and analytics flow.</p>
                         </div>
 
                         <div className="workflow-demo reveal">
