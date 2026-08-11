@@ -1,11 +1,14 @@
 /* global AbortController, caches, clients */
 
-// Navigation HTML is always fetched from the network and is never cached.
-// Hashed assets are verified and cached atomically so a partial deployment
-// cannot leave the application on a blank screen.
-const CACHE_VERSION = 'v13-network-first-shell';
+// Prefer the latest verified network shell. If the network or deployment is
+// incomplete, fall back to the last complete snapshot instead of showing a
+// blank screen. Only an atomically verified snapshot becomes the fallback.
+const CACHE_VERSION = 'v14-hybrid-verified-shell';
 const APP_SHELL_CACHE = `rcdine-shell-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `rcdine-runtime-${CACHE_VERSION}`;
+const VERIFIED_META_CACHE = 'rcdine-verified-meta-v1';
+const VERIFIED_SNAPSHOT_PREFIX = 'rcdine-verified-snapshot-';
+const VERIFIED_SNAPSHOT_POINTER = '/__rcdine_verified_snapshot__';
 const NAVIGATION_TIMEOUT_MS = 6000;
 const ASSET_TIMEOUT_MS = 12000;
 const APP_SHELL = [
@@ -85,6 +88,8 @@ self.addEventListener('install', (event) => {
 });
 
 self.addEventListener('activate', (event) => {
+    // Verified snapshots intentionally survive service-worker upgrades. Old
+    // transient caches can be removed without losing the last working app.
     event.waitUntil(
         Promise.all([
             caches
@@ -93,12 +98,14 @@ self.addEventListener('activate', (event) => {
                     Promise.all(
                         keys
                             .filter(
-                                (key) => key.startsWith('rcdine-') && ![APP_SHELL_CACHE, RUNTIME_CACHE].includes(key)
+                                (key) =>
+                                    key.startsWith('rcdine-') &&
+                                    ![APP_SHELL_CACHE, RUNTIME_CACHE, VERIFIED_META_CACHE].includes(key) &&
+                                    !key.startsWith(VERIFIED_SNAPSHOT_PREFIX)
                             )
                             .map((key) => caches.delete(key))
                     )
                 ),
-            caches.open(APP_SHELL_CACHE).then((cache) => cache.delete('/')),
             clients.claim()
         ])
     );
@@ -152,11 +159,54 @@ const getShellAssets = async (shellResponse) => {
     return getStaticAssetUrls(html);
 };
 
-const cleanupOldCaches = async () => {
+const hasCompleteCachedShell = async (cache, shellResponse) => {
+    const assetUrls = await getShellAssets(shellResponse);
+    if (!assetUrls.length) return false;
+
+    const cachedAssets = await Promise.all(assetUrls.map((assetUrl) => cache.match(assetUrl)));
+    return cachedAssets.every((response, index) => isUsableStaticAsset(assetUrls[index], response));
+};
+
+const getLastVerifiedShell = async () => {
+    const metadataCache = await caches.open(VERIFIED_META_CACHE);
+    const pointerResponse = await metadataCache.match(VERIFIED_SNAPSHOT_POINTER);
+    if (!pointerResponse) return null;
+
+    const snapshotCacheName = (await pointerResponse.text()).trim();
+    if (!snapshotCacheName.startsWith(VERIFIED_SNAPSHOT_PREFIX)) return null;
+
+    const cacheKeys = await caches.keys();
+    if (!cacheKeys.includes(snapshotCacheName)) return null;
+
+    const snapshotCache = await caches.open(snapshotCacheName);
+    const shellResponse = await snapshotCache.match('/');
+    if (!shellResponse || !(await hasCompleteCachedShell(snapshotCache, shellResponse))) return null;
+
+    return shellResponse;
+};
+
+const buildSnapshotCacheName = (assetUrls) => {
+    const identity = [...assetUrls]
+        .sort()
+        .map((assetUrl) => new URL(assetUrl).pathname)
+        .join('|');
+    let hash = 2166136261;
+    for (let index = 0; index < identity.length; index += 1) {
+        hash ^= identity.charCodeAt(index);
+        hash = Math.imul(hash, 16777619);
+    }
+    return `${VERIFIED_SNAPSHOT_PREFIX}${(hash >>> 0).toString(36)}`;
+};
+
+const cleanupOldCaches = async (activeSnapshotCacheName) => {
     const cacheKeys = await caches.keys();
     await Promise.all(
         cacheKeys
-            .filter((key) => key.startsWith('rcdine-') && ![APP_SHELL_CACHE, RUNTIME_CACHE].includes(key))
+            .filter(
+                (key) =>
+                    key.startsWith('rcdine-') &&
+                    ![APP_SHELL_CACHE, RUNTIME_CACHE, VERIFIED_META_CACHE, activeSnapshotCacheName].includes(key)
+            )
             .map((key) => caches.delete(key))
     );
 };
@@ -190,20 +240,25 @@ const cacheCompleteShellSnapshot = async (shellResponse, expectedVersion) => {
 
     if (!versionVerified) throw new Error('New deployment is still propagating. Please try again shortly.');
 
-    const runtimeCache = await caches.open(RUNTIME_CACHE);
-    await Promise.all(verifiedAssets.map(({ assetUrl, response }) => runtimeCache.put(assetUrl, response.clone())));
-    const currentAssets = new Set(assetUrls);
-    const cachedRequests = await runtimeCache.keys();
-    await Promise.all(
-        cachedRequests
-            .filter((request) => {
-                const url = new URL(request.url);
-                return url.pathname.startsWith('/static/') && !currentAssets.has(url.href);
-            })
-            .map((request) => runtimeCache.delete(request))
+    const snapshotCacheName = buildSnapshotCacheName(assetUrls);
+    const snapshotCache = await caches.open(snapshotCacheName);
+    await Promise.all(verifiedAssets.map(({ assetUrl, response }) => snapshotCache.put(assetUrl, response.clone())));
+    await snapshotCache.put('/', shellResponse.clone());
+
+    const storedShell = await snapshotCache.match('/');
+    if (!storedShell || !(await hasCompleteCachedShell(snapshotCache, storedShell))) {
+        throw new Error('Verified app snapshot could not be committed');
+    }
+
+    // Updating this pointer is the atomic commit. Until it succeeds, every
+    // navigation continues to use the previous verified snapshot.
+    const metadataCache = await caches.open(VERIFIED_META_CACHE);
+    await metadataCache.put(
+        VERIFIED_SNAPSHOT_POINTER,
+        new Response(snapshotCacheName, { headers: { 'content-type': 'text/plain' } })
     );
 
-    await cleanupOldCaches();
+    await cleanupOldCaches(snapshotCacheName);
     return assetUrls.length;
 };
 
@@ -247,6 +302,10 @@ const handleNavigationRequest = async (request) => {
         if (isFileNavigation || isStandaloneStaticPage) {
             return (await caches.match(request)) || (await caches.match('/offline.html')) || Response.error();
         }
+
+        const verifiedFallback = await getLastVerifiedShell();
+        if (verifiedFallback) return verifiedFallback;
+
         return (await caches.match('/offline.html')) || Response.error();
     }
 };
