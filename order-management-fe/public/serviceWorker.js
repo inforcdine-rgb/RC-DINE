@@ -3,7 +3,7 @@
 // Prefer the latest verified network shell. If the network or deployment is
 // incomplete, fall back to the last complete snapshot instead of showing a
 // blank screen. Only an atomically verified snapshot becomes the fallback.
-const CACHE_VERSION = 'v14-hybrid-verified-shell';
+const CACHE_VERSION = 'v15-hybrid-verified-bootstrap';
 const APP_SHELL_CACHE = `rcdine-shell-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `rcdine-runtime-${CACHE_VERSION}`;
 const VERIFIED_META_CACHE = 'rcdine-verified-meta-v1';
@@ -91,23 +91,34 @@ self.addEventListener('activate', (event) => {
     // Verified snapshots intentionally survive service-worker upgrades. Old
     // transient caches can be removed without losing the last working app.
     event.waitUntil(
-        Promise.all([
-            caches
-                .keys()
-                .then((keys) =>
-                    Promise.all(
-                        keys
-                            .filter(
-                                (key) =>
-                                    key.startsWith('rcdine-') &&
-                                    ![APP_SHELL_CACHE, RUNTIME_CACHE, VERIFIED_META_CACHE].includes(key) &&
-                                    !key.startsWith(VERIFIED_SNAPSHOT_PREFIX)
-                            )
-                            .map((key) => caches.delete(key))
-                    )
-                ),
-            clients.claim()
-        ])
+        (async () => {
+            await Promise.all([
+                caches
+                    .keys()
+                    .then((keys) =>
+                        Promise.all(
+                            keys
+                                .filter(
+                                    (key) =>
+                                        key.startsWith('rcdine-') &&
+                                        ![APP_SHELL_CACHE, RUNTIME_CACHE, VERIFIED_META_CACHE].includes(key) &&
+                                        !key.startsWith(VERIFIED_SNAPSHOT_PREFIX)
+                                )
+                                .map((key) => caches.delete(key))
+                        )
+                    ),
+                clients.claim()
+            ]);
+
+            // The page that installs a new worker can still be controlled by
+            // the previous worker. Prime this worker's verified snapshot now,
+            // so the very next launch can use the app while offline.
+            try {
+                await fetchAndCacheFreshShell(null);
+            } catch (error) {
+                console.info('[RCDINE_PWA] Verified snapshot bootstrap deferred', error?.message || error);
+            }
+        })()
     );
 });
 
