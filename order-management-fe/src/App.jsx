@@ -17,12 +17,14 @@ import {
     initializeWebPush,
     registerServiceWorker
 } from './services/notification.service';
+import { initializeNotificationSounds } from './utils/sound';
 
 function App() {
     const { isLoading } = useSelector((state) => state.app);
     const user = useSelector((state) => state.user?.data || state.user || null);
 
     useEffect(() => {
+        const cleanupNotificationSounds = initializeNotificationSounds();
         initializeNotificationLifecycle();
         registerServiceWorker()
             .then((registration) => {
@@ -31,6 +33,8 @@ function App() {
             .catch((error) => {
                 console.warn('PWA service worker registration failed:', error?.message || error);
             });
+
+        return cleanupNotificationSounds;
     }, []);
 
     useEffect(() => {
