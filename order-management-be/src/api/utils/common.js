@@ -25,6 +25,7 @@ export const EMAIL_ACTIONS = {
 
 export const TABLES = {
     USERS: 'users',
+    LOGIN_SESSION: 'loginSessions',
     INVITE: 'invites',
     HOTEL: 'hotels',
     HOTEL_USER_RELATION: 'hotelUserRelations',

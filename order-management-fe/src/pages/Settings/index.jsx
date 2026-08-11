@@ -7,6 +7,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import '../../assets/styles/settings.css';
 import ChangeEmailModal from '../../components/ChangeEmailModal';
 import CustomButton from '../../components/CustomButton';
+import LoginSessions from '../../components/LoginSessions';
 import OMTModal from '../../components/Modal';
 import RecoveryCodeSecurityForm from '../../components/RecoveryCodeSecurityForm';
 import { getPaymentSettings, testPaymentSettings, updatePaymentSettings } from '../../services/hotel.service';
@@ -644,6 +645,13 @@ const Settings = () => {
                             />
                         </Card.Body>
                     </Card>
+                </>
+            )}
+
+            {[USER_ROLES[0], USER_ROLES[1]].includes(data.role) && (
+                <>
+                    <div className="settings-section-label">Login Security</div>
+                    <LoginSessions />
                 </>
             )}
 

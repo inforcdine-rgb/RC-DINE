@@ -15,6 +15,14 @@ const recoveryCodeSchema = Joi.string()
         'string.pattern.base': 'Recovery code must be exactly 6 numeric digits.'
     });
 
+const loginDeviceSchema = Joi.object({
+    deviceId: Joi.string().max(128).allow('', null),
+    deviceType: Joi.string().valid('PHONE', 'TABLET', 'DESKTOP').allow(null),
+    platform: Joi.string().max(80).allow('', null),
+    timezone: Joi.string().max(80).allow('', null),
+    appMode: Joi.string().valid('BROWSER', 'STANDALONE').allow(null)
+}).optional();
+
 export const registrationValidation = (payload) => {
     try {
         logger('debug', 'Validating registration payload');
@@ -69,7 +77,8 @@ export const loginValidation = (payload) => {
         const schema = Joi.object({
             email: Joi.string().email({ minDomainSegments: 2 }),
             password: Joi.string().pattern(/^(?=.*[a-zA-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/),
-            role: Joi.string().valid('OWNER', 'MANAGER', 'ADMIN').required()
+            role: Joi.string().valid('OWNER', 'MANAGER', 'ADMIN').required(),
+            deviceInfo: loginDeviceSchema
         });
 
         return schema.validate(payload);
@@ -83,7 +92,8 @@ export const googleLoginValidation = (payload) => {
     try {
         logger('debug', 'Validating Google login payload');
         const schema = Joi.object({
-            credential: Joi.string().min(100).required()
+            credential: Joi.string().min(100).required(),
+            deviceInfo: loginDeviceSchema
         });
 
         return schema.validate(payload);

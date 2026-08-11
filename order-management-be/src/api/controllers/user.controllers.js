@@ -2,6 +2,7 @@ import CryptoJS from 'crypto-js';
 import env from '../../config/env.js';
 import logger from '../../config/logger.js';
 import { clearOwnerRecoveryEmailRateLimit } from '../middlewares/ownerRecoveryRateLimit.js';
+import loginSessionService from '../services/loginSession.service.js';
 import userService from '../services/user.service.js';
 import { STATUS_CODE } from '../utils/common.js';
 import {
@@ -23,6 +24,12 @@ const decryptPassword = (value) => {
         return value;
     }
 };
+
+const getLoginContext = (req, deviceInfo) => ({
+    userAgent: req.get('user-agent') || '',
+    ipAddress: req.ip || req.socket?.remoteAddress || '',
+    deviceInfo
+});
 
 const create = async (req, res) => {
     try {
@@ -61,7 +68,7 @@ const login = async (req, res) => {
             return res.status(STATUS_CODE.BAD_REQUEST).send({ message: valid.error.message });
         }
 
-        const result = await userService.login(valid.value);
+        const result = await userService.login(valid.value, getLoginContext(req, valid.value.deviceInfo));
         logger('info', 'Login successful.');
 
         return res.status(STATUS_CODE.OK).send(result);
@@ -79,7 +86,7 @@ const googleLogin = async (req, res) => {
             return res.status(STATUS_CODE.BAD_REQUEST).send({ message: valid.error.message });
         }
 
-        const result = await userService.googleLogin(valid.value);
+        const result = await userService.googleLogin(valid.value, getLoginContext(req, valid.value.deviceInfo));
         logger('info', 'Google login successful.');
         return res.status(STATUS_CODE.OK).send(result);
     } catch (error) {
@@ -180,6 +187,50 @@ const setRecoveryCode = async (req, res) => {
         return res.status(STATUS_CODE.OK).send(result);
     } catch (error) {
         logger('warn', 'Owner recovery code update rejected', { ownerId: req.user?.id });
+        return res.status(error.code || 500).send({ message: error.message });
+    }
+};
+
+const listLoginSessions = async (req, res) => {
+    try {
+        const result = await loginSessionService.list(req.user.id, req.user.sid);
+        return res.status(STATUS_CODE.OK).send(result);
+    } catch (error) {
+        logger('error', 'Unable to fetch login sessions', { userId: req.user?.id, message: error.message });
+        return res.status(error.code || 500).send({ message: error.message });
+    }
+};
+
+const revokeLoginSession = async (req, res) => {
+    try {
+        const result = await loginSessionService.revoke({
+            userId: req.user.id,
+            sessionId: req.params.sessionId,
+            currentSessionId: req.user.sid
+        });
+        return res.status(STATUS_CODE.OK).send(result);
+    } catch (error) {
+        logger('warn', 'Login session revoke rejected', { userId: req.user?.id, message: error.message });
+        return res.status(error.code || 500).send({ message: error.message });
+    }
+};
+
+const revokeOtherLoginSessions = async (req, res) => {
+    try {
+        const result = await loginSessionService.revokeOthers(req.user.id, req.user.sid);
+        return res.status(STATUS_CODE.OK).send(result);
+    } catch (error) {
+        logger('warn', 'Other login sessions revoke rejected', { userId: req.user?.id, message: error.message });
+        return res.status(error.code || 500).send({ message: error.message });
+    }
+};
+
+const logoutCurrentSession = async (req, res) => {
+    try {
+        const result = await loginSessionService.revokeCurrent(req.user.id, req.user.sid);
+        return res.status(STATUS_CODE.OK).send(result);
+    } catch (error) {
+        logger('warn', 'Current login session logout failed', { userId: req.user?.id, message: error.message });
         return res.status(error.code || 500).send({ message: error.message });
     }
 };
@@ -302,6 +353,10 @@ export default {
     reset,
     resetOwnerPassword,
     setRecoveryCode,
+    listLoginSessions,
+    revokeLoginSession,
+    revokeOtherLoginSessions,
+    logoutCurrentSession,
     invite,
     listInvites,
     removeInvite,

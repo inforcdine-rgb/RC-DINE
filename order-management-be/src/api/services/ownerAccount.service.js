@@ -3,6 +3,7 @@ import { db } from '../../config/database.js';
 import { USER_ROLES, USER_STATUS } from '../models/user.model.js';
 import { CustomError, STATUS_CODE, isCustomError } from '../utils/common.js';
 import { comparePassword } from '../utils/password.js';
+import loginSessionService from './loginSession.service.js';
 
 const DUPLICATE_EMAIL_MESSAGE = 'This email is already registered.';
 
@@ -64,6 +65,7 @@ const changeEmail = async (ownerId, payload) => {
             },
             { where: { id: owner.id }, transaction }
         );
+        await loginSessionService.revokeAll(owner.id, 'EMAIL_CHANGE', { transaction });
 
         await transaction.commit();
         transaction = null;

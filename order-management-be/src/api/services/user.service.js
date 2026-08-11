@@ -18,6 +18,7 @@ import { getAssignedHotelId } from '../utils/hotelAccess.js';
 import { comparePassword, hashPassword, isBcryptHash } from '../utils/password.js';
 import { compareRecoveryCode, hashRecoveryCode, safeDummyRecoveryCodeComparison } from '../utils/recoveryCode.js';
 import { sendEmail } from './email.service.js';
+import loginSessionService from './loginSession.service.js';
 
 const isDev = env.app.isDevelopment;
 const OWNER_RECOVERY_ERROR = 'Email or recovery code is incorrect.';
@@ -82,7 +83,7 @@ const activateUser = async (userId) => {
     await userRepo.update({ where: { id: userId } }, { status: USER_STATUS[0] });
 };
 
-export const createLoginSession = async (user, { expiresIn = '18h' } = {}) => {
+export const createLoginSession = async (user, { expiresIn = '18h', sessionContext } = {}) => {
     const { id, firstName, lastName, phoneNumber } = user;
     let managerHotelId = null;
     if (user.role === USER_ROLES[1]) {
@@ -107,6 +108,14 @@ export const createLoginSession = async (user, { expiresIn = '18h' } = {}) => {
         tokenVersion: Number(user.tokenVersion || 0)
     };
     if (managerHotelId) tokenPayload.hotelId = managerHotelId;
+
+    if ([USER_ROLES[0], USER_ROLES[1]].includes(user.role)) {
+        tokenPayload.sid = await loginSessionService.create({
+            userId: id,
+            expiresIn,
+            context: sessionContext
+        });
+    }
 
     const token = jwt.sign(tokenPayload, env.jwtSecret, { expiresIn });
     return { token, data };
@@ -235,7 +244,7 @@ const create = async (payload) => {
     }
 };
 
-const login = async (payload) => {
+const login = async (payload, sessionContext) => {
     try {
         const { password, role } = payload;
         if (String(role).toUpperCase() === USER_ROLES[2]) {
@@ -274,14 +283,14 @@ const login = async (payload) => {
 
         // Verification checks are removed; users can login immediately.
 
-        return await createLoginSession(user);
+        return await createLoginSession(user, { sessionContext });
     } catch (error) {
         logger('error', `Error occurred during login: ${error.message}`);
         throw CustomError(error.code, error.message);
     }
 };
 
-const googleLogin = async ({ credential }) => {
+const googleLogin = async ({ credential }, sessionContext) => {
     if (!env.google.clientId) {
         throw CustomError(STATUS_CODE.SERVICE_UNAVAILABLE, 'Google sign-in is not configured.');
     }
@@ -310,7 +319,7 @@ const googleLogin = async ({ credential }) => {
         throw CustomError(STATUS_CODE.FORBIDDEN, 'Google sign-in is available for owners only.');
     }
 
-    return await createLoginSession(user);
+    return await createLoginSession(user, { sessionContext });
 };
 
 const verify = async (payload) => {
@@ -417,6 +426,7 @@ const reset = async (payload) => {
                 tokenVersion: Number(user.tokenVersion || 0) + 1
             }
         );
+        await loginSessionService.revokeAll(user.id, 'PASSWORD_RESET');
         return { message: 'Password reset successfully. Please login with your new password.' };
     } catch (error) {
         logger('error', `Error occurred during password reset process: ${error.message}`);
@@ -499,6 +509,7 @@ const resetOwnerPassword = async (payload) => {
             },
             { where: { id: user.id }, transaction }
         );
+        await loginSessionService.revokeAll(user.id, 'PASSWORD_RESET', { transaction });
 
         await transaction.commit();
         transaction = null;
@@ -534,6 +545,9 @@ const setRecoveryCode = async (ownerId, payload) => {
         }
 
         await db.users.update(updateData, { where: { id: user.id } });
+        if (payload.invalidateSessions) {
+            await loginSessionService.revokeAll(user.id, 'RECOVERY_CODE_CHANGE');
+        }
         return {
             message: wasConfigured ? 'Recovery code changed successfully.' : 'Recovery code created successfully.',
             recoveryCodeConfigured: true,

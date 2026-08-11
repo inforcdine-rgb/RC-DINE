@@ -14,6 +14,7 @@ import hotelModel from '../api/models/hotel.model.js';
 import hotelUserRelationModel from '../api/models/hotelUserRelation.model.js';
 import inviteModel from '../api/models/invite.model.js';
 import legalPageModel from '../api/models/legalPage.model.js';
+import loginSessionModel from '../api/models/loginSession.model.js';
 import menuModel from '../api/models/menu.model.js';
 import notificationModel from '../api/models/notification.model.js';
 import openOrderModel from '../api/models/openOrder.model.js';
@@ -183,6 +184,7 @@ const defineModels = (sequelize) => {
     db.Sequelize = Sequelize;
     db.adminOtpChallenges = adminOtpChallengeModel(sequelize);
     db.users = userModel(sequelize);
+    db.loginSessions = loginSessionModel(sequelize);
     db.invites = inviteModel(sequelize);
     db.legalPages = legalPageModel(sequelize);
     db.hotel = hotelModel(sequelize);

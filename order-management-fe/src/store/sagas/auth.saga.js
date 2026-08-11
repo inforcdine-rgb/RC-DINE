@@ -200,6 +200,12 @@ function* logoutUserRequestSaga(action) {
             }
         }
 
+        try {
+            yield service.logoutCurrentSession();
+        } catch (e) {
+            console.warn('Server session logout failed; clearing this device locally:', e);
+        }
+
         localStorage.clear();
         sessionStorage.clear();
         const redirectTo = action.payload?.redirectTo || '/';

@@ -26,6 +26,11 @@ router.put(
     userController.setRecoveryCode
 );
 
+router.get('/sessions', authenticate, userController.listLoginSessions);
+router.delete('/sessions/:sessionId', authenticate, userController.revokeLoginSession);
+router.delete('/sessions', authenticate, userController.revokeOtherLoginSessions);
+router.post('/logout', authenticate, userController.logoutCurrentSession);
+
 router.route('/').all(authenticate).get(userController.getUser).put(userController.update);
 
 // invite apis

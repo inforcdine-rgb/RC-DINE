@@ -1,4 +1,48 @@
 import { api, instance, method } from '../api/apiClient';
+
+const DEVICE_ID_KEY = 'rcdine-device-id';
+
+const getDeviceId = () => {
+    try {
+        const existing = localStorage.getItem(DEVICE_ID_KEY);
+        if (existing) return existing;
+
+        const generated =
+            window.crypto?.randomUUID?.() || `rc-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`;
+        localStorage.setItem(DEVICE_ID_KEY, generated);
+        return generated;
+    } catch (error) {
+        return `temporary-${Date.now().toString(36)}`;
+    }
+};
+
+const getDeviceType = () => {
+    const userAgent = navigator.userAgent || '';
+    if (/iPad|Tablet/i.test(userAgent)) return 'TABLET';
+    if (/Mobile|Android|iPhone|iPod/i.test(userAgent) || navigator.userAgentData?.mobile) return 'PHONE';
+    return 'DESKTOP';
+};
+
+const getLoginDeviceInfo = () => {
+    let timezone = '';
+    try {
+        timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
+    } catch (error) {
+        timezone = '';
+    }
+
+    const standalone =
+        window.matchMedia?.('(display-mode: standalone)').matches || window.navigator.standalone === true;
+
+    return {
+        deviceId: getDeviceId(),
+        deviceType: getDeviceType(),
+        platform: navigator.userAgentData?.platform || navigator.platform || '',
+        timezone,
+        appMode: standalone ? 'STANDALONE' : 'BROWSER'
+    };
+};
+
 export const registerUser = async (payload) => {
     try {
         return await api(method.POST, '/user/register', payload);
@@ -10,7 +54,7 @@ export const registerUser = async (payload) => {
 
 export const loginUser = async (payload) => {
     try {
-        return await api(method.POST, '/user/login', payload);
+        return await api(method.POST, '/user/login', { ...payload, deviceInfo: getLoginDeviceInfo() });
     } catch (error) {
         console.error(`Error to login user ${error}`);
         throw error;
@@ -19,7 +63,7 @@ export const loginUser = async (payload) => {
 
 export const googleLoginUser = async (payload) => {
     try {
-        return await api(method.POST, '/user/google-login', payload);
+        return await api(method.POST, '/user/google-login', { ...payload, deviceInfo: getLoginDeviceInfo() });
     } catch (error) {
         console.error(`Error during Google login ${error}`);
         throw error;
@@ -85,3 +129,12 @@ export const updateUser = async (payload) => {
         throw error;
     }
 };
+
+export const getLoginSessions = async () => api(method.GET, '/user/sessions');
+
+export const revokeLoginSession = async (sessionId) =>
+    api(method.DELETE, `/user/sessions/${encodeURIComponent(sessionId)}`);
+
+export const revokeOtherLoginSessions = async () => api(method.DELETE, '/user/sessions');
+
+export const logoutCurrentSession = async () => api(method.POST, '/user/logout');

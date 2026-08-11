@@ -1,0 +1,4 @@
+# Keep backend JavaScript compatible with the ESLint Unix line-ending rule.
+.gitattributes text eol=lf
+order-management-be/**/*.js text eol=lf
+order-management-be/**/*.cjs text eol=lf

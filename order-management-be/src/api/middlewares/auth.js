@@ -2,6 +2,7 @@ import jwt from 'jsonwebtoken';
 import { db } from '../../config/database.js';
 import env from '../../config/env.js';
 import logger from '../../config/logger.js';
+import loginSessionService from '../services/loginSession.service.js';
 import { STATUS_CODE } from '../utils/common.js';
 
 const authenticate = (req, res, next) => {
@@ -27,6 +28,12 @@ const authenticate = (req, res, next) => {
 
             if (!currentUser || tokenVersion !== currentTokenVersion) {
                 logger('warn', { message: 'Session invalidated' });
+                return res.status(STATUS_CODE.FORBIDDEN).json({ message: 'TOKEN_VERIFICATION_FAILED' });
+            }
+
+            const sessionActive = await loginSessionService.validateAndTouch(user.sid, user.id);
+            if (!sessionActive) {
+                logger('warn', { message: 'Login session revoked or expired', userId: user.id });
                 return res.status(STATUS_CODE.FORBIDDEN).json({ message: 'TOKEN_VERIFICATION_FAILED' });
             }
 

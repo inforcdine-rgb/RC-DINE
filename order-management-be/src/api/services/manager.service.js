@@ -9,6 +9,7 @@ import inviteRepo from '../repositories/invite.repository.js';
 import userRepo from '../repositories/user.repository.js';
 import { CustomError, STATUS_CODE, TABLES, isCustomError } from '../utils/common.js';
 import { hashPassword } from '../utils/password.js';
+import loginSessionService from './loginSession.service.js';
 
 const verifyManagerOwnership = async (managerId, ownerId) => {
     const managerInvite = await inviteRepo.findOne({
@@ -284,7 +285,11 @@ const updateCredentials = async (managerId, ownerId, payload) => {
     try {
         await verifyManagerOwnership(managerId, ownerId);
 
-        const existingManager = await userRepo.findOne({ where: { id: managerId, role: USER_ROLES[1] } });
+        const existingManager = await userRepo.findOne({
+            where: { id: managerId, role: USER_ROLES[1] },
+            attributes: ['id', 'tokenVersion'],
+            raw: true
+        });
         if (!existingManager) {
             throw CustomError(STATUS_CODE.NOT_FOUND, 'Manager not found');
         }
@@ -308,7 +313,9 @@ const updateCredentials = async (managerId, ownerId, payload) => {
             return { message: 'Nothing to update' };
         }
 
+        updateData.tokenVersion = Number(existingManager.tokenVersion || 0) + 1;
         await userRepo.update({ where: { id: managerId } }, updateData);
+        await loginSessionService.revokeAll(managerId, 'CREDENTIAL_CHANGE');
         if (payload.email) {
             await inviteRepo.update({ userId: managerId }, { email: payload.email });
         }
