@@ -71,12 +71,57 @@ const getCacheKey = (config = {}) => {
     return `${CACHE_PREFIX}${scope}:${config.url || ''}:${JSON.stringify(config.params || {})}`;
 };
 
+const GLOBAL_LOADER_DELAY = 180;
+const GLOBAL_LOADER_MIN_VISIBLE = 420;
+
 let foregroundRequestCount = 0;
+let loaderVisible = false;
+let loaderShownAt = 0;
+let showLoaderTimer = null;
+let hideLoaderTimer = null;
+
+const scheduleGlobalLoader = () => {
+    if (hideLoaderTimer) {
+        clearTimeout(hideLoaderTimer);
+        hideLoaderTimer = null;
+    }
+    if (loaderVisible || showLoaderTimer) return;
+
+    showLoaderTimer = window.setTimeout(() => {
+        showLoaderTimer = null;
+        if (foregroundRequestCount === 0) return;
+
+        loaderVisible = true;
+        loaderShownAt = Date.now();
+        store.dispatch(setIsLoading(true));
+    }, GLOBAL_LOADER_DELAY);
+};
+
+const scheduleGlobalLoaderHide = () => {
+    if (showLoaderTimer) {
+        clearTimeout(showLoaderTimer);
+        showLoaderTimer = null;
+    }
+    if (!loaderVisible) return;
+
+    const visibleFor = Date.now() - loaderShownAt;
+    const delay = Math.max(0, GLOBAL_LOADER_MIN_VISIBLE - visibleFor);
+    if (hideLoaderTimer) clearTimeout(hideLoaderTimer);
+
+    hideLoaderTimer = window.setTimeout(() => {
+        hideLoaderTimer = null;
+        if (foregroundRequestCount > 0) return;
+
+        loaderVisible = false;
+        loaderShownAt = 0;
+        store.dispatch(setIsLoading(false));
+    }, delay);
+};
 
 const startRequest = (config) => {
     if (config.__showGlobalLoader) {
         foregroundRequestCount += 1;
-        if (foregroundRequestCount === 1) store.dispatch(setIsLoading(true));
+        if (foregroundRequestCount === 1) scheduleGlobalLoader();
     }
     if (config.__backgroundRequest) trackBackgroundRequestStart();
 };
@@ -87,7 +132,7 @@ const finishRequest = (config = {}) => {
 
     if (config.__showGlobalLoader) {
         foregroundRequestCount = Math.max(0, foregroundRequestCount - 1);
-        if (foregroundRequestCount === 0) store.dispatch(setIsLoading(false));
+        if (foregroundRequestCount === 0) scheduleGlobalLoaderHide();
     }
     if (config.__backgroundRequest) trackBackgroundRequestEnd();
 };

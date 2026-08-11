@@ -1,72 +1,302 @@
-﻿.loader-overlay {
+.loader-overlay {
     position: fixed;
     inset: 0;
-    display: flex;
-    justify-content: center;
-    align-items: center;
     z-index: 11000;
-    background: rgba(248, 250, 252, 0.86);
-    backdrop-filter: blur(6px);
-}
-.premium-skeleton {
-    width: min(420px, calc(100vw - 32px));
     display: grid;
-    gap: 12px;
+    place-items: center;
+    min-height: 100dvh;
+    padding: 24px;
+    overflow: hidden;
+    background:
+        radial-gradient(circle at 50% 38%, rgba(255, 122, 45, 0.16), transparent 28%),
+        linear-gradient(145deg, rgba(255, 252, 249, 0.96), rgba(255, 246, 240, 0.94));
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    animation: rcLoaderFadeIn 180ms ease-out both;
 }
-.skeleton-head,
-.skeleton-card {
-    display: flex;
-    gap: 12px;
-    padding: 14px;
-    border: 1px solid #eaecf0;
-    border-radius: 16px;
-    background: rgba(255, 255, 255, 0.96);
-    box-shadow: 0 10px 30px rgba(16, 24, 40, 0.06);
-}
-.skeleton-head > span {
-    width: 44px;
-    height: 44px;
-    border-radius: 50%;
-}
-.skeleton-card > span {
-    width: 86px;
-    height: 76px;
-    flex: 0 0 auto;
-    border-radius: 12px;
-}
-.skeleton-head > div,
-.skeleton-card > div {
-    flex: 1;
-    display: grid;
-    align-content: center;
-    gap: 9px;
-}
-.skeleton-head b,
-.skeleton-head small,
-.skeleton-card span,
-.skeleton-card b,
-.skeleton-card small {
-    display: block;
-    min-height: 11px;
+
+.loader-overlay::before,
+.loader-overlay::after {
+    position: absolute;
+    width: min(48vw, 520px);
+    aspect-ratio: 1;
     border-radius: 999px;
-    background: linear-gradient(100deg, #edf0f3 20%, #fafbfc 42%, #edf0f3 64%);
-    background-size: 220% 100%;
-    animation: skeletonShimmer 1.2s linear infinite;
+    pointer-events: none;
+    content: '';
+    filter: blur(4px);
+    opacity: 0.55;
 }
-.skeleton-head b,
-.skeleton-card b {
-    width: 64%;
-    min-height: 14px;
+
+.loader-overlay::before {
+    top: -28%;
+    right: -15%;
+    background: radial-gradient(circle, rgba(255, 179, 90, 0.22), transparent 68%);
+    animation: rcLoaderFloat 5.5s ease-in-out infinite;
 }
-.skeleton-head small,
-.skeleton-card small {
-    width: 86%;
+
+.loader-overlay::after {
+    bottom: -34%;
+    left: -18%;
+    background: radial-gradient(circle, rgba(104, 55, 36, 0.12), transparent 70%);
+    animation: rcLoaderFloat 6.5s ease-in-out -2s infinite reverse;
 }
-.skeleton-card small:last-child {
+
+.loader-overlay-inline {
+    position: relative;
+    z-index: 1;
+    min-height: 320px;
+    border-radius: 24px;
+}
+
+.rc-loader-stage {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    justify-items: center;
+    width: min(330px, calc(100vw - 48px));
+    padding: 34px 30px 30px;
+    border: 1px solid rgba(255, 255, 255, 0.88);
+    border-radius: 30px;
+    background: rgba(255, 255, 255, 0.72);
+    box-shadow:
+        0 24px 70px rgba(82, 43, 26, 0.14),
+        inset 0 1px 0 rgba(255, 255, 255, 0.92);
+}
+
+.rc-loader-visual {
+    position: relative;
+    display: grid;
+    width: 116px;
+    height: 116px;
+    place-items: center;
+}
+
+.rc-loader-logo {
+    position: relative;
+    z-index: 3;
+    display: grid;
+    width: 58px;
+    height: 58px;
+    place-items: center;
+    border: 1px solid rgba(255, 255, 255, 0.8);
+    border-radius: 19px;
+    color: #fff;
+    background: linear-gradient(145deg, #ff7a2d, #ef4f13);
+    box-shadow:
+        0 12px 28px rgba(239, 79, 19, 0.28),
+        inset 0 1px 0 rgba(255, 255, 255, 0.42);
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 32px;
+    font-weight: 800;
+    line-height: 1;
+    animation: rcLoaderLogoBreath 1.9s ease-in-out infinite;
+}
+
+.rc-loader-pulse {
+    position: absolute;
+    z-index: 1;
+    width: 62px;
+    height: 62px;
+    border: 1px solid rgba(255, 105, 35, 0.45);
+    border-radius: 20px;
+    animation: rcLoaderPulse 1.9s ease-out infinite;
+}
+
+.rc-loader-orbit {
+    position: absolute;
+    inset: 4px;
+    z-index: 2;
+    border: 1px solid rgba(246, 105, 38, 0.18);
+    border-radius: 50%;
+    animation: rcLoaderSpin 2.4s linear infinite;
+}
+
+.rc-loader-orbit-inner {
+    inset: 16px;
+    border-style: dashed;
+    border-color: rgba(91, 48, 30, 0.15);
+    animation-duration: 3.2s;
+    animation-direction: reverse;
+}
+
+.rc-loader-orbit i {
+    position: absolute;
+    top: 7px;
+    left: 13px;
+    width: 9px;
+    height: 9px;
+    border: 2px solid rgba(255, 255, 255, 0.9);
+    border-radius: 50%;
+    background: #ff6a24;
+    box-shadow: 0 3px 10px rgba(239, 79, 19, 0.38);
+}
+
+.rc-loader-orbit-inner i {
+    top: auto;
+    right: 5px;
+    bottom: 10px;
+    left: auto;
+    width: 7px;
+    height: 7px;
+    background: #6f3a27;
+}
+
+.rc-loader-copy {
+    display: grid;
+    gap: 5px;
+    justify-items: center;
+    margin-top: 16px;
+    text-align: center;
+}
+
+.rc-loader-copy strong {
+    color: #2f1e17;
+    font-size: 22px;
+    font-weight: 850;
+    letter-spacing: -0.035em;
+}
+
+.rc-loader-copy span {
+    min-height: 20px;
+    color: #765f54;
+    font-size: 13px;
+    font-weight: 650;
+    letter-spacing: 0.01em;
+}
+
+.rc-loader-progress {
+    width: min(210px, 72%);
+    height: 5px;
+    margin-top: 22px;
+    overflow: hidden;
+    border-radius: 999px;
+    background: rgba(87, 55, 40, 0.09);
+}
+
+.rc-loader-progress span {
+    display: block;
     width: 48%;
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, #ff9b4a, #ff5b1a, #ff9b4a);
+    box-shadow: 0 0 14px rgba(255, 91, 26, 0.35);
+    animation: rcLoaderProgress 1.3s cubic-bezier(0.65, 0, 0.35, 1) infinite;
 }
-@keyframes skeletonShimmer {
+
+.rc-loader-dots {
+    display: flex;
+    gap: 5px;
+    margin-top: 13px;
+}
+
+.rc-loader-dots i {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: #d7b5a5;
+    animation: rcLoaderDot 1.1s ease-in-out infinite;
+}
+
+.rc-loader-dots i:nth-child(2) {
+    animation-delay: 120ms;
+}
+
+.rc-loader-dots i:nth-child(3) {
+    animation-delay: 240ms;
+}
+
+@keyframes rcLoaderFadeIn {
+    from {
+        opacity: 0;
+    }
+}
+
+@keyframes rcLoaderSpin {
     to {
-        background-position-x: -220%;
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes rcLoaderPulse {
+    0% {
+        opacity: 0.75;
+        transform: scale(0.92);
+    }
+    78%,
+    100% {
+        opacity: 0;
+        transform: scale(1.55);
+    }
+}
+
+@keyframes rcLoaderLogoBreath {
+    0%,
+    100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.055);
+    }
+}
+
+@keyframes rcLoaderProgress {
+    0% {
+        transform: translateX(-115%);
+    }
+    100% {
+        transform: translateX(235%);
+    }
+}
+
+@keyframes rcLoaderDot {
+    0%,
+    100% {
+        opacity: 0.4;
+        transform: translateY(0);
+    }
+    50% {
+        opacity: 1;
+        transform: translateY(-3px);
+    }
+}
+
+@keyframes rcLoaderFloat {
+    0%,
+    100% {
+        transform: translate3d(0, 0, 0) scale(1);
+    }
+    50% {
+        transform: translate3d(0, 18px, 0) scale(1.04);
+    }
+}
+
+@media (max-width: 575px) {
+    .loader-overlay {
+        padding: 18px;
+    }
+
+    .rc-loader-stage {
+        width: min(300px, calc(100vw - 36px));
+        padding: 30px 24px 26px;
+        border-radius: 26px;
+    }
+
+    .rc-loader-visual {
+        width: 104px;
+        height: 104px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .loader-overlay,
+    .loader-overlay::before,
+    .loader-overlay::after,
+    .rc-loader-logo,
+    .rc-loader-pulse,
+    .rc-loader-orbit,
+    .rc-loader-progress span,
+    .rc-loader-dots i {
+        animation-duration: 1ms !important;
+        animation-iteration-count: 1 !important;
     }
 }

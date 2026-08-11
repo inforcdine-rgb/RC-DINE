@@ -1,5 +1,8 @@
 import 'bootstrap/dist/css/bootstrap.css';
 import './index.css';
+import './assets/styles/modal.css';
+import './assets/styles/menuCard.css';
+import './assets/styles/formGroup.css';
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { Provider } from 'react-redux';

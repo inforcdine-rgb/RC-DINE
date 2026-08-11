@@ -8,6 +8,132 @@
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta name="theme-color" content="#ff6b2c" />
 
+        <style>
+            .rc-boot-loader {
+                position: fixed;
+                inset: 0;
+                z-index: 99999;
+                display: grid;
+                place-items: center;
+                min-height: 100vh;
+                min-height: 100dvh;
+                padding: 24px;
+                color: #2f1e17;
+                background:
+                    radial-gradient(circle at 50% 38%, rgba(255, 122, 45, 0.18), transparent 29%),
+                    linear-gradient(145deg, #fffdfb, #fff4ed);
+                font-family:
+                    Inter,
+                    -apple-system,
+                    BlinkMacSystemFont,
+                    'Segoe UI',
+                    sans-serif;
+            }
+            .rc-boot-card {
+                display: grid;
+                justify-items: center;
+                width: min(300px, calc(100vw - 48px));
+                padding: 34px 28px 30px;
+                border: 1px solid rgba(255, 255, 255, 0.9);
+                border-radius: 30px;
+                background: rgba(255, 255, 255, 0.72);
+                box-shadow: 0 24px 70px rgba(82, 43, 26, 0.14);
+            }
+            .rc-boot-mark {
+                position: relative;
+                display: grid;
+                width: 112px;
+                height: 112px;
+                place-items: center;
+            }
+            .rc-boot-mark::before,
+            .rc-boot-mark::after {
+                position: absolute;
+                inset: 4px;
+                border: 1px solid rgba(246, 105, 38, 0.22);
+                border-radius: 50%;
+                content: '';
+                animation: rcBootSpin 2.4s linear infinite;
+            }
+            .rc-boot-mark::after {
+                inset: 16px;
+                border-style: dashed;
+                border-color: rgba(91, 48, 30, 0.17);
+                animation-duration: 3.2s;
+                animation-direction: reverse;
+            }
+            .rc-boot-logo {
+                position: relative;
+                z-index: 2;
+                display: grid;
+                width: 58px;
+                height: 58px;
+                place-items: center;
+                border-radius: 19px;
+                color: #fff;
+                background: linear-gradient(145deg, #ff7a2d, #ef4f13);
+                box-shadow: 0 12px 28px rgba(239, 79, 19, 0.28);
+                font-family: Georgia, 'Times New Roman', serif;
+                font-size: 32px;
+                font-weight: 800;
+                animation: rcBootBreathe 1.9s ease-in-out infinite;
+            }
+            .rc-boot-card strong {
+                margin-top: 14px;
+                font-size: 22px;
+                letter-spacing: -0.035em;
+            }
+            .rc-boot-card small {
+                margin-top: 5px;
+                color: #765f54;
+                font-size: 13px;
+                font-weight: 650;
+            }
+            .rc-boot-progress {
+                width: 150px;
+                height: 5px;
+                margin-top: 22px;
+                overflow: hidden;
+                border-radius: 999px;
+                background: rgba(87, 55, 40, 0.09);
+            }
+            .rc-boot-progress span {
+                display: block;
+                width: 48%;
+                height: 100%;
+                border-radius: inherit;
+                background: linear-gradient(90deg, #ff9b4a, #ff5b1a, #ff9b4a);
+                animation: rcBootProgress 1.3s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+            }
+            @keyframes rcBootSpin {
+                to {
+                    transform: rotate(360deg);
+                }
+            }
+            @keyframes rcBootBreathe {
+                50% {
+                    transform: scale(1.06);
+                }
+            }
+            @keyframes rcBootProgress {
+                from {
+                    transform: translateX(-115%);
+                }
+                to {
+                    transform: translateX(235%);
+                }
+            }
+            @media (prefers-reduced-motion: reduce) {
+                .rc-boot-mark::before,
+                .rc-boot-mark::after,
+                .rc-boot-logo,
+                .rc-boot-progress span {
+                    animation-duration: 1ms !important;
+                    animation-iteration-count: 1 !important;
+                }
+            }
+        </style>
+
         <script>
             (function () {
                 var RECOVERY_KEY = 'rcdineAutomaticCacheRecovery';
@@ -127,12 +253,17 @@
 
                 window.setTimeout(function () {
                     var root = document.getElementById('root');
-                    if (!root || root.childElementCount === 0) repairCache('empty-application-root');
+                    var bootLoaderStillVisible = root && root.querySelector('.rc-boot-loader');
+                    if (!root || root.childElementCount === 0 || bootLoaderStillVisible) {
+                        repairCache('empty-application-root');
+                    }
                 }, 12000);
 
                 window.setTimeout(function () {
                     var root = document.getElementById('root');
-                    if (root && root.childElementCount > 0) {
+                    var applicationMounted =
+                        root && root.childElementCount > 0 && !root.querySelector('.rc-boot-loader');
+                    if (applicationMounted) {
                         try {
                             window.sessionStorage.removeItem(RECOVERY_KEY);
                         } catch (_error) {
@@ -200,6 +331,8 @@
 
         <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
 
+        <link rel="preconnect" href="https://rc-dine.onrender.com" crossorigin />
+        <link rel="dns-prefetch" href="https://rc-dine.onrender.com" />
         <link rel="preconnect" href="https://checkout.razorpay.com" />
         <link rel="dns-prefetch" href="https://checkout.razorpay.com" />
 
@@ -209,6 +342,17 @@
     <body>
         <noscript>You need to enable JavaScript to run this app.</noscript>
 
-        <div id="root"></div>
+        <div id="root">
+            <div class="rc-boot-loader" role="status" aria-label="RC Dine is loading">
+                <div class="rc-boot-card">
+                    <div class="rc-boot-mark" aria-hidden="true">
+                        <span class="rc-boot-logo">R</span>
+                    </div>
+                    <strong>RC Dine</strong>
+                    <small>Preparing your experience...</small>
+                    <div class="rc-boot-progress" aria-hidden="true"><span></span></div>
+                </div>
+            </div>
+        </div>
     </body>
 </html>
