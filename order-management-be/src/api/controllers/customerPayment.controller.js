@@ -37,7 +37,7 @@ const createOrder = async (req, res) => {
         }
 
         const customer = await customerRepo.findOne({
-            where: { id: customerId, hotelId, tableId }
+            where: { id: customerId, hotelId }
         });
         if (!customer) {
             throw CustomError(STATUS_CODE.NOT_FOUND, 'Customer not found');

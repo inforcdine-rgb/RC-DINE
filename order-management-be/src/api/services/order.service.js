@@ -39,32 +39,58 @@ const register = async (payload) => {
             lock: transaction.LOCK.UPDATE
         });
         if (!table) throw CustomError(STATUS_CODE.NOT_FOUND, 'Table not found');
-        if (table.status !== TABLE_STATUS[0] || table.customerId) {
-            throw CustomError(STATUS_CODE.CONFLICT, 'This table is already occupied');
-        }
 
-        const { subscription: _subscription, ...customerPayload } = payload;
-        const customer = {
-            id: uuidv4(),
-            ...customerPayload,
-            tableNumber: table.tableNumber
-        };
+        let data;
+        let reusedTableCustomer = false;
 
-        const data = await db.customer.create(customer, { transaction });
-        const [updatedRows] = await db.tables.update(
-            { status: TABLE_STATUS[1], customerId: data.id },
-            {
+        if (table.customerId) {
+            data = await db.customer.findOne({
                 where: {
-                    id: payload.tableId,
-                    hotelId: payload.hotelId,
-                    status: TABLE_STATUS[0],
-                    customerId: null
+                    id: table.customerId,
+                    hotelId: payload.hotelId
                 },
                 transaction
+            });
+
+            if (!data) {
+                throw CustomError(
+                    STATUS_CODE.CONFLICT,
+                    'This table session needs to be reset by restaurant staff'
+                );
             }
-        );
-        if (updatedRows !== 1) {
-            throw CustomError(STATUS_CODE.CONFLICT, 'This table was booked by another customer');
+
+            reusedTableCustomer = true;
+        } else {
+            if (table.status !== TABLE_STATUS[0]) {
+                throw CustomError(
+                    STATUS_CODE.CONFLICT,
+                    'This table session needs to be reset by restaurant staff'
+                );
+            }
+
+            const { subscription: _subscription, ...customerPayload } = payload;
+            const customer = {
+                id: uuidv4(),
+                ...customerPayload,
+                tableNumber: table.tableNumber
+            };
+
+            data = await db.customer.create(customer, { transaction });
+            const [updatedRows] = await db.tables.update(
+                { status: TABLE_STATUS[1], customerId: data.id },
+                {
+                    where: {
+                        id: payload.tableId,
+                        hotelId: payload.hotelId,
+                        status: TABLE_STATUS[0],
+                        customerId: null
+                    },
+                    transaction
+                }
+            );
+            if (updatedRows !== 1) {
+                throw CustomError(STATUS_CODE.CONFLICT, 'This table was booked by another customer');
+            }
         }
 
         await transaction.commit();
@@ -73,7 +99,7 @@ const register = async (payload) => {
         try {
             if (payload.subscription?.endpoint) {
                 await notificationService.subscribe({
-                    customerId: customer.id,
+                    customerId: data.id,
                     phoneNumber: String(payload.phoneNumber),
                     deviceId: payload.subscription.deviceId,
                     platform: payload.subscription.platform,
@@ -86,16 +112,18 @@ const register = async (payload) => {
                 });
             }
 
-            const userIds = await getNotificationUserIds(payload.hotelId);
-            await notificationService.sendNotification(userIds, {
-                title: `Table-${table.tableNumber} Booked`,
-                message: `Table-${table.tableNumber} is booked. Please assist the customer accordingly.`,
-                path: '/orders',
-                meta: {
-                    action: NOTIFICATION_ACTIONS.CUSTOMER_REGISTERATION,
-                    hotelId: payload.hotelId
-                }
-            });
+            if (!reusedTableCustomer) {
+                const userIds = await getNotificationUserIds(payload.hotelId);
+                await notificationService.sendNotification(userIds, {
+                    title: `Table-${table.tableNumber} Booked`,
+                    message: `Table-${table.tableNumber} is booked. Please assist the customer accordingly.`,
+                    path: '/orders',
+                    meta: {
+                        action: NOTIFICATION_ACTIONS.CUSTOMER_REGISTERATION,
+                        hotelId: payload.hotelId
+                    }
+                });
+            }
         } catch (notificationError) {
             logger('warn', 'Customer registered, but registration notification delivery failed', {
                 customerId: data.id,
@@ -116,7 +144,7 @@ const register = async (payload) => {
             { expiresIn: env.customerAuth.tokenExpiry }
         );
 
-        return { ...data.toJSON(), notificationToken };
+        return { ...data.toJSON(), notificationToken, reusedTableCustomer };
     } catch (error) {
         if (transaction) await transaction.rollback();
         logger('error', `Error while creating customer ${JSON.stringify({ error })}`);
@@ -430,8 +458,7 @@ const placeOrder = async (payload) => {
         const customer = await customerRepo.findOne({
             where: {
                 id: customerId,
-                hotelId,
-                tableId
+                hotelId
             },
             attributes: ['id']
         });
@@ -1730,6 +1757,34 @@ const resetTable = async (tableId, hotelId) => {
             tableId,
             hotelId
         });
+
+        const table = await db.tables.findOne({
+            where: { id: tableId, hotelId },
+            attributes: ['id', 'customerId']
+        });
+
+        if (!table) {
+            throw CustomError(STATUS_CODE.NOT_FOUND, 'Table not found or access denied');
+        }
+
+        const orderScope = [{ tableId }];
+        if (table.customerId) orderScope.push({ customerId: table.customerId });
+
+        const activeOrder = await db.orders.findOne({
+            where: {
+                hotelId,
+                status: { [Op.notIn]: [ORDER_STATUS[2], ORDER_STATUS[3]] },
+                [Op.or]: orderScope
+            },
+            attributes: ['id', 'status']
+        });
+
+        if (activeOrder) {
+            throw CustomError(
+                STATUS_CODE.CONFLICT,
+                'Complete or cancel the active order before freeing this table'
+            );
+        }
 
         const [updatedCount] = await tableRepo.update(
             {

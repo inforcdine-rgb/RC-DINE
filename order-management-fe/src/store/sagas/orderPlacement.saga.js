@@ -61,6 +61,14 @@ function* registerCustomerRequestSaga(action) {
             }
         }
         yield put(getTableDetailsRequest(payload.tableId));
+        if (result?.id) {
+            yield put(
+                getMenuDetailsRequest({
+                    hotelId: payload.hotelId,
+                    customerId: result.id
+                })
+            );
+        }
     } catch (error) {
         console.error('Failed to register customer', error);
         toast.error(`Failed to register customer ${error.message}`);

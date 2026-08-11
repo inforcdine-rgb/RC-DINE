@@ -53,7 +53,7 @@ function QrTemplatePreview({
                     <span>{tableName}</span>
                 </div>
                 <div className="qr-template-code">
-                    <QRCodeSVG value={qrValue} size={116} level="H" />
+                    <QRCodeSVG value={qrValue} size={116} level="M" includeMargin />
                 </div>
                 <div className="qr-template-copy">
                     <strong>SCAN. ORDER. ENJOY.</strong>

@@ -47,6 +47,7 @@ function OrderPlacement() {
         invoicePrompt
     } = useSelector((state) => state.orderPlacement);
     const updateRefs = useRef({});
+    const customerBootstrapRef = useRef('');
     const refreshSnapshotRef = useRef('');
     const [tipAmount, setTipAmount] = useState(0);
     const gstEnabled = Boolean(tableDetails?.hotel?.gstEnabled);
@@ -118,30 +119,23 @@ function OrderPlacement() {
     }, [token]);
 
     useEffect(() => {
-        if (tableDetails.customer) {
-            dispatch(
-                getMenuDetailsRequest({
-                    hotelId: tableDetails.hotel.id,
-                    customerId: tableDetails.customer.id
-                })
-            );
-        }
-    }, [tableDetails.customer?.id]);
+        if (!token || !tableDetails.id || !tableDetails.hotel?.id) return;
 
-    useEffect(() => {
-        if (tableDetails.status === TABLE_STATUS[0] && tableDetails.hotel?.id) {
-            const payload = {
-                name: 'Guest',
-                phoneNumber: 9999999999,
-                email: 'guest@example.com',
-                hotelId: tableDetails.hotel.id,
-                tableId: tableDetails.id,
-                tableNumber: tableDetails.tableNumber,
-                qrToken: token
-            };
-            dispatch(registerCustomerRequest(payload));
-        }
-    }, [tableDetails.status, tableDetails.id, tableDetails.hotel?.id, dispatch]);
+        const bootstrapKey = `${token}:${tableDetails.hotel.id}:${tableDetails.id}`;
+        if (customerBootstrapRef.current === bootstrapKey) return;
+        customerBootstrapRef.current = bootstrapKey;
+
+        const payload = {
+            name: 'Guest',
+            phoneNumber: 9999999999,
+            email: 'guest@example.com',
+            hotelId: tableDetails.hotel.id,
+            tableId: tableDetails.id,
+            tableNumber: tableDetails.tableNumber,
+            qrToken: token
+        };
+        dispatch(registerCustomerRequest(payload));
+    }, [token, tableDetails.id, tableDetails.hotel?.id, tableDetails.tableNumber, dispatch]);
 
     useEffect(() => {
         if (updateRefs && updateRefs.current[viewOrderDetails?.updated?.last]) {
