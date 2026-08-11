@@ -1,10 +1,13 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { QRCodeSVG } from 'qrcode.react';
 import { useNavigate } from 'react-router-dom';
 import * as subscriptionService from '../../services/subscription.service';
 import * as websiteService from '../../services/websiteSettings.service';
 import { saveSelectedPlan, setPageSeo } from '../../utils/seo';
 
 import './style.css';
+
+const LIVE_DEMO_QR_VALUE = 'https://rc-dine.in/#demo';
 
 const liveDemoItems = [
     { id: 'pizza', icon: '🍕', name: 'Farmhouse Pizza', detail: 'Cheese · Veggies', price: 249 },
@@ -660,6 +663,25 @@ function Landing() {
                             <span>
                                 <b>3</b> Update it as manager
                             </span>
+                        </div>
+
+                        <div className="live-demo-scan-card reveal">
+                            <div className="live-demo-scan-code">
+                                <QRCodeSVG
+                                    value={LIVE_DEMO_QR_VALUE}
+                                    size={82}
+                                    level="H"
+                                    title="Open the RC Dine live demo"
+                                />
+                            </div>
+                            <div>
+                                <span>SCAN ON YOUR PHONE</span>
+                                <strong>Open this live demo instantly</strong>
+                                <small>Camera se QR scan karein—koi login ya app install nahi chahiye.</small>
+                            </div>
+                            <a href={LIVE_DEMO_QR_VALUE} aria-label="Open RC Dine live demo">
+                                Open demo <span>↗</span>
+                            </a>
                         </div>
 
                         <div className="live-demo-shell reveal">

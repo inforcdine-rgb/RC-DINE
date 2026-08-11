@@ -50,6 +50,7 @@ export default function Routes() {
                     <Route path="email-forgot-password" element={<EmailForgotPassword />} />
                     <Route path="verify" element={<VerifyUser />} />
                     <Route path="reset" element={<ResetPassword />} />
+                    <Route path="menu-preview" element={<Navigate to="/#demo" replace />} />
                     <Route
                         path="place/:token"
                         element={

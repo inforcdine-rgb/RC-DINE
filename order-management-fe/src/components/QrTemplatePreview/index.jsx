@@ -3,7 +3,9 @@ import { QRCodeSVG } from 'qrcode.react';
 
 import './style.css';
 
-const DEMO_QR_VALUE = 'https://rc-dine.in/menu-preview';
+// Keep template previews scannable even when no real table QR is supplied.
+// The legacy /menu-preview URL also redirects here for old preview downloads.
+const DEMO_QR_VALUE = 'https://rc-dine.in/#demo';
 
 function QrTemplatePreview({
     template,
