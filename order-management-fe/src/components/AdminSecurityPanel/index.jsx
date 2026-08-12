@@ -208,12 +208,12 @@ const AdminSecurityPanel = ({ currentEmail = '' }) => {
                             autoFocus
                         />
                         <button className="admin-security-primary" type="submit" disabled={busy || otp.length !== 6}>
-                            {busy ? 'Verifying...' : 'Verify securely'}
+                            Verify securely
                         </button>
                         <div className="admin-security-actions">
                             <button type="button" disabled={resending || cooldown > 0 || busy} onClick={resendOtp}>
                                 <FiRefreshCw aria-hidden="true" />
-                                {cooldown > 0 ? ` Resend in ${cooldown}s` : resending ? ' Sending...' : ' Resend code'}
+                                {cooldown > 0 ? ` Resend in ${cooldown}s` : ' Resend code'}
                             </button>
                             <button type="button" disabled={busy} onClick={resetVerification}>
                                 Cancel verification
@@ -256,7 +256,7 @@ const AdminSecurityPanel = ({ currentEmail = '' }) => {
                                 />
                             </Form.Group>
                             <button className="admin-security-primary" type="submit" disabled={busy}>
-                                {busy ? 'Checking...' : 'Send verification code'}
+                                Send verification code
                             </button>
                         </div>
                     </form>
@@ -320,7 +320,7 @@ const AdminSecurityPanel = ({ currentEmail = '' }) => {
                                 </Form.Group>
                             </div>
                             <button className="admin-security-primary" type="submit" disabled={busy}>
-                                {busy ? 'Checking...' : 'Verify password change'}
+                                Verify password change
                             </button>
                         </div>
                     </form>

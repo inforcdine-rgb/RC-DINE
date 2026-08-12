@@ -91,7 +91,7 @@ function AdminOwnerDetail() {
                         </p>
                         <CustomButton
                             disabled={sendingResetLink}
-                            label={sendingResetLink ? 'Sending Reset Link...' : 'Send Password Reset Link'}
+                            label="Send Password Reset Link"
                             onClick={handleSendResetLink}
                         />
                     </Card>

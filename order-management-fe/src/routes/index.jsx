@@ -1,7 +1,6 @@
 import React, { lazy, Suspense } from 'react';
 import { Routes as Switch, Route, BrowserRouter, Navigate } from 'react-router-dom';
 
-import Loader from '../components/Loader';
 import features from '../config/features';
 
 const AuthRoutes = lazy(() => import('./AuthRoutes'));
@@ -43,7 +42,7 @@ const VerifyUser = lazy(() => import('../pages/VerifyUser'));
 export default function Routes() {
     return (
         <BrowserRouter>
-            <Suspense fallback={<Loader label="Opening your screen..." />}>
+            <Suspense fallback={null}>
                 <Switch>
                     <Route path="/" element={<PublicRoutes />}>
                         <Route index element={<Landing />} />

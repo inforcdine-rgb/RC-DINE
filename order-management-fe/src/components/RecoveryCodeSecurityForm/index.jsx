@@ -77,9 +77,7 @@ const RecoveryCodeSecurityForm = ({ configured = false, onSuccess = () => {} }) 
                         type="submit"
                         className="mt-3"
                         disabled={isSubmitting || !dirty || !isValid}
-                        label={
-                            isSubmitting ? 'Saving...' : configured ? 'Change Recovery Code' : 'Create Recovery Code'
-                        }
+                        label={configured ? 'Change Recovery Code' : 'Create Recovery Code'}
                     />
                 </Form>
             )}

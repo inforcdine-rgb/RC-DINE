@@ -248,7 +248,7 @@ function Landing() {
     const [toast, setToast] = useState('');
     const [plans, setPlans] = useState(fallbackPlans);
     const [website, setWebsite] = useState(() => websiteService.getCachedPublic());
-    const [plansLoading, setPlansLoading] = useState(true);
+    const [, setPlansLoading] = useState(true);
     const [plansError, setPlansError] = useState('');
     const [demoCart, setDemoCart] = useState({});
     const [demoOrder, setDemoOrder] = useState(null);
@@ -1255,7 +1255,6 @@ function Landing() {
                             <p>Choose a plan and upgrade as your restaurant grows.</p>
                         </div>
 
-                        {plansLoading && <p className="pricing-state">Loading latest plans...</p>}
                         {plansError && <p className="pricing-state pricing-warning">{plansError}</p>}
                         <div className="pricing-grid">
                             {plans.map((plan) => (

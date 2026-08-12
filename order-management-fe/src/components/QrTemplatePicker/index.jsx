@@ -61,7 +61,7 @@ function QrTemplatePicker({
                             Cancel
                         </button>
                         <button type="button" className="download" onClick={onDownload} disabled={downloading}>
-                            {downloading ? 'Preparing PNG...' : 'Download Selected Template'}
+                            Download Selected Template
                         </button>
                     </div>
                 </footer>

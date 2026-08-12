@@ -148,11 +148,7 @@ function AdminOwners() {
                                                     onClick={() => handleBlock(owner.id)}
                                                     disabled={actionLoading[owner.id] === 'block'}
                                                 >
-                                                    {actionLoading[owner.id] === 'block'
-                                                        ? '...'
-                                                        : owner.isBlocked
-                                                            ? 'Unblock'
-                                                            : 'Block'}
+                                                    {owner.isBlocked ? 'Unblock' : 'Block'}
                                                 </button>
                                                 <div className="d-flex gap-1">
                                                     <input
@@ -174,7 +170,7 @@ function AdminOwners() {
                                                         onClick={() => handleExtend(owner.id)}
                                                         disabled={actionLoading[owner.id] === 'extend'}
                                                     >
-                                                        {actionLoading[owner.id] === 'extend' ? '...' : '+Extend'}
+                                                        +Extend
                                                     </button>
                                                 </div>
                                             </div>

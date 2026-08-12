@@ -45,7 +45,6 @@ function SmartImage({ className = '', alt = '', eager = false, src, fallbackSrc,
             aria-label={failed ? alt : undefined}
             role={failed && alt ? 'img' : undefined}
         >
-            {!loaded && <span className="smart-image-shimmer" aria-hidden="true" />}
             {visible && (
                 <img
                     {...props}

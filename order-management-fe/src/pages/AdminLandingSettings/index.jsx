@@ -171,7 +171,7 @@ export default function AdminLandingSettings() {
                             onChange={change}
                         />
                         <Button type="submit" disabled={saving}>
-                            {saving ? 'Saving...' : 'Save Changes'}
+                            Save Changes
                         </Button>
                     </Form>
                 </Card>

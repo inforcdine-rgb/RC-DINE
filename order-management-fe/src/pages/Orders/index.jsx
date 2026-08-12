@@ -84,7 +84,7 @@ function Orders() {
     const [completedOpenOrdersLoading, setCompletedOpenOrdersLoading] = useState(false);
     const [selectedCompletedPosOrder, setSelectedCompletedPosOrder] = useState(null);
     const [selectedRunningOrder, setSelectedRunningOrder] = useState(null);
-    const [runningOrderDetailsLoading, setRunningOrderDetailsLoading] = useState(false);
+    const [, setRunningOrderDetailsLoading] = useState(false);
     const [kotPrintingOrderId, setKotPrintingOrderId] = useState(null);
     const [kotPrintData, setKotPrintData] = useState(null);
     const lastDetailsRequestRef = useRef({ orderId: null, time: 0 });
@@ -791,9 +791,7 @@ function Orders() {
                         </button>
                     </div>
 
-                    {openOrdersLoading && openOrders.length === 0 ? (
-                        <div className="running-orders-loading">Open orders loading...</div>
-                    ) : filteredOpenOrders.length === 0 ? (
+                    {openOrdersLoading && openOrders.length === 0 ? null : filteredOpenOrders.length === 0 ? (
                         <div className="running-orders-empty">
                             {customerSearchText
                                 ? 'Is customer name se koi open order nahi mila.'
@@ -871,7 +869,7 @@ function Orders() {
                                                 disabled={kotPrintingOrderId === order.id}
                                                 onClick={(event) => printRunningOrderKot(order, event)}
                                             >
-                                                {kotPrintingOrderId === order.id ? 'Preparing KOT...' : 'Print KOT'}
+                                                Print KOT
                                             </button>
                                             <button
                                                 type="button"
@@ -935,63 +933,62 @@ function Orders() {
                     </div>
                 </div>
 
-                {completedOpenOrdersLoading && completedOpenOrders.length === 0 ? (
-                    <div className="completed-pos-orders-empty">Completed orders loading...</div>
-                ) : filteredCompletedOpenOrders.length === 0 ? (
-                    <div className="completed-pos-orders-empty">
-                        {customerSearchText
-                            ? 'Is customer name se koi completed order nahi mila.'
-                            : activeView === 'today'
-                                ? 'Aaj koi completed Manager POS order nahi hai.'
-                                : 'Selected date par koi completed Manager POS order nahi hai.'}
-                    </div>
-                ) : (
-                    <div className="completed-pos-orders-grid">
-                        {visibleCompletedOpenOrders.map((order) => {
-                            const tableLabel = order.table?.tableNumber
-                                ? `Table ${order.table.tableNumber}`
-                                : String(order.orderType || 'WALK_IN').replaceAll('_', ' ');
-                            const items = Array.isArray(order.items) ? order.items : [];
-                            const itemSummary = items.length
-                                ? items
-                                    .slice(0, 4)
-                                    .map((item) => `${item.itemName || item.name} ×${item.quantity}`)
-                                    .join(', ')
-                                : `${order.itemCount || 0} items`;
-                            return (
-                                <button
-                                    type="button"
-                                    className="completed-pos-order-card"
-                                    key={order.id}
-                                    onClick={() => setSelectedCompletedPosOrder(order)}
-                                >
-                                    <div className="completed-pos-order-top">
-                                        <div>
-                                            <span>CUSTOMER</span>
-                                            <h3>{order.customerName || 'Walk-in Guest'}</h3>
+                {completedOpenOrdersLoading &&
+                completedOpenOrders.length === 0 ? null : filteredCompletedOpenOrders.length === 0 ? (
+                        <div className="completed-pos-orders-empty">
+                            {customerSearchText
+                                ? 'Is customer name se koi completed order nahi mila.'
+                                : activeView === 'today'
+                                    ? 'Aaj koi completed Manager POS order nahi hai.'
+                                    : 'Selected date par koi completed Manager POS order nahi hai.'}
+                        </div>
+                    ) : (
+                        <div className="completed-pos-orders-grid">
+                            {visibleCompletedOpenOrders.map((order) => {
+                                const tableLabel = order.table?.tableNumber
+                                    ? `Table ${order.table.tableNumber}`
+                                    : String(order.orderType || 'WALK_IN').replaceAll('_', ' ');
+                                const items = Array.isArray(order.items) ? order.items : [];
+                                const itemSummary = items.length
+                                    ? items
+                                        .slice(0, 4)
+                                        .map((item) => `${item.itemName || item.name} ×${item.quantity}`)
+                                        .join(', ')
+                                    : `${order.itemCount || 0} items`;
+                                return (
+                                    <button
+                                        type="button"
+                                        className="completed-pos-order-card"
+                                        key={order.id}
+                                        onClick={() => setSelectedCompletedPosOrder(order)}
+                                    >
+                                        <div className="completed-pos-order-top">
+                                            <div>
+                                                <span>CUSTOMER</span>
+                                                <h3>{order.customerName || 'Walk-in Guest'}</h3>
+                                            </div>
+                                            <b>PAID</b>
                                         </div>
-                                        <b>PAID</b>
-                                    </div>
-                                    <div className="completed-pos-order-meta">
-                                        <strong>{tableLabel}</strong>
-                                        <span>{order.orderNumber}</span>
-                                    </div>
-                                    <p title={itemSummary}>{itemSummary}</p>
-                                    <div className="completed-pos-order-footer">
-                                        <span>
-                                            {order.paymentMethod || 'PAID'} ·{' '}
-                                            {formatTime(order.paidAt || order.updatedAt)}
-                                        </span>
-                                        <strong>
+                                        <div className="completed-pos-order-meta">
+                                            <strong>{tableLabel}</strong>
+                                            <span>{order.orderNumber}</span>
+                                        </div>
+                                        <p title={itemSummary}>{itemSummary}</p>
+                                        <div className="completed-pos-order-footer">
+                                            <span>
+                                                {order.paymentMethod || 'PAID'} ·{' '}
+                                                {formatTime(order.paidAt || order.updatedAt)}
+                                            </span>
+                                            <strong>
                                             ₹ {Number(order.finalAmount ?? order.runningTotal ?? 0).toFixed(2)}
-                                        </strong>
-                                    </div>
-                                    <small className="completed-pos-touch-hint">Touch to view details</small>
-                                </button>
-                            );
-                        })}
-                    </div>
-                )}
+                                            </strong>
+                                        </div>
+                                        <small className="completed-pos-touch-hint">Touch to view details</small>
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    )}
 
                 {completedPageCount > 1 && (
                     <div className="orders-pagination completed-pos-pagination">
@@ -1062,18 +1059,7 @@ function Orders() {
                 <span>{filteredOrders.length} orders</span>
             </div>
 
-            {loading ? (
-                <div className="orders-skeleton" role="status" aria-label="Loading orders">
-                    {[0, 1, 2, 3].map((item) => (
-                        <span className="orders-skeleton-card" key={item}>
-                            <b />
-                            <small />
-                            <small />
-                            <i />
-                        </span>
-                    ))}
-                </div>
-            ) : visibleOrders.length === 0 ? (
+            {loading ? null : visibleOrders.length === 0 ? (
                 <div className="orders-empty">
                     <BsCalendar3 size={34} />
                     <h5>No orders found</h5>
@@ -1221,9 +1207,6 @@ function Orders() {
                                     ).toFixed(2)}
                                 </strong>
                             </div>
-                            {runningOrderDetailsLoading && (
-                                <p className="running-order-details-loading">Latest details loading...</p>
-                            )}
                         </div>
                     }
                     handleClose={() => setSelectedRunningOrder(null)}
@@ -1232,7 +1215,7 @@ function Orders() {
                     closeText="Close"
                     additionalButtons={[
                         {
-                            text: kotPrintingOrderId === selectedRunningOrder.id ? 'Preparing KOT...' : 'Print KOT',
+                            text: 'Print KOT',
                             onClick: () => printRunningOrderKot(selectedRunningOrder),
                             variant: 'outline-dark',
                             disabled: Boolean(kotPrintingOrderId)

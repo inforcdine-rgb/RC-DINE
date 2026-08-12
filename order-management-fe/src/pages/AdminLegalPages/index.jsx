@@ -160,7 +160,7 @@ export default function AdminLegalPages() {
 
                         <div className="admin-legal-actions">
                             <Button type="submit" disabled={saving}>
-                                {saving ? 'Saving...' : 'Save Legal Page'}
+                                Save Legal Page
                             </Button>
                             <a href={`/${activeSlug}`} target="_blank" rel="noreferrer">
                                 Preview public page

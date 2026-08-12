@@ -192,11 +192,7 @@ function AdminSettings() {
                                     />
                                 </Form.Group>
                                 <div className="d-flex justify-content-end">
-                                    <CustomButton
-                                        label={savingProfile ? 'Saving...' : 'Save Profile'}
-                                        disabled={savingProfile}
-                                        type="submit"
-                                    />
+                                    <CustomButton label="Save Profile" disabled={savingProfile} type="submit" />
                                 </div>
                             </Form>
                         </Card.Body>
@@ -240,7 +236,7 @@ function AdminSettings() {
                                 </Form.Group>
                                 <div className="d-flex justify-content-end">
                                     <CustomButton
-                                        label={savingRazorpay ? 'Saving...' : 'Save Razorpay Credentials'}
+                                        label="Save Razorpay Credentials"
                                         disabled={savingRazorpay}
                                         type="submit"
                                     />
@@ -299,11 +295,7 @@ function AdminSettings() {
                                     />
                                 </Form.Group>
                                 <div className="d-flex justify-content-end">
-                                    <CustomButton
-                                        label={savingPlans ? 'Saving...' : 'Save Plan Prices'}
-                                        disabled={savingPlans}
-                                        type="submit"
-                                    />
+                                    <CustomButton label="Save Plan Prices" disabled={savingPlans} type="submit" />
                                 </div>
                             </Form>
                         </Card.Body>

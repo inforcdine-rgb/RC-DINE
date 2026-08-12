@@ -20,10 +20,10 @@ const isAtTop = (scrollContainer) =>
     scrollContainer === document.scrollingElement ? window.scrollY <= 0 : scrollContainer?.scrollTop <= 0;
 
 function RefreshExperience({ children }) {
-    const [pull, setPull] = useState(0);
-    const [status, setStatus] = useState('idle');
+    const [, setPull] = useState(0);
+    const [, setStatus] = useState('idle');
     const [online, setOnline] = useState(() => navigator.onLine);
-    const [dragging, setDragging] = useState(false);
+    const [, setDragging] = useState(false);
     const touchStart = useRef(0);
     const pulling = useRef(false);
     const frame = useRef(null);
@@ -214,47 +214,14 @@ function RefreshExperience({ children }) {
         };
     }, []);
 
-    const message =
-        status === 'refreshing'
-            ? 'Refreshing…'
-            : status === 'updated'
-                ? '✓ Updated'
-                : status === 'current'
-                    ? '✓ Already up to date'
-                    : status === 'offline'
-                        ? 'You\'re offline'
-                        : pull >= THRESHOLD
-                            ? 'Release to refresh'
-                            : 'Pull to refresh';
-
     return (
-        <div
-            className={`refresh-experience ${dragging ? 'is-dragging' : ''} ${
-                pull > 0 || status === 'refreshing' ? 'is-pulling' : ''
-            }`}
-        >
+        <div className="refresh-experience">
             {!online && (
                 <div className="offline-banner" role="status">
                     You&apos;re offline · Retrying automatically
                 </div>
             )}
-            <div
-                className={`pull-refresh-indicator ${pull > 0 || status !== 'idle' ? 'visible' : ''}`}
-                style={{ '--pull-distance': `${pull}px` }}
-                aria-live="polite"
-            >
-                <span
-                    className={`pull-spinner ${status === 'refreshing' ? 'spinning' : ''}`}
-                    style={{ '--pull-progress': Math.min(1, pull / THRESHOLD) }}
-                />
-                <b>{message}</b>
-            </div>
-            <div
-                className="refresh-content"
-                style={{ '--content-pull': `${status === 'refreshing' ? THRESHOLD : pull}px` }}
-            >
-                {children}
-            </div>
+            <div className="refresh-content">{children}</div>
         </div>
     );
 }

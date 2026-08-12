@@ -131,7 +131,7 @@ function ImageUploadModal({ item, hotelId, onClose, onSuccess }) {
                         Cancel
                     </button>
                     <button className="img-btn-upload" onClick={handleUpload} disabled={!file || loading}>
-                        {loading ? 'Uploading...' : 'Upload'}
+                        Upload
                     </button>
                 </div>
             </div>
@@ -418,7 +418,7 @@ function CreateMenuWithImageModal({ categoryId, categoryName, categoriesOptions,
                         Cancel
                     </button>
                     <button className="img-btn-upload" onClick={handleSubmit} disabled={loading}>
-                        {loading ? 'Creating...' : 'Create Items'}
+                        Create Items
                     </button>
                 </div>
             </div>
@@ -639,7 +639,7 @@ function UpdateMenuWithImageModal({ item, categoryId, hotelId, onClose, onSucces
                         Cancel
                     </button>
                     <button className="img-btn-upload" onClick={handleSubmit} disabled={loading}>
-                        {loading ? 'Saving...' : 'Save Changes'}
+                        Save Changes
                     </button>
                 </div>
             </div>
@@ -867,7 +867,7 @@ function ComboModal({ combo, allFoodItems, hotelId, onClose, onSuccess }) {
                         onClick={handleSubmit}
                         disabled={saving || selectedIds.length < 2 || selectedIds.length > 5}
                     >
-                        {saving ? 'Saving...' : combo?.id ? 'Update Combo' : 'Create Combo'}
+                        {combo?.id ? 'Update Combo' : 'Create Combo'}
                     </button>
                 </div>
             </div>
@@ -1046,7 +1046,7 @@ function CategoryOrderOrganizer({ categories, hotelId, selectedCategory, onSelec
                         disabled={!hasChanges || saving}
                         onClick={saveOrder}
                     >
-                        <MdCheckCircleOutline /> {saving ? 'Saving...' : 'Save Order'}
+                        <MdCheckCircleOutline /> Save Order
                     </button>
                 </div>
             </div>
@@ -1518,9 +1518,7 @@ function Menu() {
             {managerSection === 'combos' ? (
                 <div className="combo-manager-wrap mx-md-5 mx-2">
                     {comboError && <div className="combo-error-box">{comboError}</div>}
-                    {comboLoading ? (
-                        <div className="combo-empty-card">Loading combos...</div>
-                    ) : comboItems.rows?.length ? (
+                    {comboLoading ? null : comboItems.rows?.length ? (
                         <div className="combo-grid">
                             {comboItems.rows.map((combo) => {
                                 const ids = Array.isArray(combo.comboItems) ? combo.comboItems : [];

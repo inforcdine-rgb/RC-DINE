@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import CryptoJS from 'crypto-js';
-import { Button, Form, Spinner } from 'react-bootstrap';
+import { Button, Form } from 'react-bootstrap';
 import { useParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
 
@@ -351,13 +351,6 @@ function RCSessionGuard({ children }) {
                     </p>
                 )}
 
-                {screen === 'LOADING' ? (
-                    <div className="rc-session-center">
-                        <Spinner animation="border" />
-                        <p>Table check ho rahi hai…</p>
-                    </div>
-                ) : null}
-
                 {screen === 'MOBILE' ? (
                     <Form onSubmit={handleSendOtp}>
                         <Form.Group className="mb-3">
@@ -375,7 +368,7 @@ function RCSessionGuard({ children }) {
                             </div>
                         </Form.Group>
                         <Button type="submit" className="w-100" disabled={busy}>
-                            {busy ? 'OTP bhej rahe hain…' : 'Send OTP'}
+                            Send OTP
                         </Button>
                     </Form>
                 ) : null}
@@ -393,7 +386,7 @@ function RCSessionGuard({ children }) {
                             onChange={(event) => setOtp(event.target.value.replace(/\D/g, ''))}
                         />
                         <Button type="submit" className="w-100 mt-3" disabled={busy}>
-                            {busy ? 'Verify ho raha hai…' : 'Verify & Continue'}
+                            Verify & Continue
                         </Button>
                         <button
                             type="button"
@@ -412,7 +405,7 @@ function RCSessionGuard({ children }) {
                         <h2>Start new RC Session</h2>
                         <p>Is table par abhi koi active session nahi hai.</p>
                         <Button className="w-100" disabled={busy} onClick={handleStartSession}>
-                            {busy ? 'Session start ho raha hai…' : 'Start RC Session'}
+                            Start RC Session
                         </Button>
                         <button type="button" className="rc-session-link" onClick={handleLogoutNumber}>
                             Change mobile number
@@ -436,7 +429,7 @@ function RCSessionGuard({ children }) {
                             }
                         />
                         <Button type="submit" className="w-100 mt-3" disabled={busy}>
-                            {busy ? 'Request bhej rahe hain…' : 'Request Join'}
+                            Request Join
                         </Button>
                         <button type="button" className="rc-session-link" onClick={handleLogoutNumber}>
                             Change mobile number
@@ -446,7 +439,6 @@ function RCSessionGuard({ children }) {
 
                 {screen === 'JOIN_PENDING' ? (
                     <div className="rc-session-state">
-                        <Spinner animation="border" />
                         <h2>Waiting for host approval</h2>
                         <p>Your request will expire automatically after 60 seconds.</p>
                         {pushCapability.permission !== 'granted' && (

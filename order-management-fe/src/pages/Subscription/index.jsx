@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Card, Col, Row, Spinner } from 'react-bootstrap';
+import { Card, Col, Row } from 'react-bootstrap';
 import { FaCircleCheck } from 'react-icons/fa6';
 import { IoRocket } from 'react-icons/io5';
 import { MdChevronLeft, MdChevronRight } from 'react-icons/md';
@@ -166,13 +166,7 @@ function Subscription() {
         );
     };
 
-    if (loading) {
-        return (
-            <div className="d-flex justify-content-center align-items-center" style={{ minHeight: '30rem' }}>
-                <Spinner animation="border" />
-            </div>
-        );
-    }
+    if (loading) return null;
 
     return (
         <>

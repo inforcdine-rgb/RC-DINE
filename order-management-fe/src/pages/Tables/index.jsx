@@ -256,7 +256,7 @@ function Tables() {
 
     const handleDownloadQr = async (table) => {
         try {
-            if (!qrTokens[table.value]) throw new Error('Secure QR is still loading. Please try again.');
+            if (!qrTokens[table.value]) throw new Error('Secure QR is not ready yet. Please try again.');
             const filename = buildQrFilename(cafeName, table.label);
             await downloadSvgQrAsPng(qrRefs.current[table.value], filename);
         } catch (error) {
@@ -368,9 +368,7 @@ function Tables() {
                                             includeMargin
                                             className="table-qr"
                                         />
-                                    ) : (
-                                        <span>Preparing secure QR…</span>
-                                    )}
+                                    ) : null}
                                 </div>
 
                                 {features.managerSessionControls && (

@@ -68,7 +68,7 @@ function QrTemplateAdminPanel({ activeIds, onChange, onSave, saving }) {
                     <span>You can change this selection anytime.</span>
                 </div>
                 <button type="button" disabled={saving} onClick={onSave}>
-                    {saving ? 'Saving...' : 'Save Active Templates'}
+                    Save Active Templates
                 </button>
             </div>
         </section>

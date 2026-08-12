@@ -98,7 +98,7 @@ function AdminLogin() {
                         autoFocus
                     />
                     <CustomButton
-                        label={verifying ? 'Verifying...' : 'Verify & Login →'}
+                        label="Verify & Login →"
                         disabled={verifying || otp.length !== 6}
                         type="submit"
                         className="mx-auto mt-4"
@@ -109,7 +109,7 @@ function AdminLogin() {
                         disabled={resending || cooldown > 0}
                         onClick={handleResend}
                     >
-                        {cooldown > 0 ? `Resend code in ${cooldown}s` : resending ? 'Sending...' : 'Resend code'}
+                        {cooldown > 0 ? `Resend code in ${cooldown}s` : 'Resend code'}
                     </button>
                     <button
                         className="btn btn-link text-secondary"
@@ -142,7 +142,7 @@ function AdminLogin() {
                         <CustomFormGroup name="email" type="email" label="Admin Email" />
                         <CustomFormGroup name="password" type="password" label="Password" />
                         <CustomButton
-                            label={isSubmitting ? 'Checking...' : 'Continue Securely →'}
+                            label="Continue Securely →"
                             disabled={isSubmitting || !isValid || !dirty}
                             type="submit"
                             className="mx-auto my-4"

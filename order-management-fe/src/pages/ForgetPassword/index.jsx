@@ -86,7 +86,7 @@ const ForgotPassword = () => {
                             <CustomFormGroup name="newPassword" type="password" label="New Password" />
                             <CustomFormGroup name="confirmNewPassword" type="password" label="Confirm New Password" />
                             <CustomButton
-                                label={isSubmitting ? 'Resetting...' : 'Reset Password'}
+                                label="Reset Password"
                                 type="submit"
                                 disabled={isSubmitting || !isValid || !dirty}
                                 className="mx-auto my-4"
@@ -103,7 +103,7 @@ const ForgotPassword = () => {
                             </p>
                             <CustomFormGroup name="email" type="email" label="Registered Email" />
                             <CustomButton
-                                label={isSubmitting ? 'Sending...' : 'Send Reset Link'}
+                                label="Send Reset Link"
                                 type="submit"
                                 disabled={isSubmitting || !isValid || !dirty}
                                 className="mx-auto my-4"

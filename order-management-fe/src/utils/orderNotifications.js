@@ -19,7 +19,7 @@ export const showNewOrderToast = (meta) => {
         {
             position: 'top-right',
             autoClose: 8000,
-            hideProgressBar: false,
+            hideProgressBar: true,
             closeOnClick: true,
             pauseOnHover: true,
             draggable: true

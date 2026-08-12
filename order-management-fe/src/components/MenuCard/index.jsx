@@ -1,5 +1,5 @@
 import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Button, Card } from 'react-bootstrap';
+import { Button } from 'react-bootstrap';
 import { createPortal } from 'react-dom';
 
 import defaultLogo from '../../assets/images/R-C DINE.png';
@@ -16,7 +16,6 @@ import {
 } from '../../services/rcSession.service';
 import { joinRcSessionRoom, leaveRcSessionRoom } from '../../services/socket.service';
 import { registerRefreshHandler } from '../../utils/refreshBus';
-import Loader from '../Loader';
 import NotificationCenter from '../NotificationCenter';
 import SmartImage from '../SmartImage';
 
@@ -49,7 +48,6 @@ function MenuCard({
     tipAmount = 0,
     onTipAmountChange = () => {}
 }) {
-    const [showSplash, setShowSplash] = useState(() => !sessionStorage.getItem('rcdineSplashSeen'));
     const [searchText, setSearchText] = useState('');
     const [activeCategory, setActiveCategory] = useState('all');
     const [menuAnimationKey, setMenuAnimationKey] = useState(0);
@@ -264,15 +262,6 @@ function MenuCard({
             setSessionBusy(false);
         }
     };
-
-    useEffect(() => {
-        if (!showSplash) return undefined;
-        const timer = setTimeout(() => {
-            sessionStorage.setItem('rcdineSplashSeen', 'yes');
-            setShowSplash(false);
-        }, 2000);
-        return () => clearTimeout(timer);
-    }, [showSplash]);
 
     useEffect(() => {
         onTipAmountChange(selectedTip);
@@ -560,38 +549,7 @@ function MenuCard({
         finishPayment();
     };
 
-    if (!pagesList.length) {
-        return (
-            <div className="d-flex justify-content-center w-100 h-100">
-                <Card className="m-auto d-flex menu-container customer-order-loading">
-                    <Card.Body className="d-flex align-items-center justify-content-center">
-                        <Loader />
-                    </Card.Body>
-                </Card>
-            </div>
-        );
-    }
-
-    if (showSplash) {
-        return (
-            <div className="rc-mobile-shell">
-                <div className="rc-phone rc-splash-screen">
-                    <div className="rc-splash-logo rc-hotel-logo-wrap">
-                        <SmartImage
-                            eager
-                            src={hotelDetails.logo || defaultLogo}
-                            alt={`${hotelDetails.cafeName || 'Hotel'} logo`}
-                            fallbackSrc={defaultLogo}
-                        />
-                    </div>
-                    <h1>{hotelDetails.cafeName}</h1>
-                    <div className="rc-table-pill">Table {tableNumber ?? '-'}</div>
-                    <p>Welcome</p>
-                    <div className="rc-loader" />
-                </div>
-            </div>
-        );
-    }
+    if (!pagesList.length) return null;
 
     return (
         <div className="rc-mobile-shell">

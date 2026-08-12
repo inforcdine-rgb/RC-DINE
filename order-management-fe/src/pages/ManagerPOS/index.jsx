@@ -105,7 +105,7 @@ function ManagerPOS() {
     const [dashboardLoading, setDashboardLoading] = useState(false);
     const [statusPopup, setStatusPopup] = useState(null);
     const [selectedDashboardOrder, setSelectedDashboardOrder] = useState(null);
-    const [detailsLoading, setDetailsLoading] = useState(false);
+    const [, setDetailsLoading] = useState(false);
     const [gstEnabled, setGstEnabled] = useState(false);
     const [gstPercent, setGstPercent] = useState(0);
     const [discountEnabled, setDiscountEnabled] = useState(false);
@@ -1027,7 +1027,7 @@ function ManagerPOS() {
                         }}
                     >
                         <span>{stat.label}</span>
-                        <strong>{dashboardLoading ? '...' : stat.value}</strong>
+                        <strong>{stat.value}</strong>
                         <small>{stat.note} · Tap to view</small>
                     </button>
                 ))}
@@ -1056,9 +1056,6 @@ function ManagerPOS() {
                             View all
                         </button>
                     </div>
-                    {dashboardLoading && !recentOrders.length ? (
-                        <div className="pos-empty small">Loading real orders...</div>
-                    ) : null}
                     {!dashboardLoading && !recentOrders.length ? (
                         <div className="pos-empty small">Abhi koi order nahi hai</div>
                     ) : null}
@@ -1095,9 +1092,6 @@ function ManagerPOS() {
                     </button>
                 </div>
 
-                {openOrdersLoading && !openOrders.length ? (
-                    <div className="pos-empty">Loading open orders...</div>
-                ) : null}
                 {!openOrdersLoading && !openOrders.length ? (
                     <div className="open-orders-empty">
                         <b>No running open orders</b>
@@ -1211,14 +1205,11 @@ function ManagerPOS() {
                                 <strong>{rcSessionRows.length || tables.length}</strong>
                             </div>
                             <button type="button" onClick={loadRcSessionRows} disabled={rcSessionLoading}>
-                                {rcSessionLoading ? 'Refreshing...' : 'Refresh'}
+                                Refresh
                             </button>
                         </div>
 
                         <div className="rc-session-table-list">
-                            {rcSessionLoading && !rcSessionRows.length && (
-                                <div className="pos-empty">RC Sessions loading...</div>
-                            )}
                             {!rcSessionLoading && !rcSessionRows.length && (
                                 <div className="pos-empty">No tables found</div>
                             )}
@@ -1308,7 +1299,6 @@ function ManagerPOS() {
                                                     </button>
                                                 </>
                                             )}
-                                            {isBusy && <span className="rc-session-saving">Saving...</span>}
                                         </div>
                                     </div>
                                 );
@@ -1374,7 +1364,6 @@ function ManagerPOS() {
                             <button onClick={closeDashboardPopups}>×</button>
                         </div>
 
-                        {dashboardLoading ? <div className="pos-empty small">Loading orders...</div> : null}
                         {!dashboardLoading && !popupOrders.length ? (
                             <div className="pos-empty small">
                                 {statusPopup === 'PENDING'
@@ -1423,8 +1412,6 @@ function ManagerPOS() {
                             </div>
                             <button onClick={() => setSelectedDashboardOrder(null)}>×</button>
                         </div>
-
-                        {detailsLoading ? <div className="pos-empty small">Loading details...</div> : null}
 
                         <div className="dashboard-details-top">
                             <div>
@@ -1701,7 +1688,7 @@ function ManagerPOS() {
                                 Cancel
                             </button>
                             <button type="button" className="pos-primary" disabled={loading} onClick={generateBill}>
-                                {loading ? 'Generating...' : 'Lock & Generate Bill'}
+                                Lock & Generate Bill
                             </button>
                         </div>
                     </div>
@@ -1797,7 +1784,7 @@ function ManagerPOS() {
                                 Cancel
                             </button>
                             <button className="pos-primary" disabled={!selectedType || loading} onClick={goItems}>
-                                {loading ? 'Creating...' : 'Create & Add Items'}
+                                Create & Add Items
                             </button>
                         </div>
                     </div>
@@ -1877,7 +1864,6 @@ function ManagerPOS() {
                                         <option value="HIGH_LOW">Price: High to Low</option>
                                     </select>
                                 </div>
-                                {dataLoading ? <div className="pos-empty">Loading menu...</div> : null}
                                 {!dataLoading && !filteredItems.length ? (
                                     <div className="pos-empty">
                                         No item found. Search clear karo ya All category select karo.
@@ -1992,7 +1978,7 @@ function ManagerPOS() {
                                         disabled={loading || !cartItems.length}
                                         onClick={saveOpenOrderItems}
                                     >
-                                        {loading ? 'Adding...' : 'Add Items & Keep Open'}
+                                        Add Items & Keep Open
                                     </button>
                                     <button className="pos-secondary cart-clear-btn" onClick={() => setCart({})}>
                                         Clear Cart
@@ -2109,7 +2095,7 @@ function ManagerPOS() {
                                 }
                                 onClick={() => confirmOrder(false)}
                             >
-                                {loading ? 'Saving...' : 'Complete Payment'}
+                                Complete Payment
                             </button>
                             <button
                                 className="pos-primary"
@@ -2119,7 +2105,7 @@ function ManagerPOS() {
                                 }
                                 onClick={() => confirmOrder(true)}
                             >
-                                {loading ? 'Saving...' : 'Pay & Print Receipt'}
+                                Pay & Print Receipt
                             </button>
                         </div>
                     </div>

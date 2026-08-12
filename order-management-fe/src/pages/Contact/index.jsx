@@ -148,7 +148,7 @@ export default function Contact() {
                     )}
 
                     <button type="submit" disabled={submitting}>
-                        {submitting ? 'Sending...' : 'Send Enquiry →'}
+                        Send Enquiry →
                     </button>
 
                     <p className="contact-consent">

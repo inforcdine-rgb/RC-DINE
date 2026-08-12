@@ -119,7 +119,7 @@ const LoginSessions = () => {
                         disabled={refreshing}
                         aria-label="Refresh logged-in devices"
                     >
-                        <FiRefreshCw className={refreshing ? 'spin' : ''} aria-hidden="true" />
+                        <FiRefreshCw aria-hidden="true" />
                         Refresh
                     </button>
                 </header>
@@ -136,12 +136,7 @@ const LoginSessions = () => {
                     </div>
                 )}
 
-                {loading ? (
-                    <div className="login-sessions-loading">
-                        <span />
-                        Secure sessions load ho rahe hain...
-                    </div>
-                ) : error ? (
+                {loading ? null : error ? (
                     <div className="login-sessions-error" role="alert">
                         <FiAlertTriangle aria-hidden="true" />
                         <span>{error}</span>
@@ -244,7 +239,7 @@ const LoginSessions = () => {
                             Cancel
                         </button>
                         <button type="button" className="danger" onClick={confirmAction} disabled={submitting}>
-                            {submitting ? 'Signing out...' : 'Yes, sign out'}
+                            Yes, sign out
                         </button>
                     </div>
                 </Modal.Body>

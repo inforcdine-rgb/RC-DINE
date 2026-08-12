@@ -44,7 +44,7 @@ function ManagerLiveOrders() {
                 toastId: `new-order-${payload?.orderId || payload?.orderNumber || Date.now()}`,
                 position: 'top-right',
                 autoClose: 6000,
-                hideProgressBar: false,
+                hideProgressBar: true,
                 closeOnClick: true,
                 pauseOnHover: true,
                 draggable: true
@@ -71,7 +71,7 @@ function ManagerLiveOrders() {
                 toastId: `order-cancelled-${orderKey}`,
                 position: 'top-right',
                 autoClose: 6000,
-                hideProgressBar: false,
+                hideProgressBar: true,
                 closeOnClick: true,
                 pauseOnHover: true,
                 draggable: true

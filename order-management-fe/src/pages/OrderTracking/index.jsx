@@ -336,7 +336,7 @@ function OrderTracking() {
 
                 <div className="rc-track-actions">
                     <button className="rc-track-primary" onClick={handleDownloadInvoice} disabled={downloadingInvoice}>
-                        {downloadingInvoice ? 'Downloading...' : 'Download Invoice'}
+                        Download Invoice
                     </button>
 
                     {(isReady || isCancelled) && (

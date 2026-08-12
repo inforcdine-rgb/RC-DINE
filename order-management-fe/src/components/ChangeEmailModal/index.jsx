@@ -134,7 +134,7 @@ const ChangeEmailModal = ({ show, currentEmail, onClose }) => {
                                 <CustomButton
                                     type="submit"
                                     disabled={isSubmitting || !dirty || !isValid}
-                                    label={isSubmitting ? 'Updating...' : 'Update Email'}
+                                    label="Update Email"
                                 />
                             </div>
                         </FormikForm>

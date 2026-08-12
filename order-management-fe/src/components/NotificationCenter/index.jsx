@@ -551,7 +551,6 @@ function NotificationCenter({ open, onClose, audience = 'manager', token, onUnre
                             {error}
                         </div>
                     )}
-                    {loading && !notifications.length && <NotificationSkeleton />}
                     {!loading && !filtered.length && (
                         <div className="notification-empty">
                             <span>✓</span>
@@ -611,7 +610,7 @@ function NotificationCenter({ open, onClose, audience = 'manager', token, onUnre
                                                     disabled={appUpdateBusy || item.applying}
                                                     onClick={handleAppUpdateNow}
                                                 >
-                                                    {appUpdateBusy || item.applying ? 'Updating...' : 'Yes, Update'}
+                                                    Yes, Update
                                                 </button>
                                             </div>
                                         ) : (
@@ -643,20 +642,6 @@ function NotificationCenter({ open, onClose, audience = 'manager', token, onUnre
             </section>
         </div>,
         document.body
-    );
-}
-
-function NotificationSkeleton() {
-    return (
-        <div className="notification-skeleton" aria-label="Loading notifications">
-            {[0, 1, 2, 3].map((item) => (
-                <div key={item}>
-                    <span />
-                    <p />
-                    <small />
-                </div>
-            ))}
-        </div>
     );
 }
 

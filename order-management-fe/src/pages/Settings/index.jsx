@@ -530,7 +530,7 @@ const Settings = () => {
                                             disabled={saving || !hotelId}
                                             onClick={handleDeactivateGst}
                                         >
-                                            {saving ? 'Saving...' : 'Deactivate GST'}
+                                            Deactivate GST
                                         </button>
                                     )}
                                 </div>
@@ -581,7 +581,7 @@ const Settings = () => {
                                                 disabled={saving || !hotelId}
                                                 onClick={handleDeactivateDiscount}
                                             >
-                                                {saving ? 'Saving...' : 'Deactivate Discount'}
+                                                Deactivate Discount
                                             </button>
                                         )}
                                     </div>
@@ -759,9 +759,7 @@ const Settings = () => {
                                         onClick={handleUnlockPaymentSettings}
                                     />
                                 </div>
-                            ) : loading ? (
-                                <div className="text-center py-4 text-dark fw-bold">Loading payment settings...</div>
-                            ) : (
+                            ) : loading ? null : (
                                 <Form onSubmit={handleSave}>
                                     <Row className="mb-3">
                                         <Col xs={12} md={6} className="mb-3 mb-md-0">
@@ -865,17 +863,13 @@ const Settings = () => {
 
                                     <div className="d-flex justify-content-between flex-wrap gap-2">
                                         <CustomButton
-                                            label={testing ? 'Testing...' : 'Test Connection'}
+                                            label="Test Connection"
                                             disabled={testing || !razorpayKeyId || !razorpayKeySecret}
                                             type="button"
                                             onClick={handleTestConnection}
                                             className="btn-outline-secondary"
                                         />
-                                        <CustomButton
-                                            label={saving ? 'Saving...' : 'Save Settings'}
-                                            disabled={saving}
-                                            type="submit"
-                                        />
+                                        <CustomButton label="Save Settings" disabled={saving} type="submit" />
                                     </div>
                                 </Form>
                             )}
@@ -928,7 +922,7 @@ const Settings = () => {
                 }}
                 handleSubmit={handleSaveGst}
                 size={'md'}
-                submitText={saving ? 'Saving...' : 'Save'}
+                submitText="Save"
                 closeText={'Cancel'}
             />
             <OMTModal
@@ -971,7 +965,7 @@ const Settings = () => {
                 handleClose={() => setDiscountModal(false)}
                 handleSubmit={handleSaveDiscount}
                 size={'md'}
-                submitText={saving ? 'Saving...' : 'Save'}
+                submitText="Save"
                 closeText={'Cancel'}
             />
             <OMTModal

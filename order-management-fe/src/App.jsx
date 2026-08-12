@@ -6,7 +6,6 @@ import 'react-toastify/dist/ReactToastify.css';
 import './assets/styles/Responsive.css';
 import './assets/styles/auth.css';
 import './assets/styles/button.css';
-import Loader from './components/Loader';
 import PwaInstallPrompt from './components/PwaInstallPrompt';
 import RefreshExperience from './components/RefreshExperience';
 import Routes from './routes';
@@ -24,7 +23,6 @@ const runWhenBrowserIsIdle = (callback) => {
 };
 
 function App() {
-    const { isLoading } = useSelector((state) => state.app);
     const user = useSelector((state) => state.user?.data || state.user || null);
 
     useEffect(() => {
@@ -79,7 +77,6 @@ function App() {
 
     return (
         <>
-            {isLoading && <Loader />}
             {user?.id && (
                 <Suspense fallback={null}>
                     <ManagerLiveOrders />
@@ -92,7 +89,7 @@ function App() {
             <ToastContainer
                 position="top-right"
                 autoClose={5000}
-                hideProgressBar={false}
+                hideProgressBar
                 newestOnTop
                 closeOnClick
                 rtl={false}
