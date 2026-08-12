@@ -7,8 +7,20 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { Provider } from 'react-redux';
 import App from './App';
+import env from './config/env';
 import reportWebVitals from './reportWebVitals';
 import store from './store';
+
+// Start waking the API while React loads. This never blocks the first paint,
+// but reduces the wait for QR and login requests when the host was idle.
+if (navigator.onLine && env.baseUrl) {
+    window
+        .fetch(`${String(env.baseUrl).replace(/\/$/, '')}/health`, {
+            cache: 'no-store',
+            credentials: 'omit'
+        })
+        .catch(() => {});
+}
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(

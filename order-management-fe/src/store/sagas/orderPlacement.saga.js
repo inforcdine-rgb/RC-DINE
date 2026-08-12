@@ -35,9 +35,17 @@ import {
 } from '../types';
 
 function* getTablesDetailsRequestSaga(action) {
+    let cachedTable = null;
     try {
         const id = action.payload;
-        const res = yield service.getTableDetail(id);
+        cachedTable = service.getCachedTableDetail(id);
+        if (cachedTable?.id && cachedTable?.customer?.id) {
+            yield put(getTableDetailsSuccess(cachedTable));
+        }
+
+        const res = yield service.getTableDetail(id, {
+            __backgroundRequest: Boolean(cachedTable?.id && cachedTable?.customer?.id)
+        });
 
         if (res?.id && id && String(id) !== String(res.id)) {
             localStorage.setItem(`rcTableRouteToken:${res.id}`, id);
@@ -45,6 +53,7 @@ function* getTablesDetailsRequestSaga(action) {
         yield put(getTableDetailsSuccess(res));
     } catch (error) {
         console.error('Failed to get table by id ', error);
+        if (cachedTable?.id && cachedTable?.customer?.id) return;
         toast.error(`Failed to get table details ${error.message}`);
     }
 }
@@ -69,13 +78,21 @@ function* registerCustomerRequestSaga(action) {
                     }
                 })
             );
-            yield put(getTableDetailsRequest(payload.tableId));
             yield put(
                 getMenuDetailsRequest({
                     hotelId: payload.hotelId,
                     customerId: result.id
                 })
             );
+
+            try {
+                const tableSnapshot = yield service.getTableDetail(payload.tableId, {
+                    __backgroundRequest: true
+                });
+                yield put(getTableDetailsSuccess(tableSnapshot));
+            } catch (refreshError) {
+                console.warn('Customer table snapshot refresh skipped:', refreshError);
+            }
         }
         if (result?.notificationToken && 'Notification' in window && Notification.permission === 'granted') {
             try {
@@ -91,13 +108,20 @@ function* registerCustomerRequestSaga(action) {
 }
 
 function* getMenuDetailsRequestSaga(action) {
+    let cachedMenu = null;
     try {
         const { hotelId, customerId } = action.payload;
-        const res = yield service.getMenuDetails(hotelId, customerId);
+        cachedMenu = service.getCachedMenuDetails(hotelId, customerId);
+        if (cachedMenu?.id) yield put(getMenuDetailsSuccess(cachedMenu));
+
+        const res = yield service.getMenuDetails(hotelId, customerId, {
+            __backgroundRequest: Boolean(cachedMenu?.id)
+        });
 
         yield put(getMenuDetailsSuccess(res));
     } catch (error) {
         console.error('Failed to fetch menu card details', error);
+        if (cachedMenu?.id) return;
         toast.error(`Failed to fetch menu card details ${error.message}`);
     }
 }

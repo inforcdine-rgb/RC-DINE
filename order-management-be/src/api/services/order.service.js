@@ -28,6 +28,27 @@ const getNotificationUserIds = async (hotelId) => {
     return userIds;
 };
 
+const notifyCustomerRegistration = async ({ customerId, hotelId, tableNumber }) => {
+    try {
+        const userIds = await getNotificationUserIds(hotelId);
+        await notificationService.sendNotification(userIds, {
+            title: `Table-${tableNumber} QR Opened`,
+            message: `A guest opened the menu for Table-${tableNumber}.`,
+            path: '/orders',
+            meta: {
+                action: NOTIFICATION_ACTIONS.CUSTOMER_REGISTERATION,
+                hotelId
+            }
+        });
+    } catch (notificationError) {
+        logger('warn', 'Customer registered, but registration notification delivery failed', {
+            customerId,
+            hotelId,
+            error: notificationError
+        });
+    }
+};
+
 const register = async (payload) => {
     try {
         const table = await db.tables.findOne({
@@ -87,15 +108,12 @@ const register = async (payload) => {
             }
 
             if (!reusedCustomerSession) {
-                const userIds = await getNotificationUserIds(payload.hotelId);
-                await notificationService.sendNotification(userIds, {
-                    title: `Table-${table.tableNumber} QR Opened`,
-                    message: `A guest opened the menu for Table-${table.tableNumber}.`,
-                    path: '/orders',
-                    meta: {
-                        action: NOTIFICATION_ACTIONS.CUSTOMER_REGISTERATION,
-                        hotelId: payload.hotelId
-                    }
+                setImmediate(() => {
+                    notifyCustomerRegistration({
+                        customerId: data.id,
+                        hotelId: payload.hotelId,
+                        tableNumber: table.tableNumber
+                    });
                 });
             }
         } catch (notificationError) {

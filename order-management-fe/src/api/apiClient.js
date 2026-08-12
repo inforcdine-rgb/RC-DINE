@@ -19,6 +19,7 @@ const CACHE_PREFIX = 'rcdine-api-cache:';
 const MAX_CACHE_BYTES = 350000;
 const MAX_CACHE_ENTRIES = 40;
 const CACHE_MAX_AGE = 24 * 60 * 60 * 1000;
+const CACHE_RENDER_MAX_AGE = 60 * 60 * 1000;
 const CACHEABLE_PATHS = [
     /^\/subscription\/plans(?:\?|$)/,
     /^\/website-settings\/public(?:\?|$)/,
@@ -176,6 +177,12 @@ const getCachedResponse = (config) => {
     } catch (error) {
         return null;
     }
+};
+
+export const getCachedApiData = (path, { maxAge = CACHE_RENDER_MAX_AGE, params = {} } = {}) => {
+    const cached = getCachedResponse({ method: 'get', url: path, params });
+    if (!cached || Date.now() - cached.cachedAt > maxAge) return null;
+    return cached.data;
 };
 
 const reportNetworkState = (online) => {
