@@ -2,13 +2,13 @@ import React, { lazy, Suspense } from 'react';
 import { Routes as Switch, Route, BrowserRouter, Navigate } from 'react-router-dom';
 
 import Loader from '../components/Loader';
-import RCSessionGuard from '../components/RCSessionGuard';
 import features from '../config/features';
-import Landing from '../pages/Landing';
-import NotFound from '../pages/NotFound';
-import AuthRoutes from './AuthRoutes';
-import PublicRoutes from './PublicRoutes';
 
+const AuthRoutes = lazy(() => import('./AuthRoutes'));
+const Landing = lazy(() => import('../pages/Landing'));
+const NotFound = lazy(() => import('../pages/NotFound'));
+const PublicRoutes = lazy(() => import('./PublicRoutes'));
+const RCSessionGuard = lazy(() => import('../components/RCSessionGuard'));
 const AdminContactEnquiries = lazy(() => import('../pages/AdminContactEnquiries'));
 const AdminDashboard = lazy(() => import('../pages/AdminDashboard'));
 const AdminLandingSettings = lazy(() => import('../pages/AdminLandingSettings'));

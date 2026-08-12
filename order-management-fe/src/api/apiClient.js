@@ -20,6 +20,8 @@ const MAX_CACHE_BYTES = 350000;
 const MAX_CACHE_ENTRIES = 40;
 const CACHE_MAX_AGE = 24 * 60 * 60 * 1000;
 const CACHEABLE_PATHS = [
+    /^\/subscription\/plans(?:\?|$)/,
+    /^\/website-settings\/public(?:\?|$)/,
     /^\/menu\//,
     /^\/notification(?:\/customer)?(?:\?|$)/,
     /^\/table\//,
@@ -213,7 +215,7 @@ instance.interceptors.request.use(
         }
 
         if (availableCache && !cached) config.timeout = Math.min(config.timeout || 30000, 8000);
-        config.__backgroundRequest = Boolean(window.__rcdineBackgroundRefresh);
+        config.__backgroundRequest = config.__backgroundRequest === true || Boolean(window.__rcdineBackgroundRefresh);
         config.__showGlobalLoader = !config.__backgroundRequest && !cached;
         startRequest(config);
         const token = getActiveAuthToken();
@@ -331,24 +333,24 @@ export const method = {
     DELETE: 'delete'
 };
 
-export const api = async (method, path, body) => {
+export const api = async (method, path, body, config = {}) => {
     try {
         let res = {};
         switch (method) {
             case 'get':
-                res = await instance.get(path);
+                res = await instance.get(path, config);
                 break;
             case 'post':
-                res = await instance.post(path, body);
+                res = await instance.post(path, body, config);
                 break;
             case 'put':
-                res = await instance.put(path, body);
+                res = await instance.put(path, body, config);
                 break;
             case 'patch':
-                res = await instance.patch(path, body);
+                res = await instance.patch(path, body, config);
                 break;
             case 'delete':
-                res = await instance.delete(path, { data: body });
+                res = await instance.delete(path, { ...config, data: body });
                 break;
             default:
                 throw new Error('Invalid Method');

@@ -247,7 +247,7 @@ function Landing() {
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const [toast, setToast] = useState('');
     const [plans, setPlans] = useState(fallbackPlans);
-    const [website, setWebsite] = useState({});
+    const [website, setWebsite] = useState(() => websiteService.getCachedPublic());
     const [plansLoading, setPlansLoading] = useState(true);
     const [plansError, setPlansError] = useState('');
     const [demoCart, setDemoCart] = useState({});
@@ -283,7 +283,7 @@ function Landing() {
             setPlansLoading(true);
             setPlansError('');
             try {
-                const response = await subscriptionService.getPlans();
+                const response = await subscriptionService.getPlans({ background: true });
                 const loadedPlans = Array.isArray(response)
                     ? response
                     : response?.plans || response?.data?.plans || response?.data || [];
@@ -305,9 +305,10 @@ function Landing() {
     useEffect(() => {
         const loadWebsite = async () => {
             try {
-                setWebsite(await websiteService.getPublic());
+                setWebsite(await websiteService.getPublic({ background: true }));
             } catch (error) {
-                setWebsite({});
+                // Keep the cached/default landing content visible during a
+                // Render cold start or a temporary network interruption.
             }
         };
         loadWebsite();
@@ -450,7 +451,14 @@ function Landing() {
                 <div className="landing-wrap landing-nav-inner">
                     <a className="landing-brand" href="#home" aria-label="RC Dine home">
                         {website.logoUrl ? (
-                            <img className="landing-logo-image" src={website.logoUrl} alt="RC Dine" />
+                            <img
+                                className="landing-logo-image"
+                                src={website.logoUrl}
+                                alt="RC Dine"
+                                loading="eager"
+                                decoding="async"
+                                fetchPriority="high"
+                            />
                         ) : (
                             <span className="landing-logo">R</span>
                         )}

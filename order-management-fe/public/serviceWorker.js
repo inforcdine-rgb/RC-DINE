@@ -3,7 +3,7 @@
 // Prefer the latest verified network shell. If the network or deployment is
 // incomplete, fall back to the last complete snapshot instead of showing a
 // blank screen. Only an atomically verified snapshot becomes the fallback.
-const CACHE_VERSION = 'v15-hybrid-verified-bootstrap';
+const CACHE_VERSION = 'v16-fast-verified-navigation';
 const APP_SHELL_CACHE = `rcdine-shell-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `rcdine-runtime-${CACHE_VERSION}`;
 const VERIFIED_META_CACHE = 'rcdine-verified-meta-v1';
@@ -295,10 +295,25 @@ const fetchAndCacheFreshShell = async (request, expectedVersion) => {
     return { shellResponse, assetCount };
 };
 
-const handleNavigationRequest = async (request) => {
+const handleNavigationRequest = async (request, event) => {
     const requestUrl = new URL(request.url);
     const isFileNavigation = /\/[^/]+\.[a-z0-9]+$/i.test(requestUrl.pathname);
     const isStandaloneStaticPage = requestUrl.pathname.startsWith('/portfolio/');
+
+    if (!isFileNavigation && !isStandaloneStaticPage) {
+        const verifiedFallback = await getLastVerifiedShell();
+        if (verifiedFallback) {
+            // A repeat PWA launch must not wait for a network round trip. The
+            // verified shell is complete and safe to render immediately;
+            // refresh the atomic snapshot quietly for the next navigation.
+            event?.waitUntil(
+                fetchAndCacheFreshShell(request).catch((error) => {
+                    console.info('[RCDINE_PWA] Background shell refresh deferred', error?.message || error);
+                })
+            );
+            return verifiedFallback;
+        }
+    }
 
     try {
         if (isFileNavigation || isStandaloneStaticPage) {
@@ -342,7 +357,7 @@ self.addEventListener('fetch', (event) => {
     if (requestUrl.origin !== self.location.origin) return;
 
     if (request.mode === 'navigate') {
-        event.respondWith(handleNavigationRequest(request));
+        event.respondWith(handleNavigationRequest(request, event));
         return;
     }
 

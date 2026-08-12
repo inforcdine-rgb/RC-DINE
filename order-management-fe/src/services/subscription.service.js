@@ -27,9 +27,12 @@ export const getStatus = async () => {
     }
 };
 
-export const getPlans = async () => {
+export const getPlans = async ({ background = false } = {}) => {
     try {
-        return await api(method.GET, '/subscription/plans');
+        return await api(method.GET, '/subscription/plans', undefined, {
+            __backgroundRequest: background,
+            timeout: background ? 10000 : 30000
+        });
     } catch (error) {
         console.error(`Error fetching subscription plans ${error}`);
         throw error;
