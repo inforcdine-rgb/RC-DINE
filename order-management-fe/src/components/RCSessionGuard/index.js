@@ -11,6 +11,7 @@ import {
     initializeWebPush,
     unregisterCurrentDevice
 } from '../../services/notification.service';
+import { getTableDetail } from '../../services/orderPlacement.service';
 import {
     getRcSessionAvailability,
     getRcSessionJoinRequestStatus,
@@ -51,6 +52,7 @@ function RCSessionGuard({ children }) {
     const { token } = useParams();
     const tableId = useMemo(() => resolveTableId(token), [token]);
     const [availability, setAvailability] = useState(null);
+    const [menuOnly, setMenuOnly] = useState(false);
     const [screen, setScreen] = useState('LOADING');
     const [mobileNumber, setMobileNumber] = useState(localStorage.getItem(MOBILE_KEY) || '');
     const [otp, setOtp] = useState('');
@@ -83,6 +85,14 @@ function RCSessionGuard({ children }) {
     const loadAvailability = useCallback(async () => {
         setErrorMessage('');
         try {
+            const tableDetails = await getTableDetail(token, { __backgroundRequest: true });
+            if (tableDetails?.hotel?.orderingEnabled === false) {
+                setMenuOnly(true);
+                setScreen('READY');
+                return tableDetails;
+            }
+
+            setMenuOnly(false);
             const result = await getRcSessionAvailability(tableId);
             setAvailability(result);
             if (!result?.table?.qrEnabled || !result?.canOrder) {
@@ -98,7 +108,7 @@ function RCSessionGuard({ children }) {
             setScreen('ERROR');
             return null;
         }
-    }, [chooseAuthenticatedScreen, tableId]);
+    }, [chooseAuthenticatedScreen, tableId, token]);
 
     useEffect(() => {
         loadAvailability();
@@ -338,7 +348,7 @@ function RCSessionGuard({ children }) {
         setScreen('MOBILE');
     };
 
-    if (screen === 'READY') return children;
+    if (screen === 'READY' || menuOnly) return children;
 
     return (
         <main className="rc-session-page">

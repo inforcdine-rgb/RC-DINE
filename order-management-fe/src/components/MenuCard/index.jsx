@@ -46,7 +46,8 @@ function MenuCard({
     handleClick = () => {},
     handleOnChange = () => {},
     tipAmount = 0,
-    onTipAmountChange = () => {}
+    onTipAmountChange = () => {},
+    orderingEnabled = true
 }) {
     const [searchText, setSearchText] = useState('');
     const [activeCategory, setActiveCategory] = useState('all');
@@ -82,10 +83,19 @@ function MenuCard({
     pendingRequestsRef.current = pendingRequests;
 
     useEffect(() => {
+        if (!orderingEnabled) return;
         const notificationToken = customerToken || localStorage.getItem('rcCustomerPushToken');
         if (!notificationToken || !('Notification' in window) || Notification.permission !== 'granted') return;
         initializeWebPush({ audience: 'customer', token: notificationToken }).catch(() => {});
-    }, [customerToken]);
+    }, [customerToken, orderingEnabled]);
+
+    useEffect(() => {
+        if (orderingEnabled) return;
+        setShowCartScreen(false);
+        setShowUpsellPopup(false);
+        setJoinRequestPopup(null);
+        setOpenPanel((current) => (['info', 'help', 'report'].includes(current) ? current : ''));
+    }, [orderingEnabled]);
 
     const clearRcSession = useCallback((message) => {
         localStorage.removeItem('rcSession');
@@ -98,7 +108,7 @@ function MenuCard({
     }, []);
 
     const loadSessionDetails = useCallback(async () => {
-        if (!rcSession?.tableId || !customerToken) return false;
+        if (!orderingEnabled || !rcSession?.tableId || !customerToken) return false;
         const before = sessionSnapshotRef.current;
         try {
             const result = await getRcSessionDetails({ tableId: rcSession.tableId, token: customerToken });
@@ -114,12 +124,13 @@ function MenuCard({
             if ([403, 404].includes(error.status)) clearRcSession();
             return false;
         }
-    }, [clearRcSession, customerToken, rcSession?.tableId]);
+    }, [clearRcSession, customerToken, orderingEnabled, rcSession?.tableId]);
 
     useEffect(() => registerRefreshHandler('customer-rc-session', loadSessionDetails), [loadSessionDetails]);
 
     useEffect(() => {
         const handleNotificationClick = (event) => {
+            if (!orderingEnabled) return;
             const notification = event.detail || {};
             const type = String(notification.type || notification.meta?.action || '').toUpperCase();
             if (!type.startsWith('RC_') && notification.category !== 'RC_SESSION') return;
@@ -130,10 +141,10 @@ function MenuCard({
 
         window.addEventListener('rcdine:notification-clicked', handleNotificationClick);
         return () => window.removeEventListener('rcdine:notification-clicked', handleNotificationClick);
-    }, [loadSessionDetails]);
+    }, [loadSessionDetails, orderingEnabled]);
 
     useEffect(() => {
-        if (!rcSession?.id) return undefined;
+        if (!orderingEnabled || !rcSession?.id) return undefined;
         loadSessionDetails();
         const socket = joinRcSessionRoom(rcSession.id);
         const refresh = () => loadSessionDetails();
@@ -164,7 +175,7 @@ function MenuCard({
             socket.off('session:ended');
             leaveRcSessionRoom(rcSession.id);
         };
-    }, [clearRcSession, loadSessionDetails, rcSession?.id]);
+    }, [clearRcSession, loadSessionDetails, orderingEnabled, rcSession?.id]);
 
     useEffect(() => {
         if (!pendingRequests.length) return undefined;
@@ -454,6 +465,7 @@ function MenuCard({
     };
 
     const setMenuQuantity = (item, nextQuantity) => {
+        if (!orderingEnabled) return;
         if (!isItemAvailable(item)) {
             showToast('Item unavailable');
             return;
@@ -555,16 +567,18 @@ function MenuCard({
         <div className="rc-mobile-shell">
             <div className="rc-phone rc-menu-screen">
                 <div className="rc-sticky-menu-header">
-                    <div className="rc-topbar">
-                        <button
-                            className="rc-icon-btn rc-profile-icon-btn rc-glass"
-                            type="button"
-                            aria-label="Open my profile"
-                            title="My Profile"
-                            onClick={() => setOpenPanel('profile')}
-                        >
-                            <span aria-hidden="true">👤</span>
-                        </button>
+                    <div className={`rc-topbar ${orderingEnabled ? '' : 'rc-topbar-menu-only'}`}>
+                        {orderingEnabled && (
+                            <button
+                                className="rc-icon-btn rc-profile-icon-btn rc-glass"
+                                type="button"
+                                aria-label="Open my profile"
+                                title="My Profile"
+                                onClick={() => setOpenPanel('profile')}
+                            >
+                                <span aria-hidden="true">👤</span>
+                            </button>
+                        )}
 
                         <button
                             className="rc-topbar-restaurant rc-glass"
@@ -585,18 +599,26 @@ function MenuCard({
                             </span>
                         </button>
 
-                        <button
-                            className="rc-icon-btn rc-glass"
-                            type="button"
-                            aria-label="Open notifications"
-                            onClick={openNotificationDrawer}
-                        >
-                            🔔
-                            {unreadCount > 0 && <span className="rc-badge">{unreadCount}</span>}
-                        </button>
+                        {orderingEnabled && (
+                            <button
+                                className="rc-icon-btn rc-glass"
+                                type="button"
+                                aria-label="Open notifications"
+                                onClick={openNotificationDrawer}
+                            >
+                                🔔
+                                {unreadCount > 0 && <span className="rc-badge">{unreadCount}</span>}
+                            </button>
+                        )}
                     </div>
 
-                    {features.rcSession && rcSession?.sessionCode && (
+                    {!orderingEnabled && (
+                        <div className="rc-menu-only-notice" role="status">
+                            Menu viewing only · Online ordering is currently unavailable
+                        </div>
+                    )}
+
+                    {orderingEnabled && features.rcSession && rcSession?.sessionCode && (
                         <button
                             className="rc-active-session-bar rc-glass"
                             type="button"
@@ -674,6 +696,7 @@ function MenuCard({
                                                 item={item}
                                                 quantity={quantity}
                                                 setMenuQuantity={setMenuQuantity}
+                                                orderingEnabled={orderingEnabled}
                                             />
                                         </div>
                                     );
@@ -701,6 +724,7 @@ function MenuCard({
                                                 item={item}
                                                 quantity={quantity}
                                                 setMenuQuantity={setMenuQuantity}
+                                                orderingEnabled={orderingEnabled}
                                             />
                                         </div>
                                     );
@@ -730,6 +754,7 @@ function MenuCard({
                                                 item={item}
                                                 quantity={quantity}
                                                 setMenuQuantity={setMenuQuantity}
+                                                orderingEnabled={orderingEnabled}
                                                 isCombo
                                             />
                                         </div>
@@ -758,6 +783,7 @@ function MenuCard({
                                                 item={item}
                                                 quantity={quantity}
                                                 setMenuQuantity={setMenuQuantity}
+                                                orderingEnabled={orderingEnabled}
                                             />
                                         </div>
                                     );
@@ -841,7 +867,8 @@ function MenuCard({
                         document.body
                     )}
 
-                {cartItems.length > 0 &&
+                {orderingEnabled &&
+                    cartItems.length > 0 &&
                     createPortal(
                         <button
                             className="rc-floating-cart rc-glass"
@@ -875,77 +902,81 @@ function MenuCard({
                         document.body
                     )}
 
-                <NotificationCenter
-                    open={openPanel === 'notifications'}
-                    onClose={() => setOpenPanel('')}
-                    audience="customer"
-                    token={customerToken || localStorage.getItem('rcCustomerPushToken')}
-                    onUnreadChange={setUnreadCount}
-                />
+                {orderingEnabled && (
+                    <NotificationCenter
+                        open={openPanel === 'notifications'}
+                        onClose={() => setOpenPanel('')}
+                        audience="customer"
+                        token={customerToken || localStorage.getItem('rcCustomerPushToken')}
+                        onUnreadChange={setUnreadCount}
+                    />
+                )}
 
-                <SideDrawer open={openPanel === 'profile'} title="My Profile" onClose={() => setOpenPanel('')}>
-                    <div className="rc-profile-card rc-glass">
-                        <div className="rc-profile-avatar" aria-hidden="true">
-                            👤
+                {orderingEnabled && (
+                    <SideDrawer open={openPanel === 'profile'} title="My Profile" onClose={() => setOpenPanel('')}>
+                        <div className="rc-profile-card rc-glass">
+                            <div className="rc-profile-avatar" aria-hidden="true">
+                                👤
+                            </div>
+                            <div>
+                                <h3>{customerName}</h3>
+                                {features.customerOtpLogin && <p>{customerMobile || 'Mobile number not available'}</p>}
+                            </div>
                         </div>
-                        <div>
-                            <h3>{customerName}</h3>
-                            {features.customerOtpLogin && <p>{customerMobile || 'Mobile number not available'}</p>}
-                        </div>
-                    </div>
-                    <button className="rc-option rc-profile-option rc-glass" type="button" onClick={openMyOrders}>
-                        <span>🧾</span>
-                        <b>My Orders</b>
-                        <small>View current and previous orders</small>
-                    </button>
-                    <button
-                        className="rc-option rc-profile-option rc-glass"
-                        type="button"
-                        onClick={() => setOpenPanel('notifications')}
-                    >
-                        <span>🔔</span>
-                        <b>Notifications</b>
-                        <small>Order and restaurant updates</small>
-                    </button>
-                    <button
-                        className="rc-option rc-profile-option rc-glass"
-                        type="button"
-                        onClick={() => setOpenPanel('help')}
-                    >
-                        <span>❓</span>
-                        <b>Help & Support</b>
-                        <small>Get support for your order</small>
-                    </button>
-                    <button
-                        className="rc-option rc-profile-option rc-glass"
-                        type="button"
-                        onClick={() => openPublicPage('/privacy')}
-                    >
-                        <span>🔒</span>
-                        <b>Privacy Policy</b>
-                        <small>How RC Dine uses your data</small>
-                    </button>
-                    <button
-                        className="rc-option rc-profile-option rc-glass"
-                        type="button"
-                        onClick={() => openPublicPage('/terms')}
-                    >
-                        <span>📄</span>
-                        <b>Terms & Conditions</b>
-                        <small>Read customer terms</small>
-                    </button>
-                    {features.customerOtpLogin && (
-                        <button
-                            className="rc-option rc-profile-option rc-profile-logout"
-                            type="button"
-                            onClick={logoutCustomer}
-                        >
-                            <span>↪</span>
-                            <b>Logout</b>
-                            <small>Logout from this device</small>
+                        <button className="rc-option rc-profile-option rc-glass" type="button" onClick={openMyOrders}>
+                            <span>🧾</span>
+                            <b>My Orders</b>
+                            <small>View current and previous orders</small>
                         </button>
-                    )}
-                </SideDrawer>
+                        <button
+                            className="rc-option rc-profile-option rc-glass"
+                            type="button"
+                            onClick={() => setOpenPanel('notifications')}
+                        >
+                            <span>🔔</span>
+                            <b>Notifications</b>
+                            <small>Order and restaurant updates</small>
+                        </button>
+                        <button
+                            className="rc-option rc-profile-option rc-glass"
+                            type="button"
+                            onClick={() => setOpenPanel('help')}
+                        >
+                            <span>❓</span>
+                            <b>Help & Support</b>
+                            <small>Get support for your order</small>
+                        </button>
+                        <button
+                            className="rc-option rc-profile-option rc-glass"
+                            type="button"
+                            onClick={() => openPublicPage('/privacy')}
+                        >
+                            <span>🔒</span>
+                            <b>Privacy Policy</b>
+                            <small>How RC Dine uses your data</small>
+                        </button>
+                        <button
+                            className="rc-option rc-profile-option rc-glass"
+                            type="button"
+                            onClick={() => openPublicPage('/terms')}
+                        >
+                            <span>📄</span>
+                            <b>Terms & Conditions</b>
+                            <small>Read customer terms</small>
+                        </button>
+                        {features.customerOtpLogin && (
+                            <button
+                                className="rc-option rc-profile-option rc-profile-logout"
+                                type="button"
+                                onClick={logoutCustomer}
+                            >
+                                <span>↪</span>
+                                <b>Logout</b>
+                                <small>Logout from this device</small>
+                            </button>
+                        )}
+                    </SideDrawer>
+                )}
 
                 <SideDrawer open={openPanel === 'info'} title="Restaurant Info" onClose={() => setOpenPanel('')}>
                     <div className="rc-restaurant-profile-card rc-glass">
@@ -970,7 +1001,7 @@ function MenuCard({
                         <p>🕒 {getCleanText(hotelDetails.timing, 'Timing not available')}</p>
                         <p>ℹ {getCleanText(hotelDetails.about, 'About cafe not available')}</p>
                     </div>
-                    {features.rcSession && rcSession?.sessionCode && (
+                    {orderingEnabled && features.rcSession && rcSession?.sessionCode && (
                         <>
                             <button className="rc-option rc-glass" type="button" onClick={copySessionCode}>
                                 🔢 Copy Session Code
@@ -1032,7 +1063,7 @@ function MenuCard({
                 </SideDrawer>
 
                 <BottomSheet
-                    open={features.rcSession && openPanel === 'session-details'}
+                    open={orderingEnabled && features.rcSession && openPanel === 'session-details'}
                     title="Session Details"
                     onClose={() => setOpenPanel('')}
                 >
@@ -1050,7 +1081,7 @@ function MenuCard({
                 </BottomSheet>
 
                 <SideDrawer
-                    open={features.rcSession && openPanel === 'members'}
+                    open={orderingEnabled && features.rcSession && openPanel === 'members'}
                     title="Session Members"
                     onClose={() => setOpenPanel('')}
                 >
@@ -1083,7 +1114,7 @@ function MenuCard({
                 </SideDrawer>
 
                 <SideDrawer
-                    open={features.rcSession && openPanel === 'pending'}
+                    open={orderingEnabled && features.rcSession && openPanel === 'pending'}
                     title="Pending Requests"
                     onClose={() => setOpenPanel('')}
                 >
@@ -1116,7 +1147,7 @@ function MenuCard({
                 </SideDrawer>
 
                 <BottomSheet
-                    open={features.rcSession && Boolean(joinRequestPopup)}
+                    open={orderingEnabled && features.rcSession && Boolean(joinRequestPopup)}
                     title="Join Request"
                     onClose={() => setJoinRequestPopup(null)}
                 >
@@ -1148,7 +1179,7 @@ function MenuCard({
                 </BottomSheet>
 
                 <BottomSheet
-                    open={features.rcSession && openPanel === 'end-session'}
+                    open={orderingEnabled && features.rcSession && openPanel === 'end-session'}
                     title="End Session?"
                     onClose={() => setOpenPanel('')}
                 >
@@ -1183,7 +1214,8 @@ function MenuCard({
                     </div>
                 </BottomSheet>
 
-                {showCartScreen &&
+                {orderingEnabled &&
+                    showCartScreen &&
                     createPortal(
                         <div className="rc-cart-screen">
                             <div className="rc-cart-top">
@@ -1269,7 +1301,8 @@ function MenuCard({
                         document.body
                     )}
 
-                {showUpsellPopup &&
+                {orderingEnabled &&
+                    showUpsellPopup &&
                     createPortal(
                         <div className="rc-upsell-layer">
                             <button
@@ -1433,7 +1466,7 @@ function FoodMedia({ item }) {
     );
 }
 
-function FoodContent({ item, quantity, setMenuQuantity, isCombo = false }) {
+function FoodContent({ item, quantity, setMenuQuantity, orderingEnabled, isCombo = false }) {
     return (
         <div className="rc-food-info">
             <div className="rc-food-line">
@@ -1450,7 +1483,7 @@ function FoodContent({ item, quantity, setMenuQuantity, isCombo = false }) {
             <p>{getItemDescription(item)}</p>
             <div className="rc-price-row">
                 <b>₹{item.price}</b>
-                <QtyButton item={item} quantity={quantity} setMenuQuantity={setMenuQuantity} />
+                {orderingEnabled && <QtyButton item={item} quantity={quantity} setMenuQuantity={setMenuQuantity} />}
             </div>
         </div>
     );

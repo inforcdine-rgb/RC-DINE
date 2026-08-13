@@ -125,23 +125,10 @@ const createOrder = async (req, res) => {
         const { sgst, cgst, totalPrice } = calculateBill(taxableAmount, safeTipAmount, gstPercent, gstEnabled);
 
         if (!hotel?.paymentEnabled) {
-            return res.status(STATUS_CODE.OK).json({
-                success: true,
-                paymentRequired: false,
-                totalPrice,
-                sgst,
-                cgst,
-                gstEnabled,
-                gstPercent,
-                discountEnabled,
-                discountType,
-                discountValue,
-                discountAmount,
-                subtotal,
-                taxableAmount,
-                tipAmount: safeTipAmount,
-                menus: verifiedMenus
-            });
+            throw CustomError(
+                STATUS_CODE.FORBIDDEN,
+                'Online ordering is currently disabled. This QR is available for menu viewing only.'
+            );
         }
 
         const razorpayKeyId = hotel?.razorpayKeyId;
@@ -298,10 +285,6 @@ const verifyPayment = async (req, res) => {
 
         if (!paymentHotel) {
             throw CustomError(STATUS_CODE.NOT_FOUND, 'Hotel not found');
-        }
-
-        if (!paymentHotel.paymentEnabled) {
-            throw CustomError(STATUS_CODE.BAD_REQUEST, 'Online payment is disabled for this hotel');
         }
 
         const razorpayKeySecret = hotelService.decrypt(paymentHotel.razorpayKeySecret);
@@ -561,16 +544,19 @@ const verifyPayment = async (req, res) => {
 
         let result;
         try {
-            result = await orderService.placeOrder({
-                customerId,
-                menus: verifiedMenus,
-                hotelId,
-                tableId,
-                tableNumber,
-                tipAmount: safeTipAmount,
-                razorpayOrderId,
-                razorpayPaymentId
-            });
+            result = await orderService.placeOrder(
+                {
+                    customerId,
+                    menus: verifiedMenus,
+                    hotelId,
+                    tableId,
+                    tableNumber,
+                    tipAmount: safeTipAmount,
+                    razorpayOrderId,
+                    razorpayPaymentId
+                },
+                { allowDisabledPaymentCompletion: true }
+            );
         } catch (placementError) {
             const concurrentlyCreatedOrder = await db.orders.findOne({
                 where: { razorpayPaymentId },

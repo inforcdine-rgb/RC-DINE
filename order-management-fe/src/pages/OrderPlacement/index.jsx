@@ -50,6 +50,7 @@ function OrderPlacement() {
     const customerBootstrapRef = useRef('');
     const refreshSnapshotRef = useRef('');
     const [tipAmount, setTipAmount] = useState(0);
+    const orderingEnabled = tableDetails?.hotel?.orderingEnabled !== false;
     const gstEnabled = Boolean(tableDetails?.hotel?.gstEnabled);
     refreshSnapshotRef.current = JSON.stringify({
         table: tableDetails?.status,
@@ -71,12 +72,14 @@ function OrderPlacement() {
                             customerId: tableDetails.customer.id
                         })
                     );
-                    dispatch(getCustomerOrderDetailsRequest(tableDetails.customer.id));
+                    if (orderingEnabled) {
+                        dispatch(getCustomerOrderDetailsRequest(tableDetails.customer.id));
+                    }
                 }
                 await waitForBackgroundRequests({ checkpoint });
                 return before !== refreshSnapshotRef.current;
             }),
-        [dispatch, tableDetails?.customer?.id, tableDetails?.hotel?.id, tableDetails?.id]
+        [dispatch, orderingEnabled, tableDetails?.customer?.id, tableDetails?.hotel?.id, tableDetails?.id]
     );
     const gstPercent = gstEnabled ? Number(tableDetails?.hotel?.gstPercent || 0) : 0;
     const getGstSummary = (amount = 0) => {
@@ -148,6 +151,18 @@ function OrderPlacement() {
     }, [token, tableDetails.customer?.id, tableDetails.id, tableDetails.hotel?.id, tableDetails.tableNumber, dispatch]);
 
     useEffect(() => {
+        if (orderingEnabled) return;
+        // Keep an already-created Razorpay checkout intact. Its callback must
+        // still verify payment if ordering is switched off while the customer
+        // is completing that payment.
+        if (!orderPaymentData) dispatch(setOrderDetails({}));
+        dispatch(setViewOrderDetails({}));
+        dispatch(setInvoicePrompt(false));
+        dispatch(setFeedback(false));
+        setTipAmount(0);
+    }, [dispatch, orderPaymentData, orderingEnabled]);
+
+    useEffect(() => {
         if (updateRefs && updateRefs.current[viewOrderDetails?.updated?.last]) {
             updateRefs.current[viewOrderDetails.updated.last].focus();
         }
@@ -187,6 +202,7 @@ function OrderPlacement() {
     }, [tableDetails.customer, tableDetails.hotel]);
 
     const handleOrderSubmit = () => {
+        if (!orderingEnabled) return;
         if (viewOrderDetails.submitText === 'Pay') {
             dispatch(
                 payOrderRequest({
@@ -209,6 +225,10 @@ function OrderPlacement() {
     };
 
     const handleOrderClose = (value) => {
+        if (!orderingEnabled) {
+            dispatch(setViewOrderDetails({}));
+            return;
+        }
         if (value === 'payment') {
             if (viewOrderDetails.closeText === 'Pay Manually') {
                 dispatch(
@@ -241,9 +261,11 @@ function OrderPlacement() {
                 break;
             }
             case 'view':
+                if (!orderingEnabled) break;
                 dispatch(getCustomerOrderDetailsRequest(tableDetails.customer.id));
                 break;
             case 'place': {
+                if (!orderingEnabled) break;
                 const menus = Object.values(orderDetails || {}).filter(
                     (item) =>
                         item && item.menuId && Number.isInteger(Number(item.quantity)) && Number(item.quantity) > 0
@@ -272,6 +294,7 @@ function OrderPlacement() {
     };
 
     const handleOnChange = (e, item) => {
+        if (!orderingEnabled) return;
         const quantity = Number(e.target.value);
 
         if (!Number.isInteger(quantity) || quantity <= 0) {
@@ -485,67 +508,73 @@ function OrderPlacement() {
                 handleOnChange={handleOnChange}
                 tipAmount={tipAmount}
                 onTipAmountChange={setTipAmount}
+                orderingEnabled={orderingEnabled}
             />
-            <OMTModal
-                show={viewOrderDetails.count}
-                title={viewOrderDetails?.title}
-                description={
-                    <div className="px-3" style={{ overflowY: 'auto', maxHeight: '480px' }}>
-                        {Object.values(viewOrderDetails.data || {}).map((item) => (
-                            <OrderView key={`${item.id}-${item.name}`} item={item} />
-                        ))}
-                        {!Object.values(viewOrderDetails?.data || []).find((obj) => obj.status === ORDER_STATUS[0]) &&
-                            [
-                                ...(getGstSummary(viewOrderDetails.totalPrice).discountAmount > 0
-                                    ? [
-                                        {
-                                            title:
-                                                  getGstSummary(viewOrderDetails.totalPrice).discountType === 'PERCENT'
-                                                      ? `Discount (${getGstSummary(viewOrderDetails.totalPrice).discountValue}%)`
-                                                      : 'Discount',
-                                            value: `- ${getGstSummary(viewOrderDetails.totalPrice).discountAmount}`
-                                        }
-                                    ]
-                                    : []),
-                                {
-                                    title: `SGST Price (${gstPercent / 2}%)`,
-                                    value: getGstSummary(viewOrderDetails.totalPrice).sgst
-                                },
-                                {
-                                    title: `CGST Price (${gstPercent / 2}%)`,
-                                    value: getGstSummary(viewOrderDetails.totalPrice).cgst
-                                },
-                                {
-                                    title: 'Total Price',
-                                    value: getGstSummary(viewOrderDetails.totalPrice).total
-                                }
-                            ].map(({ title, value }, key) => (
-                                <div key={`${key}-${title}`} className="d-flex justify-content-between my-2">
-                                    <i className="fw-bold" style={{ color: '#570d0a' }}>
-                                        {title}
-                                    </i>
-                                    <i className="fw-bold" style={{ color: '#570d0a' }}>
-                                        ₹ {value}
-                                    </i>
-                                </div>
+            {orderingEnabled && (
+                <OMTModal
+                    show={viewOrderDetails.count}
+                    title={viewOrderDetails?.title}
+                    description={
+                        <div className="px-3" style={{ overflowY: 'auto', maxHeight: '480px' }}>
+                            {Object.values(viewOrderDetails.data || {}).map((item) => (
+                                <OrderView key={`${item.id}-${item.name}`} item={item} />
                             ))}
-                        <div className="alert alert-warning mt-4 mb-2" role="alert" style={{ fontSize: '14px' }}>
-                            <strong>⚠️ Note:</strong> No refund will be provided once payment is completed. You can
-                            cancel the order within 5 minutes of placement.
+                            {!Object.values(viewOrderDetails?.data || []).find(
+                                (obj) => obj.status === ORDER_STATUS[0]
+                            ) &&
+                                [
+                                    ...(getGstSummary(viewOrderDetails.totalPrice).discountAmount > 0
+                                        ? [
+                                            {
+                                                title:
+                                                      getGstSummary(viewOrderDetails.totalPrice).discountType ===
+                                                      'PERCENT'
+                                                          ? `Discount (${getGstSummary(viewOrderDetails.totalPrice).discountValue}%)`
+                                                          : 'Discount',
+                                                value: `- ${getGstSummary(viewOrderDetails.totalPrice).discountAmount}`
+                                            }
+                                        ]
+                                        : []),
+                                    {
+                                        title: `SGST Price (${gstPercent / 2}%)`,
+                                        value: getGstSummary(viewOrderDetails.totalPrice).sgst
+                                    },
+                                    {
+                                        title: `CGST Price (${gstPercent / 2}%)`,
+                                        value: getGstSummary(viewOrderDetails.totalPrice).cgst
+                                    },
+                                    {
+                                        title: 'Total Price',
+                                        value: getGstSummary(viewOrderDetails.totalPrice).total
+                                    }
+                                ].map(({ title, value }, key) => (
+                                    <div key={`${key}-${title}`} className="d-flex justify-content-between my-2">
+                                        <i className="fw-bold" style={{ color: '#570d0a' }}>
+                                            {title}
+                                        </i>
+                                        <i className="fw-bold" style={{ color: '#570d0a' }}>
+                                            ₹ {value}
+                                        </i>
+                                    </div>
+                                ))}
+                            <div className="alert alert-warning mt-4 mb-2" role="alert" style={{ fontSize: '14px' }}>
+                                <strong>⚠️ Note:</strong> No refund will be provided once payment is completed. You can
+                                cancel the order within 5 minutes of placement.
+                            </div>
                         </div>
-                    </div>
-                }
-                handleSubmit={handleOrderSubmit}
-                handleClose={handleOrderClose}
-                isFooter={true}
-                size={'lg'}
-                submitText={
-                    !(viewOrderDetails.submitText === 'Pay' && tableDetails.hotel.payment !== PAYMENT_PREFERENCE.on)
-                        ? viewOrderDetails.submitText
-                        : undefined
-                }
-                closeText={viewOrderDetails.closeText}
-            />
+                    }
+                    handleSubmit={handleOrderSubmit}
+                    handleClose={handleOrderClose}
+                    isFooter={true}
+                    size={'lg'}
+                    submitText={
+                        !(viewOrderDetails.submitText === 'Pay' && tableDetails.hotel.payment !== PAYMENT_PREFERENCE.on)
+                            ? viewOrderDetails.submitText
+                            : undefined
+                    }
+                    closeText={viewOrderDetails.closeText}
+                />
+            )}
             {orderPaymentData && (
                 <Razorpay
                     action={ACTIONS.ORDERS}
@@ -559,7 +588,7 @@ function OrderPlacement() {
                     handleSuccess={handlePaymentSuccess}
                 />
             )}
-            {invoicePrompt && (
+            {orderingEnabled && invoicePrompt && (
                 <OMTModal
                     show={invoicePrompt}
                     title="Order Placed Successfully"

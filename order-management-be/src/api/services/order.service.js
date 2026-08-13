@@ -159,6 +159,7 @@ const getTableDetails = async (id) => {
                         'id',
                         'name',
                         'logo',
+                        'paymentEnabled',
                         'gstEnabled',
                         'gstPercent',
                         'discountEnabled',
@@ -208,6 +209,8 @@ const getTableDetails = async (id) => {
                 name: table.hotel?.name,
                 logo: table.hotel?.logo || '',
                 payment: table.hotel?.hotelUserRelations[0]?.user?.preference?.payment,
+                paymentEnabled: !!table.hotel?.paymentEnabled,
+                orderingEnabled: !!table.hotel?.paymentEnabled,
                 gstEnabled: !!table.hotel?.gstEnabled,
                 gstPercent: Number(table.hotel?.gstPercent || 0),
                 discountEnabled: !!table.hotel?.discountEnabled,
@@ -418,7 +421,7 @@ const getMenuDetails = async (hotelId) => {
     }
 };
 
-const placeOrder = async (payload) => {
+const placeOrder = async (payload, { allowDisabledPaymentCompletion = false } = {}) => {
     try {
         const { customerId, menus: requestedMenus, hotelId, tableId } = payload;
         const tipAmount = Math.max(0, Number(payload.tipAmount) || 0);
@@ -451,6 +454,20 @@ const placeOrder = async (payload) => {
             throw CustomError(
                 STATUS_CODE.NOT_FOUND,
                 'Customer not found'
+            );
+        }
+
+        const orderingHotel = await hotelRepo.find({
+            where: { id: hotelId },
+            attributes: ['id', 'paymentEnabled']
+        });
+        if (!orderingHotel) {
+            throw CustomError(STATUS_CODE.NOT_FOUND, 'Hotel not found');
+        }
+        if (!orderingHotel.paymentEnabled && !allowDisabledPaymentCompletion) {
+            throw CustomError(
+                STATUS_CODE.FORBIDDEN,
+                'Online ordering is currently disabled. This QR is available for menu viewing only.'
             );
         }
 
