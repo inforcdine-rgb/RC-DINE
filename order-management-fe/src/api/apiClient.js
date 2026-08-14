@@ -13,6 +13,7 @@ export const instance = axios.create({
 });
 
 const ERROR_MESSAGE = ['TOKEN_NOT_FOUND', 'TOKEN_VERIFICATION_FAILED'];
+const MANAGER_SUBSCRIPTION_EXPIRED_KEY = 'rcManagerSubscriptionExpired';
 const CACHE_PREFIX = 'rcdine-api-cache:';
 const MAX_CACHE_BYTES = 350000;
 const MAX_CACHE_ENTRIES = 40;
@@ -260,10 +261,14 @@ instance.interceptors.response.use(
                 }
 
                 if (role === 'MANAGER') {
-                    toast.error('Your cafe\'s subscription has expired. Please contact the owner.');
-                    localStorage.clear();
-                    sessionStorage.clear();
-                    window.location.replace('/login');
+                    const alreadyExpired = localStorage.getItem(MANAGER_SUBSCRIPTION_EXPIRED_KEY) === 'true';
+                    localStorage.setItem(MANAGER_SUBSCRIPTION_EXPIRED_KEY, 'true');
+                    if (!alreadyExpired) {
+                        toast.error('Cafe subscription expired. Please contact the owner.');
+                    }
+                    if (window.location.pathname !== '/subscription-expired') {
+                        window.location.replace('/subscription-expired');
+                    }
                 } else {
                     toast.error('Your trial/subscription has expired. Please subscribe to continue.');
                     window.location.replace('/subscription');

@@ -1,0 +1,197 @@
+.manager-expired-page {
+    min-height: 100vh;
+    display: grid;
+    place-items: center;
+    padding: 28px 18px;
+    background:
+        radial-gradient(circle at 12% 8%, rgba(255, 120, 56, 0.18), transparent 36%),
+        radial-gradient(circle at 88% 92%, rgba(88, 20, 15, 0.12), transparent 38%), #fff9f5;
+    color: #29120f;
+}
+
+.manager-expired-card {
+    width: min(100%, 620px);
+    padding: clamp(26px, 5vw, 48px);
+    border: 1px solid rgba(103, 37, 25, 0.1);
+    border-radius: 30px;
+    background: rgba(255, 255, 255, 0.94);
+    box-shadow: 0 28px 80px rgba(77, 28, 20, 0.14);
+    text-align: center;
+}
+
+.manager-expired-brand {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    margin-bottom: 30px;
+}
+
+.manager-expired-brand img {
+    width: 52px;
+    height: 52px;
+    border-radius: 15px;
+    object-fit: cover;
+    box-shadow: 0 8px 22px rgba(104, 33, 22, 0.14);
+}
+
+.manager-expired-brand div {
+    display: grid;
+    text-align: left;
+}
+
+.manager-expired-brand strong {
+    font-size: 18px;
+    line-height: 1.2;
+}
+
+.manager-expired-brand span {
+    color: #8c6963;
+    font-size: 12px;
+}
+
+.manager-expired-icon {
+    width: 82px;
+    height: 82px;
+    display: grid;
+    place-items: center;
+    margin: 0 auto 18px;
+    border-radius: 26px;
+    background: linear-gradient(145deg, #fff0e8, #ffe2d4);
+    color: #b83b20;
+    font-size: 38px;
+    box-shadow: inset 0 0 0 1px rgba(184, 59, 32, 0.08);
+}
+
+.manager-expired-badge {
+    display: inline-flex;
+    padding: 7px 11px;
+    border-radius: 999px;
+    background: #eaf8ef;
+    color: #1b7a42;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.07em;
+}
+
+.manager-expired-card h1 {
+    margin: 16px 0 12px;
+    font-size: clamp(30px, 6vw, 44px);
+    line-height: 1.08;
+    letter-spacing: -0.04em;
+}
+
+.manager-expired-intro {
+    max-width: 510px;
+    margin: 0 auto;
+    color: #76554f;
+    font-size: 15px;
+    line-height: 1.7;
+}
+
+.manager-expired-owner {
+    display: grid;
+    gap: 3px;
+    margin: 26px 0 20px;
+    padding: 16px 20px;
+    border: 1px solid #f0ddd6;
+    border-radius: 18px;
+    background: #fffaf7;
+}
+
+.manager-expired-owner span {
+    color: #9b746c;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.manager-expired-owner strong {
+    font-size: 17px;
+}
+
+.manager-expired-owner a {
+    color: #a43420;
+    font-size: 13px;
+    text-decoration: none;
+}
+
+.manager-expired-steps {
+    display: grid;
+    gap: 10px;
+    margin: 0 0 24px;
+    text-align: left;
+}
+
+.manager-expired-steps div {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    color: #62443f;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.manager-expired-steps svg {
+    flex: 0 0 auto;
+    margin-top: 3px;
+    color: #2b9856;
+}
+
+.manager-expired-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.manager-expired-actions button {
+    min-height: 50px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 9px;
+    border-radius: 15px;
+    font-weight: 750;
+    transition:
+        transform 160ms ease,
+        box-shadow 160ms ease;
+}
+
+.manager-expired-actions button:active {
+    transform: translateY(1px);
+}
+
+.manager-expired-primary {
+    border: 0;
+    background: linear-gradient(135deg, #c63f22, #8e2518);
+    color: #fff;
+    box-shadow: 0 12px 24px rgba(158, 45, 26, 0.22);
+}
+
+.manager-expired-secondary {
+    border: 1px solid #e5d3cd;
+    background: #fff;
+    color: #5d3b35;
+}
+
+.manager-expired-card > small {
+    display: block;
+    margin-top: 18px;
+    color: #9a7972;
+    font-size: 11px;
+}
+
+@media (max-width: 520px) {
+    .manager-expired-page {
+        padding: 14px;
+    }
+
+    .manager-expired-card {
+        border-radius: 24px;
+    }
+
+    .manager-expired-actions {
+        grid-template-columns: 1fr;
+    }
+}

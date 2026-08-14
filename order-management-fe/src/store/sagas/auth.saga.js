@@ -28,6 +28,13 @@ import {
     VERIFY_USER_REQUEST
 } from '../types';
 
+const MANAGER_SUBSCRIPTION_EXPIRED_KEY = 'rcManagerSubscriptionExpired';
+
+const isSubscriptionExpired = ({ status, subscriptionEndAt, trialEndAt }) =>
+    status === 'EXPIRED' ||
+    (status === 'ACTIVE' && subscriptionEndAt && new Date(subscriptionEndAt).getTime() < Date.now()) ||
+    (status === 'TRIAL' && trialEndAt && new Date(trialEndAt).getTime() < Date.now());
+
 function* completeLogin(res, navigate) {
     localStorage.setItem('token', res.token);
     localStorage.setItem('data', res.data);
@@ -128,6 +135,16 @@ function* getUserRequestSaga(action) {
         yield put(getUserSuccess(res));
 
         if (res.role.toUpperCase() === USER_ROLES[1]) {
+            const managerSubscriptionExpired = isSubscriptionExpired({
+                status: res.ownerSubscriptionStatus,
+                subscriptionEndAt: res.ownerSubscriptionEndAt,
+                trialEndAt: res.ownerTrialEndAt
+            });
+            if (managerSubscriptionExpired) {
+                localStorage.setItem(MANAGER_SUBSCRIPTION_EXPIRED_KEY, 'true');
+            } else if (res.ownerSubscriptionStatus) {
+                localStorage.removeItem(MANAGER_SUBSCRIPTION_EXPIRED_KEY);
+            }
             yield * persistManagerSession(res);
         } else {
             const viewData = JSON.parse(
@@ -139,6 +156,14 @@ function* getUserRequestSaga(action) {
         }
 
         if (navigate) {
+            if (
+                res.role.toUpperCase() === USER_ROLES[1] &&
+                localStorage.getItem(MANAGER_SUBSCRIPTION_EXPIRED_KEY) === 'true'
+            ) {
+                navigate('/subscription-expired');
+                return;
+            }
+
             if (res.role.toUpperCase() === USER_ROLES[0] && res.recoveryCodeConfigured === false) {
                 navigate('/create-recovery-code');
                 return;

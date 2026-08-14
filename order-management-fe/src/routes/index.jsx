@@ -26,6 +26,7 @@ const Hotels = lazy(() => import('../pages/Hotels'));
 const LegalPage = lazy(() => import('../pages/LegalPage'));
 const Login = lazy(() => import('../pages/Login'));
 const ManagerPOS = lazy(() => import('../pages/ManagerPOS'));
+const ManagerSubscriptionExpired = lazy(() => import('../pages/ManagerSubscriptionExpired'));
 const Managers = lazy(() => import('../pages/Managers'));
 const Menu = lazy(() => import('../pages/Menu'));
 const OrderPlacement = lazy(() => import('../pages/OrderPlacement'));
@@ -85,6 +86,7 @@ export default function Routes() {
                         <Route path="tables" element={<Tables />} />
                         <Route path="orders" element={<Orders />} />
                         <Route path="walkin-pos" element={<ManagerPOS />} />
+                        <Route path="subscription-expired" element={<ManagerSubscriptionExpired />} />
                         <Route path="subscription" element={<Subscription />} />
                         <Route path="admin/dashboard" element={<AdminDashboard />} />
                         <Route path="admin/owners" element={<AdminOwners />} />

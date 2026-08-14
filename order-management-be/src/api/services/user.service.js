@@ -10,6 +10,7 @@ import logger from '../../config/logger.js';
 import { INVITE_STATUS } from '../models/invite.model.js';
 import { NOTIFICATION_PREFERENCE, ORDER_PREFERENCE, PAYMENT_PREFERENCE } from '../models/preferences.model.js';
 import { USER_ROLES, USER_STATUS } from '../models/user.model.js';
+import hotelUserRelationRepo from '../repositories/hotelUserRelation.repository.js';
 import inviteRepo from '../repositories/invite.repository.js';
 import preferencesRepo from '../repositories/preferences.repository.js';
 import userRepo from '../repositories/user.repository.js';
@@ -698,16 +699,58 @@ const getUser = async (user) => {
             ]
         };
         const result = await userRepo.findOne(fetchOptions);
+        const response = typeof result?.toJSON === 'function' ? result.toJSON() : { ...result };
         const recoveryState =
-            result.role === USER_ROLES[0]
+            response.role === USER_ROLES[0]
                 ? await db.users.findOne({ where: { id }, attributes: ['recoveryCodeHash'] })
                 : null;
-        result.recoveryCodeConfigured = result.role === USER_ROLES[0] ? Boolean(recoveryState?.recoveryCodeHash) : true;
-        result.hotelId = null;
-        if (result.role === USER_ROLES[1]) {
-            result.hotelId = await getAssignedHotelId(id);
+        response.recoveryCodeConfigured =
+            response.role === USER_ROLES[0] ? Boolean(recoveryState?.recoveryCodeHash) : true;
+        response.hotelId = null;
+
+        if (response.role === USER_ROLES[1]) {
+            response.hotelId = await getAssignedHotelId(id);
+
+            if (response.hotelId) {
+                const ownerRelation = await hotelUserRelationRepo.find({
+                    where: { hotelId: response.hotelId },
+                    include: [
+                        {
+                            model: db.users,
+                            where: { role: USER_ROLES[0] },
+                            attributes: ['id']
+                        }
+                    ],
+                    limit: 1
+                });
+                const ownerId = ownerRelation?.rows?.[0]?.userId;
+                const owner = ownerId
+                    ? await userRepo.findOne({
+                        where: { id: ownerId },
+                        attributes: [
+                            'firstName',
+                            'lastName',
+                            'email',
+                            'trialEndAt',
+                            'subscriptionEndAt',
+                            'subscriptionStatus',
+                            'subscriptionPlan'
+                        ],
+                        raw: true
+                    })
+                    : null;
+
+                if (owner) {
+                    response.ownerName = [owner.firstName, owner.lastName].filter(Boolean).join(' ');
+                    response.ownerEmail = owner.email;
+                    response.ownerTrialEndAt = owner.trialEndAt;
+                    response.ownerSubscriptionEndAt = owner.subscriptionEndAt;
+                    response.ownerSubscriptionStatus = owner.subscriptionStatus;
+                    response.ownerSubscriptionPlan = owner.subscriptionPlan;
+                }
+            }
         }
-        return result;
+        return response;
     } catch (error) {
         logger('error', 'Error while getting user details', { id: user.id, error });
         throw CustomError(error.code, error.message);
